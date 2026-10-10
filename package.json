@@ -1,0 +1,24 @@
+{
+  "name": "userpatch",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Userscripts by luminalreason that automate shortener gate pages, timers, and redirect chains.",
+  "license": "MIT",
+  "scripts": {
+    "prepare": "husky",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "lint:markdown": "markdownlint-cli2",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check",
+    "check": "pnpm run fmt:check && pnpm run lint && pnpm run lint:markdown"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^17.6.0",
+    "markdownlint-cli2": "^0.23.3",
+    "oxfmt": "^0.71.0",
+    "oxlint": "^1.86.0"
+  },
+  "packageManager": "pnpm@12.5.1"
+}

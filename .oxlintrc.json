@@ -1,0 +1,65 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "options": {
+    "denyWarnings": true,
+    "reportUnusedDisableDirectives": "error"
+  },
+  "env": {
+    "browser": true
+  },
+  "globals": {
+    "unsafeWindow": "readonly",
+    "GM": "readonly",
+    "GM_addStyle": "readonly",
+    "GM_deleteValue": "readonly",
+    "GM_getValue": "readonly",
+    "GM_listValues": "readonly",
+    "GM_notification": "readonly",
+    "GM_openInTab": "readonly",
+    "GM_registerMenuCommand": "readonly",
+    "GM_setClipboard": "readonly",
+    "GM_setValue": "readonly",
+    "GM_xmlhttpRequest": "readonly"
+  },
+  "plugins": ["unicorn"],
+  "categories": {
+    "correctness": "warn",
+    "suspicious": "warn",
+    "perf": "warn"
+  },
+  "rules": {
+    "eqeqeq": "warn",
+    "no-var": "warn",
+    "prefer-const": "warn",
+    "curly": "warn",
+    "no-eval": "warn",
+    "no-implied-eval": "warn",
+    "no-nested-ternary": "warn",
+    "no-extra-boolean-cast": "warn",
+    "no-useless-catch": "warn",
+    "no-promise-executor-return": "error",
+    "no-empty": ["warn", { "allowEmptyCatch": true }],
+    "no-empty-function": "off",
+    "no-underscore-dangle": ["warn", { "allow": ["_hooked"] }],
+    "no-throw-literal": "warn",
+    "no-self-compare": "warn",
+    "no-prototype-builtins": "warn",
+    "radix": "warn",
+    "unicorn/prefer-includes": "warn",
+    "unicorn/prefer-optional-catch-binding": "warn",
+    "unicorn/prefer-string-slice": "warn",
+    "unicorn/prefer-dom-node-dataset": "warn",
+    "unicorn/prefer-dom-node-remove": "warn",
+    "unicorn/prefer-dom-node-append": "warn",
+    "unicorn/consistent-function-scoping": "off",
+    "unicorn/prefer-string-replace-all": "warn",
+    "no-unused-vars": [
+      "warn",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_"
+      }
+    ]
+  }
+}

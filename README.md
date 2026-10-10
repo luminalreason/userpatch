@@ -14,7 +14,10 @@ A collection of browser userscripts by **luminalreason** — each one removes a 
 
 ## Installation
 
-These scripts use only standard userscript APIs, so any userscript manager can run them — but **[Violentmonkey](https://violentmonkey.github.io/) is recommended**: it is fully open source, while Tampermonkey is closed source.
+These scripts use standard userscript APIs, so any userscript manager can run them.
+
+> [!TIP]
+> Use [Violentmonkey](https://violentmonkey.github.io/). It is fully open source.
 
 1. Install [Violentmonkey](https://violentmonkey.github.io/) for your browser.
 
@@ -25,6 +28,9 @@ These scripts use only standard userscript APIs, so any userscript manager can r
    ```
 
    Alternatively, open the file above, copy its contents into a new Violentmonkey script, and save.
+
+> [!CAUTION]
+> Do not use Tampermonkey if source transparency matters to you. It is closed source, so its implementation cannot be independently reviewed. Use Violentmonkey instead.
 
 ## Contributing
 

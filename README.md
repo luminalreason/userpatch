@@ -19,18 +19,10 @@ These scripts use standard userscript APIs, so any userscript manager can run th
 > [!TIP]
 > Use [Violentmonkey](https://violentmonkey.github.io/). It is fully open source.
 
-1. Install [Violentmonkey](https://violentmonkey.github.io/) for your browser.
-
-2. Open a script's raw URL — Violentmonkey will prompt to install it:
-
-   ```text
-   https://github.com/luminalreason/userpatch/raw/main/scripts/<script-name>.user.js
-   ```
-
-   Alternatively, open the file above, copy its contents into a new Violentmonkey script, and save.
+To install a script, click its name in the table above. Violentmonkey will prompt you to install it.
 
 > [!CAUTION]
-> Do not use Tampermonkey if source transparency matters to you. It is closed source, so its implementation cannot be independently reviewed. Use Violentmonkey instead.
+> Tampermonkey is closed source, so its implementation cannot be independently reviewed. Its home page also displays ads.
 
 ## Contributing
 

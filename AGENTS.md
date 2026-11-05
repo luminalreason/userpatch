@@ -130,11 +130,11 @@ A new rule belongs here only if it is all of: **non-obvious** (an experienced co
 ## Plans and work artifacts
 
 - Never commit plans, scratch files, or anything from `.temp/`.
-- Documentation is a single `README.md` with one table of all scripts, plus `CONTRIBUTING.md` for the development workflow. No per-script READMEs.
+- Documentation is `README.md` with one table of all scripts, plus `CONTRIBUTING.md` for the development workflow. Optional how-to guides for setup outside the scripts can live in `docs/`, linked from README's Guides section. No per-script READMEs.
 
 ## Documentation
 
-- `README.md` is the only user-facing doc: one table (script, version, one-line description written for normal people) plus install notes. The deep truth of how a script works lives in the script itself — don't duplicate it in the README.
+- `README.md` is the main user-facing doc: one table (script, version, one-line description written for normal people) plus install notes. The deep truth of how a script works lives in the script itself — don't duplicate it in the README.
 - Installation instructions recommend Violentmonkey and link raw GitHub URLs.
 
 ## Where code lives

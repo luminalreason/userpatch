@@ -4,10 +4,10 @@ A collection of browser userscripts by **luminalreason** — each one removes a 
 
 ## Scripts
 
-| Script       | Version | Description                                                                 |
-| ------------ | ------- | --------------------------------------------------------------------------- |
-| [hub-helper] | 0.1.0   | Skips "please wait" gate pages and opens the page the countdown was hiding. |
-| [xd-helper]  | 0.1.0   | Clicks through XD gate pages for you — no waiting, no extra clicks.         |
+| Script       | Version | Description                                                                                          |
+| ------------ | ------- | ---------------------------------------------------------------------------------------------------- |
+| [hub-helper] | 0.2.0   | Skips "please wait" gate pages, opens the hidden page, and updates outdated HubCloud/HubDrive links. |
+| [xd-helper]  | 0.1.0   | Clicks through XD gate pages for you — no waiting, no extra clicks.                                  |
 
 [hub-helper]: https://github.com/luminalreason/userpatch/raw/main/scripts/hub-helper.user.js
 [xd-helper]: https://github.com/luminalreason/userpatch/raw/main/scripts/xd-helper.user.js
@@ -23,6 +23,10 @@ To install a script, click its name in the table above. Violentmonkey will promp
 
 > [!CAUTION]
 > Tampermonkey is closed source, so its implementation cannot be independently reviewed. Its home page also displays ads.
+
+## Guides
+
+- [Redirecting old HubCloud/HubDrive links](docs/redirector.md)
 
 ## Contributing
 

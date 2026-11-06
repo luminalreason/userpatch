@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hub Helper
 // @namespace    https://github.com/luminalreason/userpatch
-// @version      0.3.0
+// @version      0.3.1
 // @description  Skips "please wait" gate pages, updates outdated HubCloud/HubDrive links, and returns reloaded HubCloud download pages to their original share link. Never clicks buttons, never starts downloads. Toggle it in Violentmonkey.
 // @author       luminalreason
 // @match        *://*/*
@@ -147,12 +147,37 @@
     }
   }
   const downloadPageUrl = snapshotDownloadPageUrl()
+  const reloadShareId = location.hash.match(
+    /^#userpatch-hubcloud=([a-z0-9]{15})$/i
+  )?.[1]
 
   const isChallengePage = () =>
     /^(Just a moment|Attention Required)/i.test(document.title) ||
     !!document.querySelector("#challenge-form, #challenge-running")
 
-  const fixDownloadReloadTarget = () => {
+  const restoreDownloadShare = () => {
+    // Restored blog URLs have lost the endpoint and may have lost tab storage.
+    // Require our file marker and the site's recovery script, not a blog path.
+    if (
+      downloadPageUrl ||
+      !reloadShareId ||
+      isChallengePage() ||
+      isDirectFileLink(location.href) ||
+      ![...document.querySelectorAll("script:not([src])")].some(
+        (script) =>
+          /sessionStorage\.getItem\(\s*["']xl["']\s*\)/.test(
+            script.textContent
+          ) && /location\.href\s*=/.test(script.textContent)
+      )
+    ) {
+      return false
+    }
+    openTarget(`https://${HUBCLOUD_HOST}/drive/${reloadShareId}`)
+    console.info("[hub-helper] returned a restored tab to its share page")
+    return true
+  }
+
+  const preserveDownloadShare = () => {
     try {
       // Only the completed server-selection page pairs this readonly share
       // field and success message with real file links for the endpoint's ID.
@@ -180,22 +205,43 @@
       ) {
         return false
       }
-      // The masked article/error page follows xl on reload. The site puts its
-      // expiring endpoint there; keep the durable share link instead. Only
-      // replace the slot when it still belongs to this loaded endpoint.
-      const saved = sessionStorage.getItem("xl")
       const shareUrl = normalizeTarget(url.href)
-      if (saved === shareUrl) {
-        return true
+      const current = new URL(location.href)
+      const marker = `#userpatch-hubcloud=${downloadPageUrl.searchParams.get("id")}`
+      let preserved = false
+      // The fragment travels with a restored tab even without sessionStorage.
+      // Leave existing page anchors and history state alone.
+      if (!current.hash || current.hash === marker) {
+        try {
+          if (current.hash !== marker) {
+            current.hash = marker
+            history.replaceState(history.state, "", current.href)
+            console.info("[hub-helper] preserved the share ID in the tab URL")
+          }
+          preserved = true
+        } catch {
+          // Keep the site's storage recovery when history edits are refused.
+        }
       }
-      if (saved !== downloadPageUrl.href) {
-        return false
+      // The site's article/error page also follows xl on ordinary reloads.
+      // Only replace the slot when it belongs to this loaded endpoint.
+      try {
+        const saved = sessionStorage.getItem("xl")
+        if (saved === shareUrl) {
+          preserved = true
+        } else if (saved === downloadPageUrl.href) {
+          sessionStorage.setItem("xl", shareUrl)
+          console.info(
+            "[hub-helper] preserved the original share link for reloads"
+          )
+          preserved = true
+        }
+      } catch {
+        // The URL marker still works when tab storage is blocked or missing.
       }
-      sessionStorage.setItem("xl", shareUrl)
-      console.info("[hub-helper] preserved the original share link for reloads")
-      return true
+      return preserved
     } catch {
-      // Storage may be blocked; the site's normal flow must still work.
+      // A malformed share field must leave the page alone.
       return false
     }
   }
@@ -358,12 +404,18 @@
       looksLikeGatePage() ||
       /[?&]id=/.test(location.search) ||
       location.pathname.toLowerCase().includes("homelander")
-    if (!downloadPageUrl && !gateShaped) {
+    if (!downloadPageUrl && !reloadShareId && !gateShaped) {
       return
     }
     const observer = new MutationObserver(() => {
       if (downloadPageUrl) {
-        if (fixDownloadReloadTarget()) {
+        if (preserveDownloadShare()) {
+          observer.disconnect()
+        }
+        return
+      }
+      if (reloadShareId) {
+        if (restoreDownloadShare()) {
           observer.disconnect()
         }
         return
@@ -383,10 +435,16 @@
   }
 
   const init = () => {
+    if (reloadShareId && !downloadPageUrl) {
+      if (!restoreDownloadShare()) {
+        watchForLatePagePayload()
+      }
+      return
+    }
     rewriteOutdatedLinks()
     if (downloadPageUrl) {
       // Server-selection pages are destinations, even when storage is blocked.
-      if (!fixDownloadReloadTarget()) {
+      if (!preserveDownloadShare()) {
         watchForLatePagePayload()
       }
       return

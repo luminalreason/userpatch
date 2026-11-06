@@ -6,7 +6,7 @@ A collection of browser userscripts by **luminalreason** — each one removes a 
 
 | Script       | Version | Description                                                                                                          |
 | ------------ | ------- | -------------------------------------------------------------------------------------------------------------------- |
-| [hub-helper] | 0.3.1   | Skips gate pages, updates old HubCloud/HubDrive share links, and returns reloaded download tabs to their share page. |
+| [hub-helper] | 0.3.2   | Skips gate pages, updates old HubCloud/HubDrive share links, and returns reloaded download tabs to their share page. |
 | [xd-helper]  | 0.1.0   | Clicks through XD gate pages for you — no waiting, no extra clicks.                                                  |
 
 [hub-helper]: https://github.com/luminalreason/userpatch/raw/main/scripts/hub-helper.user.js

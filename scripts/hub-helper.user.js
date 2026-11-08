@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hub Helper
 // @namespace    https://github.com/luminalreason/userpatch
-// @version      0.3.2
+// @version      0.3.3
 // @description  Skips "please wait" gate pages, updates outdated HubCloud/HubDrive links, and returns reloaded HubCloud download pages to their original share link. Never clicks buttons, never starts downloads. Toggle it in Violentmonkey.
 // @author       luminalreason
 // @match        *://*/*
@@ -50,7 +50,7 @@
 
   // Target rewriting
 
-  // This is a fallback entry point, not an authority over working share pages.
+  // These are fallback entry points, not authorities over working share pages.
   const HUBCLOUD_HOST = "hubcloud.pw"
   const HUBDRIVE_HOST = "hubdrive.bar"
 
@@ -112,19 +112,18 @@
   }
 
   // Failed connections cannot run a userscript; source-link rewriting covers
-  // those hosts. Loaded HubCloud pages get a DOM check before using this fallback.
-  const redirectOutdatedHost = (markHubCloud = false) => {
+  // those hosts. Loaded share pages get a DOM check before using this fallback.
+  const redirectOutdatedHost = () => {
     const target = new URL(normalizeTarget(location.href))
     if (target.href === location.href || isDirectFileLink(target.href)) {
       return false
     }
-    if (markHubCloud) {
-      // The fragment survives HTTP redirects across origins even when storage
-      // is blocked. Carry an existing anchor inside the one-attempt marker.
-      target.hash = target.hash
-        ? `#userpatch-hubcloud-migrated=${encodeURIComponent(target.hash)}`
-        : "#userpatch-hubcloud-migrated"
-    }
+    // The fragment survives HTTP redirects across origins even when storage
+    // is blocked. Carry an existing anchor inside the one-attempt marker.
+    const marker = `#userpatch-${target.hostname.split(".")[0]}-migrated`
+    target.hash = target.hash
+      ? `${marker}=${encodeURIComponent(target.hash)}`
+      : marker
     console.info(
       `[hub-helper] moved ${location.hostname} -> ${target.hostname}`
     )
@@ -166,12 +165,14 @@
     /^#userpatch-hubcloud=([a-z0-9]{15})$/i
   )?.[1]
   // Keep this snapshot after restoring the anchor so recovery cannot repeat.
-  const hubCloudMigration = location.hash.match(
-    /^#userpatch-hubcloud-migrated(?:=(.*))?$/
+  const hubShareMigration = location.hash.match(
+    /^#userpatch-hub(?:cloud|drive)-migrated(?:=(.*))?$/
   )
 
   const isHubCloudShareUrl = () =>
     canonicalHostFor(new URL(location.href)) === HUBCLOUD_HOST
+
+  const isHubShareUrl = () => !!canonicalHostFor(new URL(location.href))
 
   const isChallengePage = () =>
     /^(Just a moment|Attention Required)/i.test(document.title) ||
@@ -189,15 +190,33 @@
     )
   }
 
-  const recoverOutdatedHubCloudHost = () => {
-    if (hubCloudMigration || isChallengePage() || isHubCloudSharePage()) {
+  const isHubSharePage = () => {
+    if (isHubCloudShareUrl()) {
+      return isHubCloudSharePage()
+    }
+    // HubDrive's file page offers a HubCloud share as a server choice. That
+    // handoff identifies a usable destination without pinning its current TLD.
+    return (
+      isHubShareUrl() &&
+      [...document.querySelectorAll("a[href]")].some((link) => {
+        try {
+          return canonicalHostFor(new URL(link.href)) === HUBCLOUD_HOST
+        } catch {
+          return false
+        }
+      })
+    )
+  }
+
+  const recoverOutdatedShareHost = () => {
+    if (hubShareMigration || isChallengePage() || isHubSharePage()) {
       return
     }
     // Give late-injected share controls time to appear before treating an old
     // domain as broken. Never force the fallback over a working share page.
     setTimeout(() => {
-      if (!isChallengePage() && !isHubCloudSharePage()) {
-        redirectOutdatedHost(true)
+      if (!isChallengePage() && !isHubSharePage()) {
+        redirectOutdatedHost()
       }
     }, 8000)
   }
@@ -205,7 +224,7 @@
   // A share is a destination even before its controls finish loading. Stale
   // mediator storage must not send it back into the gate chain.
   const isGateDestination = () =>
-    isChallengePage() || isDirectFileLink(location.href) || isHubCloudShareUrl()
+    isChallengePage() || isDirectFileLink(location.href) || isHubShareUrl()
 
   const restoreDownloadShare = () => {
     // Restored blog URLs have lost the endpoint and may have lost tab storage.
@@ -494,8 +513,8 @@
   }
 
   const init = () => {
-    if (isHubCloudShareUrl()) {
-      recoverOutdatedHubCloudHost()
+    if (isHubShareUrl()) {
+      recoverOutdatedShareHost()
       return
     }
     if (reloadShareId && !downloadPageUrl) {
@@ -518,9 +537,9 @@
   }
 
   // Restore before parsing finishes so the browser can use the original anchor.
-  if (isHubCloudShareUrl() && hubCloudMigration?.[1]) {
+  if (isHubShareUrl() && hubShareMigration?.[1]) {
     try {
-      const hash = decodeURIComponent(hubCloudMigration[1])
+      const hash = decodeURIComponent(hubShareMigration[1])
       if (hash.startsWith("#")) {
         const target = new URL(location.href)
         target.hash = hash
@@ -532,15 +551,13 @@
     }
   }
 
-  // HubCloud must be checked after parsing: the fallback can redirect here,
-  // and rewriting this loaded page immediately would start a redirect loop.
-  if (!isHubCloudShareUrl() && redirectOutdatedHost()) {
-    return
-  }
-
   // Attach before DOMContentLoaded so early right-clicks and middle-clicks are
   // covered even while the rest of the page is still parsing.
-  watchLinkIntent()
+  // Share pages own their links, including self-links used by Copy Link.
+  // Rewriting them here would override the working domain on interaction.
+  if (!isHubShareUrl()) {
+    watchLinkIntent()
+  }
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init, { once: true })

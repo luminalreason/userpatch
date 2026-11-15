@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         4K-HDHub Redesign
 // @namespace    https://github.com/luminalreason/userpatch
-// @version      0.1.0
+// @version      0.1.1
 // @description  Reworks 4K-HDHub with a responsive dark interface, site search, saved season and quality filters, and readable video and audio badges.
 // @author       luminalreason
 // @match        *://4khdhub.one/*
@@ -2898,7 +2898,9 @@ html.userpatch-maia.userpatch-detail-page .page-container {
   max-inline-size: 88rem !important;
   min-block-size: 0;
   margin: 0 auto;
-  padding: 1rem clamp(1rem, 3vw, 2rem) !important;
+  box-sizing: border-box;
+  padding-block: 0 !important;
+  padding-inline: clamp(1rem, 3vw, 2rem) !important;
 }
 
 html.userpatch-maia.userpatch-detail-page .content-grid.container {
@@ -2996,10 +2998,11 @@ html.userpatch-maia.userpatch-detail-page .userpatch-poster-panel .poster-image 
 
 html.userpatch-maia.userpatch-detail-page .content-main {
   block-size: 100%;
+  box-sizing: border-box;
   min-inline-size: 0;
   min-block-size: 0;
   margin-inline-end: calc(-1 * clamp(1rem, 3vw, 2rem));
-  padding: 0.25rem 0 2rem !important;
+  padding: 0 !important;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior-x: auto;
@@ -3945,7 +3948,8 @@ html.userpatch-maia header.sticky > .header > .container {
 html.userpatch-maia.userpatch-detail-page .content-main.userpatch-release-main {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
-  grid-template-rows: 4rem 1rem auto;
+  /* Match the poster top after the sidebar inset and brand-to-poster gap. */
+  grid-template-rows: 4rem 2rem auto;
   align-content: start;
   gap: 0;
   padding-block-start: 0 !important;
@@ -3955,11 +3959,13 @@ html.userpatch-maia.userpatch-detail-page .userpatch-release-toolbar {
   display: contents;
 }
 
-html.userpatch-maia.userpatch-detail-page .userpatch-release-main > .userpatch-release-toolbar > .userpatch-quality-tabs {
+/* Keep the movie filter centered on the logo in the 1rem-offset sidebar. */
+html.userpatch-maia.userpatch-detail-page .userpatch-release-main:not(.userpatch-series-main) > .userpatch-release-toolbar > .userpatch-quality-tabs {
   grid-row: 1;
   grid-column: 1 / -1;
   align-self: center;
   justify-self: end;
+  inset-block-start: 1.5rem;
   margin: 0;
 }
 
@@ -4379,10 +4385,10 @@ html.userpatch-maia.userpatch-detail-page .userpatch-series-main > .userpatch-se
     margin: 0;
 }
 
-/* Keep the complete show filter row together while allowing the list to flow underneath. */
+/* Keep the show filters together and align the release list with the poster. */
 html.userpatch-maia.userpatch-detail-page .content-main.userpatch-series-main {
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: max-content 1rem auto;
+  grid-template-rows: max-content 2rem auto;
 }
 
 html.userpatch-maia.userpatch-detail-page .userpatch-series-main > .userpatch-series-toolbar {
@@ -4428,7 +4434,13 @@ html.userpatch-maia.userpatch-detail-page .userpatch-series-main > .userpatch-se
 }
 
 @media (min-width: ${CONFIG.mobileLayoutBreakpointRem + 0.01}rem) {
+  html.userpatch-maia.userpatch-detail-page .userpatch-series-main > .userpatch-series-toolbar > #series-tabs {
+    inset-block-start: 1.5rem;
+  }
+
   html.userpatch-maia.userpatch-detail-page .userpatch-series-main > .userpatch-series-toolbar > .userpatch-series-selects {
+    position: relative;
+    inset-block-start: 1.5rem;
     flex: 1 1 auto;
     flex-wrap: nowrap;
     inline-size: auto;
@@ -4807,6 +4819,8 @@ html.userpatch-maia.userpatch-detail-page .userpatch-mobile-nav {
   }
 
   html.userpatch-maia.userpatch-detail-page .userpatch-series-main > .userpatch-series-toolbar > #series-tabs {
+    position: relative;
+    inset-block-start: auto;
     display: flex;
     inline-size: fit-content;
     max-inline-size: 100%;

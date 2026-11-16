@@ -6,7 +6,7 @@ A collection of browser userscripts by **luminalreason** that make link-shortene
 
 | Script               | Version | Description                                                                                                                                                                                               |
 | -------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [hubfamily-redesign] | 0.1.0   | A complete, responsive UI and UX redesign for 4K-HDHub, HDHub4u, HUBLinks, HubCloud, and their download pages, with consistent layouts, clearer movie and series details, and easier download navigation. |
+| [hubfamily-redesign] | 0.1.1   | A complete, responsive UI and UX redesign for 4K-HDHub, HDHub4u, HUBLinks, HubCloud, and their download pages, with consistent layouts, clearer movie and series details, and easier download navigation. |
 | [hub-helper]         | 0.3.9   | Skips gate pages, updates old HubCloud/HubDrive share links, and returns reloaded download tabs to their share page.                                                                                      |
 | [xd-helper]          | 0.1.0   | Clicks through XD gate pages for you — no waiting, no extra clicks.                                                                                                                                       |
 
@@ -18,11 +18,11 @@ HubFamily Redesign brings the sites into one consistent dark interface, from bro
 
 | Script              | Version | Description                                                                                                                                                 |
 | ------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [4khdhub-redesign]  | 0.2.0   | Redesigns 4K-HDHub with responsive movie and series layouts, structured Info, saved season and quality filters, site search, and clearer release details.   |
-| [hdhub4u-redesign]  | 0.1.0   | Redesigns HDHub4u and HUBLinks with responsive poster and download layouts, Info and screenshot views, quality filters, and consistent provider links.      |
-| [hubcloud-redesign] | 0.2.0   | Redesigns HubCloud, HubCDN, and related link-generator pages with consistent server buttons, copy and share controls, loading feedback, and a server guide. |
+| [4khdhub-redesign]  | 0.2.1   | Redesigns 4K-HDHub with responsive movie and series layouts, structured Info, saved season and quality filters, site search, and clearer release details.   |
+| [hdhub4u-redesign]  | 0.1.1   | Redesigns HDHub4u and HUBLinks with responsive poster and download layouts, Info and screenshot views, quality filters, and consistent provider links.      |
+| [hubcloud-redesign] | 0.2.1   | Redesigns HubCloud, HubCDN, and related link-generator pages with consistent server buttons, copy and share controls, loading feedback, and a server guide. |
 
-HubFamily and HDHub4u/HUBLinks start at **0.1.0** for their first publication. Their earlier local version bumps were development iterations, not published releases.
+HubFamily and HDHub4u/HUBLinks were first published at **0.1.0**. Their earlier local version bumps were development iterations, not published releases.
 
 [hubfamily-redesign]: https://github.com/luminalreason/userpatch/raw/main/scripts/hubfamily-redesign.user.js
 [hub-helper]: https://github.com/luminalreason/userpatch/raw/main/scripts/hub-helper.user.js

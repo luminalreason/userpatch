@@ -684,8 +684,7 @@ button#button1,
 #button1:active,
 .${DIRECT_DOWNLOAD_BUTTON_CLASS}:active,
 .userpatch-btn-main:active {
-  transform: scale(0.96) !important;
-  box-shadow: inset 0 1px 2px 0 rgba(0, 0, 0, 0.25) !important;
+  transform: none !important;
 }
 
 #download[data-userpatch-loading="true"],
@@ -746,7 +745,7 @@ button#button1,
 .${BUTTON_GROUP_CLASS} > a:active,
 [data-slot="button-group"] > button:active,
 .${BUTTON_GROUP_CLASS} > button:active {
-  transform: scale(0.96) !important;
+  transform: none !important;
   background-color: transparent !important;
 }
 
@@ -780,7 +779,12 @@ button#button1,
   outline: none !important;
   color: inherit !important;
   box-sizing: border-box !important;
-  transition: transform 100ms var(--ease-out) !important;
+  /* Source templates add lift/zoom to .btn:hover. Keep grouped actions still. */
+  transform: none !important;
+  translate: none !important;
+  scale: none !important;
+  rotate: none !important;
+  transition: none !important;
 }
 
 [data-slot="button-group"] > *:focus-visible,
@@ -1452,14 +1456,14 @@ button.btn:not(.${COPY_BUTTON_CLASS}):not(.${DIRECT_DOWNLOAD_BUTTON_CLASS}):not(
 }
 
 .userpatch-share-btn:active {
-  transform: scale(0.97) !important;
+  transform: none !important;
   background-color: transparent !important;
 }
 
 .userpatch-pack-copy-btn:active,
 .userpatch-mirror-guide-trigger:active,
 .userpatch-dialog-close-btn:active {
-  transform: scale(0.96) !important;
+  transform: none !important;
   background-color: var(--secondary) !important;
 }
 

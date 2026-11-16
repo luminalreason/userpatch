@@ -23,11 +23,14 @@ export const captureDetailInfo = (main, titleContainer) => {
       continue
     }
     const tokens = Array.from(value.querySelectorAll(".metadata-token"))
+    const text = tokens.length
+      ? tokens.map((token) => token.textContent.trim()).join(", ")
+      : value.textContent
     entries.push([
       label,
-      tokens.length
-        ? tokens.map((token) => token.textContent.trim()).join(", ")
-        : value.textContent,
+      label.toLowerCase() === "audios"
+        ? text.replaceAll(/\s*\|\s*/g, " | ")
+        : text,
     ])
   }
   pane.append(createDetailInfoList(entries))

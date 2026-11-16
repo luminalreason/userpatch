@@ -2,8 +2,13 @@ import {
   HUBCLOUD_LOGO_DATA_URI,
   HUBDRIVE_LOGO_DATA_URI,
 } from "../shared/provider-logos.js"
+import { createLucideIcon } from "./icons.js"
 
-export const RELEASE_PROVIDER_ORDER = Object.freeze(["HubCloud", "HubDrive"])
+export const RELEASE_PROVIDER_ORDER = Object.freeze([
+  "HubCloud",
+  "HubDrive",
+  "Other",
+])
 
 export const createReleaseActions = (sourceContainer) => {
   const actions = document.createElement("div")
@@ -17,6 +22,11 @@ export const createReleaseActions = (sourceContainer) => {
       provider = "HubCloud"
     } else if (sourceLabel.includes("hubdrive")) {
       provider = "HubDrive"
+    }
+    // Some episodes explicitly label a mirror "Other". Preserve that link
+    // without guessing its host or rejecting the rest of the series.
+    if (!provider && /^download\s+other$/i.test(sourceLabel.trim())) {
+      provider = "Other"
     }
     if (!provider) {
       return null
@@ -46,6 +56,12 @@ export const createReleaseActions = (sourceContainer) => {
     anchor.rel = "noopener noreferrer"
     anchor.dataset.tooltip = provider
     anchor.setAttribute("aria-label", provider)
+
+    if (provider === "Other") {
+      anchor.append(createLucideIcon("external-link"))
+      providers.set(provider, anchor)
+      continue
+    }
 
     const logo = document.createElement("img")
     logo.src =

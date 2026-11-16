@@ -1,8 +1,34 @@
 import { KEEP_CLASS, LISTING_READY_CLASS } from "./config.js"
 import { createLucideIcon } from "./icons.js"
-import { setupProgressiveImage } from "./images.js"
+import { setupPosterRecovery, setupProgressiveImage } from "./images.js"
 
 export const normalizePagination = (root = document) => {
+  for (const list of root.querySelectorAll("ul.pagination")) {
+    const wrapper = list.closest(".pagination-wrapper")
+    if (wrapper) {
+      wrapper.setAttribute("role", "navigation")
+      wrapper.setAttribute("aria-label", "Pagination")
+    }
+    const pages = Array.from(list.querySelectorAll(".page-numbers")).filter(
+      (element) => /^\d+$/.test(element.textContent.trim())
+    )
+    const first = pages[0]
+    const last = pages.at(-1)
+    for (const page of pages) {
+      const current = page.classList.contains("current")
+      page
+        .closest("li")
+        ?.classList.toggle(
+          "userpatch-pagination-neighbor",
+          page !== first && page !== last && !current
+        )
+      page.setAttribute("aria-label", `Page ${page.textContent.trim()}`)
+      if (current) {
+        page.setAttribute("aria-current", "page")
+      }
+    }
+  }
+
   for (const arrow of root.querySelectorAll(
     "a.page-numbers.next, a.next, .pagination-next a, a[rel='next']"
   )) {
@@ -75,6 +101,7 @@ export const ensureListingPage = () => {
       img.loading = "lazy"
     }
     imageIndex += 1
+    setupPosterRecovery(img)
     setupProgressiveImage(img)
   }
   /* The caption repeats the poster's link; drop it from the tab order so

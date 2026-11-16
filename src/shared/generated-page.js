@@ -132,6 +132,12 @@ html.userpatch-generated-page #download_container .container.main {
   padding: 0 !important;
 }
 html.userpatch-generated-page :is(.state, .vd) {
+  /* A ready link can precede the source's hidden-class removal. Its absolute
+     positioning otherwise sizes the button against the wider padding box. */
+  position: static !important;
+  width: 100% !important;
+  inline-size: 100% !important;
+  box-sizing: border-box !important;
   margin: 0 !important;
   padding: 0 !important;
   text-align: start !important;

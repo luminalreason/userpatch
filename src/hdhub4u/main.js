@@ -33,6 +33,7 @@ import { MAIA_CSS } from "./css.js"
 import { ensureDetailPage } from "./detail.js"
 import { ensureHeader } from "./header-nav.js"
 import { createLucideIcon } from "./icons.js"
+import { ensureLandingPage, isLandingPage } from "./landing.js"
 import { ensureListingPage, normalizePagination } from "./listing.js"
 import { ensureMobileNavigation } from "./mobile-nav.js"
 import { ensureSearchDialog } from "./search-dialog.js"
@@ -52,6 +53,10 @@ const processCurrentPage = () => {
       removeAppChrome()
     }
     return false
+  }
+
+  if (isLandingPage()) {
+    return ensureLandingPage()
   }
 
   if (isHblinksArchivePage()) {
@@ -84,6 +89,7 @@ const processCurrentPage = () => {
 }
 
 const hasSiteSignature = () =>
+  isLandingPage() ||
   isHblinksArchivePage() ||
   (document.body?.classList.contains("wp-theme-9xhd") &&
     document.querySelector("main#main-content.content-wrapper"))

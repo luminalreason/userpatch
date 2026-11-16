@@ -2,6 +2,8 @@ import { HBLINKS_CSS } from "../hblinks/css.js"
 import { DETAIL_INFO_CSS } from "../shared/detail-info.js"
 import { PROGRESSIVE_IMAGE_CSS } from "../shared/progressive-images.js"
 import { CONFIG } from "./config.js"
+import { POSTER_RECOVERY_CSS } from "./images.js"
+import { LANDING_CSS } from "./landing.js"
 import { SCREENSHOT_VIEWER_CSS } from "./screenshot-viewer.js"
 
 // Only 36 micro-blocks (~7 KB, ~5%) match across ~460 block positions.
@@ -1295,6 +1297,9 @@ html.userpatch-maia .thumbnail-wrapper figcaption p {
 html.userpatch-maia main#main-content.userpatch-listing-ready .pagination-wrapper {
   display: flex !important;
   justify-content: center;
+  inline-size: 100%;
+  min-inline-size: 0;
+  container: pagination / inline-size;
   margin-block: 2rem 1rem !important;
 }
 
@@ -1368,11 +1373,6 @@ html.userpatch-maia .page-numbers.prev {
   position: relative !important;
 }
 
-html.userpatch-maia .page-numbers.next *,
-html.userpatch-maia .page-numbers.prev * {
-  display: none !important;
-}
-
 html.userpatch-maia main#main-content.userpatch-listing-ready .page-numbers svg,
 html.userpatch-maia .pagination-wrapper .page-numbers svg,
 html.userpatch-maia .page-numbers.next svg,
@@ -1401,9 +1401,19 @@ html.userpatch-maia main#main-content.userpatch-listing-ready .page-numbers.curr
 }
 
 html.userpatch-maia main#main-content.userpatch-listing-ready .page-numbers.dots {
+  inline-size: 1.5rem;
   min-inline-size: 1.5rem;
   color: var(--maia-muted-foreground);
   pointer-events: none;
+}
+
+@container pagination (max-width: 36rem) {
+  html.userpatch-maia main#main-content.userpatch-listing-ready ul.pagination {
+    gap: 0.25rem !important;
+  }
+  html.userpatch-maia main#main-content.userpatch-listing-ready ul.pagination > .userpatch-pagination-neighbor {
+    display: none !important;
+  }
 }
 
 @media (max-width: ${CONFIG.mobileLayoutBreakpointRem}rem) {
@@ -2344,5 +2354,7 @@ html.userpatch-maia .userpatch-story {
 ${PROGRESSIVE_IMAGE_CSS}
 
 ${SCREENSHOT_VIEWER_CSS}
+${POSTER_RECOVERY_CSS}
+${LANDING_CSS}
 ${DETAIL_INFO_CSS}
 `

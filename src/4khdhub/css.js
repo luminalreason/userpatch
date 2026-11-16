@@ -4688,6 +4688,8 @@ html.userpatch-maia.userpatch-detail-page .userpatch-release-toolbar > [hidden] 
     grid-template-rows: max-content 0.5rem auto;
   }
   html.userpatch-maia.userpatch-detail-page .userpatch-series-main > .userpatch-series-toolbar {
+    position: sticky;
+    inset-block-start: 0;
     padding-block-start: 1.5rem;
     align-items: center;
   }

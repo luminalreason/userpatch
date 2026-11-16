@@ -270,20 +270,6 @@ export const ensureMirrorGuide = ({ hubCdn = false } = {}) => {
       body.append(row)
     }
 
-    if (!hubCdn) {
-      const caution = document.createElement("li")
-      caution.className = "userpatch-guide-item"
-      const cautionTitle = document.createElement("h3")
-      cautionTitle.className = "userpatch-guide-heading"
-      cautionTitle.textContent = "Before downloading"
-      const cautionText = document.createElement("p")
-      cautionText.className = "userpatch-guide-text"
-      cautionText.textContent =
-        "Some servers may not support resuming downloads. Avoid pausing the download or closing your download app until it finishes."
-      caution.append(cautionTitle, cautionText)
-      body.append(caution)
-    }
-
     dialog.append(header, body)
 
     if (!("closedBy" in window.HTMLDialogElement.prototype)) {

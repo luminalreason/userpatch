@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         4K-HDHub Redesign
 // @namespace    https://github.com/luminalreason/userpatch
-// @version      0.2.0
+// @version      0.2.1
 // @description  Reworks 4K-HDHub with a responsive dark interface, site search, saved season and quality filters, and readable video and audio badges.
 // @author       luminalreason
 // @match        *://4khdhub.one/*
@@ -5476,6 +5476,8 @@ html.userpatch-maia.userpatch-detail-page .userpatch-release-toolbar > [hidden] 
     grid-template-rows: max-content 0.5rem auto;
   }
   html.userpatch-maia.userpatch-detail-page .userpatch-series-main > .userpatch-series-toolbar {
+    position: sticky;
+    inset-block-start: 0;
     padding-block-start: 1.5rem;
     align-items: center;
   }
@@ -5942,6 +5944,14 @@ ${DETAIL_INFO_CSS}
 
   // src/4khdhub/icons.js
   const LUCIDE_ICON_SHAPES = {
+    "external-link": [
+      ["path", { d: "M15 3h6v6" }],
+      ["path", { d: "M10 14 21 3" }],
+      [
+        "path",
+        { d: "M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" },
+      ],
+    ],
     film: [
       [
         "rect",
@@ -6195,11 +6205,14 @@ ${DETAIL_INFO_CSS}
         continue
       }
       const tokens = Array.from(value.querySelectorAll(".metadata-token"))
+      const text = tokens.length
+        ? tokens.map((token) => token.textContent.trim()).join(", ")
+        : value.textContent
       entries.push([
         label,
-        tokens.length
-          ? tokens.map((token) => token.textContent.trim()).join(", ")
-          : value.textContent,
+        label.toLowerCase() === "audios"
+          ? text.replaceAll(/\s*\|\s*/g, " | ")
+          : text,
       ])
     }
     pane.append(createDetailInfoList(entries))
@@ -7056,7 +7069,11 @@ ${DETAIL_INFO_CSS}
   const HUBCDN_LOGO_DATA_URI = makeSvgDataUri(HUBCDN_LOGO_SVG)
 
   // src/4khdhub/provider-links.js
-  const RELEASE_PROVIDER_ORDER = Object.freeze(["HubCloud", "HubDrive"])
+  const RELEASE_PROVIDER_ORDER = Object.freeze([
+    "HubCloud",
+    "HubDrive",
+    "Other",
+  ])
   const createReleaseActions = (sourceContainer) => {
     const actions = document.createElement("div")
     actions.className = "userpatch-release-actions"
@@ -7068,6 +7085,9 @@ ${DETAIL_INFO_CSS}
         provider = "HubCloud"
       } else if (sourceLabel.includes("hubdrive")) {
         provider = "HubDrive"
+      }
+      if (!provider && /^download\s+other$/i.test(sourceLabel.trim())) {
+        provider = "Other"
       }
       if (!provider) {
         return null
@@ -7095,6 +7115,11 @@ ${DETAIL_INFO_CSS}
       anchor.rel = "noopener noreferrer"
       anchor.dataset.tooltip = provider
       anchor.setAttribute("aria-label", provider)
+      if (provider === "Other") {
+        anchor.append(createLucideIcon("external-link"))
+        providers.set(provider, anchor)
+        continue
+      }
       const logo = document.createElement("img")
       logo.src =
         provider === "HubCloud"

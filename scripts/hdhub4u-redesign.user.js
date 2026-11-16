@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HDHub4u + HUBLinks Redesign
 // @namespace    https://github.com/luminalreason/userpatch
-// @version      0.1.0
+// @version      0.1.1
 // @description  Reworks HDHub4u and HUBLinks with a shared responsive dark interface and clearer release links.
 // @author       luminalreason
 // @match        *://*/*
@@ -2264,6 +2264,266 @@ html.userpatch-maia img.userpatch-progressive-image.userpatch-image-loaded {
     }
   })
 
+  // src/hdhub4u/images.js
+  const recoveredPosters = new WeakSet()
+  const setupPosterRecovery = (image) => {
+    if (recoveredPosters.has(image)) {
+      return
+    }
+    recoveredPosters.add(image)
+    let retried = false
+    const parent = image.parentElement
+    const showFallback = () => {
+      if (!parent || parent.querySelector(".userpatch-poster-fallback")) {
+        return
+      }
+      const fallback = document.createElement("span")
+      fallback.className = "userpatch-poster-fallback"
+      fallback.textContent = "Poster unavailable"
+      parent.classList.add("userpatch-poster-missing")
+      parent.append(fallback)
+    }
+    const failed = () => {
+      if (!retried) {
+        retried = true
+        try {
+          const url = new URL(image.currentSrc || image.src)
+          if (
+            url.hostname === "myimg.bid" &&
+            url.pathname.startsWith("/images/")
+          ) {
+            url.hostname = "myimg.click"
+            image.removeAttribute("srcset")
+            image.src = url.href
+            return
+          }
+        } catch {}
+      }
+      showFallback()
+    }
+    image.addEventListener("error", failed)
+    image.addEventListener("load", () => {
+      parent?.classList.remove("userpatch-poster-missing")
+      parent?.querySelector(".userpatch-poster-fallback")?.remove()
+    })
+    if (image.complete && !image.naturalWidth) {
+      failed()
+    }
+  }
+  const POSTER_RECOVERY_CSS = `
+html.userpatch-maia li.thumb .userpatch-poster-missing {
+  position: relative;
+}
+html.userpatch-maia li.thumb .userpatch-poster-missing > img {
+  visibility: hidden !important;
+}
+html.userpatch-maia li.thumb .userpatch-poster-fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  text-align: center;
+  background: var(--maia-card);
+  color: var(--maia-muted-foreground);
+  font: 400 0.875rem/1.45 "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+}
+`
+
+  // src/hdhub4u/landing.js
+  const isLandingPage = () =>
+    Boolean(
+      document.querySelector("#xwrapper .mwh-logox a.new-tab img") &&
+      document.querySelector("#action-button a.new-tab") &&
+      document.querySelector("#stx")
+    ) || Boolean(document.getElementById("userpatch-landing"))
+  const ensureLandingPage = () => {
+    document.documentElement.classList.add("userpatch-landing-page")
+    if (!document.getElementById("userpatch-landing")) {
+      const action = document.querySelector("#action-button a.new-tab")
+      const brand = document.querySelector(".mwh-logox a.new-tab")
+      const status = document.getElementById("stx")
+      if (!action || !brand || !status) {
+        return false
+      }
+      const root = document.createElement("main")
+      root.id = "userpatch-landing"
+      const image = document.createElement("img")
+      image.src = HEADER_WORDMARK_DATA_URI
+      image.alt = "HDHub4u"
+      image.width = 180
+      image.height = 55
+      brand.replaceChildren(image)
+      brand.classList.add("userpatch-landing-brand")
+      for (const control of [brand, action]) {
+        control.setAttribute("role", "button")
+        control.tabIndex = 0
+        control.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault()
+            control.click()
+          }
+        })
+      }
+      const label = document.createElement("span")
+      label.textContent = "View Full Site"
+      action.replaceChildren(createLucideIcon("external-link"), label)
+      action.classList.add("userpatch-landing-action")
+      const header = document.createElement("header")
+      header.append(brand)
+      const footer = document.createElement("footer")
+      const copyright = document.querySelector(".copyright")
+      if (copyright) {
+        footer.append(copyright)
+      }
+      root.append(header, action, status, footer)
+      document.body.append(root)
+    }
+    const footer = document.querySelector("#userpatch-landing footer")
+    const copyright = document.querySelector("#xwrapper .copyright")
+    if (footer && copyright) {
+      footer.append(copyright)
+    }
+    watchRefreshNotice()
+    return true
+  }
+  let refreshObserver = null
+  let lifecycleBound = false
+  const normalizeRefreshNotice = () => {
+    for (const notice of document.querySelectorAll("body > div")) {
+      if (
+        notice.textContent.trim() ===
+          "New version available! Click to refresh" &&
+        typeof notice.onclick === "function"
+      ) {
+        notice.classList.add("userpatch-landing-refresh")
+        notice.setAttribute("role", "button")
+        notice.tabIndex = 0
+        if (!notice.dataset.userpatchKeyboard) {
+          notice.dataset.userpatchKeyboard = "true"
+          notice.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault()
+              notice.click()
+            }
+          })
+        }
+      }
+    }
+  }
+  const watchRefreshNotice = () => {
+    normalizeRefreshNotice()
+    if (refreshObserver) {
+      return
+    }
+    refreshObserver = new MutationObserver(normalizeRefreshNotice)
+    refreshObserver.observe(document.body, { childList: true })
+    if (!lifecycleBound) {
+      lifecycleBound = true
+      window.addEventListener("pagehide", () => {
+        refreshObserver?.disconnect()
+        refreshObserver = null
+      })
+      window.addEventListener("pageshow", (event) => {
+        if (event.persisted) {
+          watchRefreshNotice()
+        }
+      })
+    }
+  }
+  const LANDING_CSS = `
+html.userpatch-landing-page body {
+  display: block !important;
+  min-block-size: 100dvh !important;
+  margin: 0 !important;
+  background: var(--maia-background) !important;
+}
+html.userpatch-landing-page #xwrapper { display: none !important; }
+html.userpatch-landing-page #userpatch-landing {
+  display: flex;
+  flex-direction: column;
+  inline-size: 100%;
+  max-inline-size: 42rem;
+  min-block-size: 100dvh;
+  box-sizing: border-box;
+  margin-inline: auto;
+  padding: 1.25rem 1.5rem;
+  gap: 1rem;
+  font-family: "Inter Variable", ui-sans-serif, system-ui, sans-serif !important;
+}
+html.userpatch-landing-page #userpatch-landing > header {
+  min-block-size: 46px;
+}
+html.userpatch-landing-page .userpatch-landing-brand {
+  display: flex;
+  justify-content: center;
+  margin: 0;
+}
+html.userpatch-landing-page .userpatch-landing-brand img {
+  display: block;
+  inline-size: 180px;
+  block-size: 38px;
+  object-fit: contain;
+}
+html.userpatch-landing-page #userpatch-landing .userpatch-landing-action {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  min-block-size: 56px;
+  padding: 0.75rem 1rem !important;
+  border: 1px solid rgb(255 255 255 / 14%) !important;
+  border-radius: 0.625rem !important;
+  background: #0051c3 !important;
+  color: #fff !important;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 22%), 0 1px 2px rgb(0 0 0 / 24%) !important;
+  font: 400 18px/1.45 "Inter Variable", ui-sans-serif, system-ui, sans-serif !important;
+  text-decoration: none !important;
+  transform: none !important;
+  cursor: pointer;
+}
+html.userpatch-landing-page #userpatch-landing .userpatch-landing-action > span {
+  font: inherit !important;
+}
+html.userpatch-landing-page .userpatch-landing-action svg {
+  inline-size: 20px; block-size: 20px; flex: none;
+}
+html.userpatch-landing-page #userpatch-landing footer {
+  margin-block-start: auto !important;
+  padding-block-start: 1rem;
+  text-align: center !important;
+}
+html.userpatch-landing-page #userpatch-landing .copyright {
+  margin: 0 !important;
+  text-align: center !important;
+  color: var(--maia-muted-foreground) !important;
+}
+html.userpatch-landing-page #stx { display: none !important; }
+html.userpatch-landing-page #stx { text-align: center; }
+html.userpatch-landing-page #stx h5 { margin: 0 !important; }
+html.userpatch-landing-page .userpatch-landing-refresh {
+  position: static !important;
+  max-inline-size: 39rem;
+  box-sizing: border-box;
+  margin: 1rem auto !important;
+  padding: 0.75rem 1rem !important;
+  border: 1px solid var(--maia-border);
+  border-radius: 0.625rem;
+  background: var(--maia-secondary) !important;
+  color: var(--maia-foreground) !important;
+  text-align: center;
+}
+html.userpatch-landing-page :is(.userpatch-landing-action, .userpatch-landing-refresh):focus-visible {
+  outline: 2px solid currentColor !important;
+  outline-offset: 3px;
+}
+@media (hover: hover) and (pointer: fine) {
+  html.userpatch-landing-page .userpatch-landing-action:hover {
+    filter: brightness(1.06);
+  }
+}
+`
+
   // src/hdhub4u/screenshot-viewer.js
   let viewer = null
   const resetScreenshotViewer = () => {
@@ -3616,6 +3876,9 @@ html.userpatch-maia .thumbnail-wrapper figcaption p {
 html.userpatch-maia main#main-content.userpatch-listing-ready .pagination-wrapper {
   display: flex !important;
   justify-content: center;
+  inline-size: 100%;
+  min-inline-size: 0;
+  container: pagination / inline-size;
   margin-block: 2rem 1rem !important;
 }
 
@@ -3689,11 +3952,6 @@ html.userpatch-maia .page-numbers.prev {
   position: relative !important;
 }
 
-html.userpatch-maia .page-numbers.next *,
-html.userpatch-maia .page-numbers.prev * {
-  display: none !important;
-}
-
 html.userpatch-maia main#main-content.userpatch-listing-ready .page-numbers svg,
 html.userpatch-maia .pagination-wrapper .page-numbers svg,
 html.userpatch-maia .page-numbers.next svg,
@@ -3722,9 +3980,19 @@ html.userpatch-maia main#main-content.userpatch-listing-ready .page-numbers.curr
 }
 
 html.userpatch-maia main#main-content.userpatch-listing-ready .page-numbers.dots {
+  inline-size: 1.5rem;
   min-inline-size: 1.5rem;
   color: var(--maia-muted-foreground);
   pointer-events: none;
+}
+
+@container pagination (max-width: 36rem) {
+  html.userpatch-maia main#main-content.userpatch-listing-ready ul.pagination {
+    gap: 0.25rem !important;
+  }
+  html.userpatch-maia main#main-content.userpatch-listing-ready ul.pagination > .userpatch-pagination-neighbor {
+    display: none !important;
+  }
 }
 
 @media (max-width: ${CONFIG.mobileLayoutBreakpointRem}rem) {
@@ -4665,6 +4933,8 @@ html.userpatch-maia .userpatch-story {
 ${PROGRESSIVE_IMAGE_CSS}
 
 ${SCREENSHOT_VIEWER_CSS}
+${POSTER_RECOVERY_CSS}
+${LANDING_CSS}
 ${DETAIL_INFO_CSS}
 `
 
@@ -6049,6 +6319,31 @@ ${DETAIL_INFO_CSS}
 
   // src/hdhub4u/listing.js
   const normalizePagination = (root = document) => {
+    for (const list of root.querySelectorAll("ul.pagination")) {
+      const wrapper = list.closest(".pagination-wrapper")
+      if (wrapper) {
+        wrapper.setAttribute("role", "navigation")
+        wrapper.setAttribute("aria-label", "Pagination")
+      }
+      const pages = Array.from(list.querySelectorAll(".page-numbers")).filter(
+        (element) => /^\d+$/.test(element.textContent.trim())
+      )
+      const first = pages[0]
+      const last = pages.at(-1)
+      for (const page of pages) {
+        const current = page.classList.contains("current")
+        page
+          .closest("li")
+          ?.classList.toggle(
+            "userpatch-pagination-neighbor",
+            page !== first && page !== last && !current
+          )
+        page.setAttribute("aria-label", `Page ${page.textContent.trim()}`)
+        if (current) {
+          page.setAttribute("aria-current", "page")
+        }
+      }
+    }
     for (const arrow of root.querySelectorAll(
       "a.page-numbers.next, a.next, .pagination-next a, a[rel='next']"
     )) {
@@ -6117,6 +6412,7 @@ ${DETAIL_INFO_CSS}
         img.loading = "lazy"
       }
       imageIndex += 1
+      setupPosterRecovery(img)
       setupProgressiveImage(img)
     }
     for (const captionLink of main.querySelectorAll("li.thumb figcaption a")) {
@@ -6379,6 +6675,9 @@ ${DETAIL_INFO_CSS}
       }
       return false
     }
+    if (isLandingPage()) {
+      return ensureLandingPage()
+    }
     if (isHblinksArchivePage()) {
       const pageReady = ensureHblinksPage()
       document.documentElement.classList.toggle(HBLINKS_PAGE_CLASS, pageReady)
@@ -6405,6 +6704,7 @@ ${DETAIL_INFO_CSS}
     return detailBuilt
   }
   const hasSiteSignature = () =>
+    isLandingPage() ||
     isHblinksArchivePage() ||
     (document.body?.classList.contains("wp-theme-9xhd") &&
       document.querySelector("main#main-content.content-wrapper"))

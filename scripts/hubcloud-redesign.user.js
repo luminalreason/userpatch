@@ -1,11 +1,12 @@
 // ==UserScript==
 // @name         HubCloud Redesign
 // @namespace    https://github.com/luminalreason/userpatch
-// @version      0.2.1
+// @version      0.2.2
 // @description  A dark interface with clearer download choices, link sharing, copy controls, and a guide to compare download mirrors.
 // @author       luminalreason
 // @match        *://*/*
 // @run-at       document-start
+// @inject-into  content
 // @grant        none
 // @noframes
 // ==/UserScript==
@@ -14,6 +15,26 @@
 ;(function installLoadingCover(force = false, timeoutMs = 8000) {
   const root = document.documentElement
   if (!root) {
+    // Some injection paths run before the parser creates <html>. Retry in the
+    // mutation microtask instead of waiting for the much later body event.
+    let timeout = 0
+    const pending = new MutationObserver(() => {
+      if (document.documentElement) {
+        pending.disconnect()
+        window.clearTimeout(timeout)
+        installLoadingCover(force, timeoutMs)
+      }
+    })
+    pending.observe(document, { childList: true })
+    timeout = window.setTimeout(() => pending.disconnect(), timeoutMs)
+    window.addEventListener(
+      "pagehide",
+      () => {
+        pending.disconnect()
+        window.clearTimeout(timeout)
+      },
+      { once: true }
+    )
     return null
   }
   const isChallenge = () =>
@@ -50,7 +71,13 @@
     style.id = "userpatch-page-loader-style"
     style.textContent = `
       html[data-userpatch-loading] { background: #0a0a0a !important; }
-      html[data-userpatch-loading] > body { visibility: hidden !important; }
+      /* Visibility alone can be overridden by the source's visible children.
+         Opacity suppresses the entire body, including its white background. */
+      html[data-userpatch-loading] > body {
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+      }
       #userpatch-page-loader {
         all: initial !important; position: fixed !important; inset: 0 !important;
         z-index: 2147483647 !important; display: grid !important;
@@ -1342,6 +1369,24 @@ html.userpatch-generated-page :is(.note, .note-text) {
   function installLoadingCover(force = false, timeoutMs = 8e3) {
     const root = document.documentElement
     if (!root) {
+      let timeout = 0
+      const pending = new MutationObserver(() => {
+        if (document.documentElement) {
+          pending.disconnect()
+          window.clearTimeout(timeout)
+          installLoadingCover(force, timeoutMs)
+        }
+      })
+      pending.observe(document, { childList: true })
+      timeout = window.setTimeout(() => pending.disconnect(), timeoutMs)
+      window.addEventListener(
+        "pagehide",
+        () => {
+          pending.disconnect()
+          window.clearTimeout(timeout)
+        },
+        { once: true }
+      )
       return null
     }
     const isChallenge = () =>
@@ -1378,7 +1423,13 @@ html.userpatch-generated-page :is(.note, .note-text) {
       style.id = "userpatch-page-loader-style"
       style.textContent = `
       html[data-userpatch-loading] { background: #0a0a0a !important; }
-      html[data-userpatch-loading] > body { visibility: hidden !important; }
+      /* Visibility alone can be overridden by the source's visible children.
+         Opacity suppresses the entire body, including its white background. */
+      html[data-userpatch-loading] > body {
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+      }
       #userpatch-page-loader {
         all: initial !important; position: fixed !important; inset: 0 !important;
         z-index: 2147483647 !important; display: grid !important;

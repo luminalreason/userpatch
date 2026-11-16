@@ -1,11 +1,12 @@
 // ==UserScript==
 // @name         4K-HDHub Redesign
 // @namespace    https://github.com/luminalreason/userpatch
-// @version      0.2.1
+// @version      0.3.0
 // @description  Reworks 4K-HDHub with a responsive dark interface, site search, saved season and quality filters, and readable video and audio badges.
 // @author       luminalreason
 // @match        *://4khdhub.one/*
 // @run-at       document-start
+// @inject-into  content
 // @grant        none
 // @noframes
 // ==/UserScript==
@@ -14,6 +15,26 @@
 ;(function installLoadingCover(force = false, timeoutMs = 8000) {
   const root = document.documentElement
   if (!root) {
+    // Some injection paths run before the parser creates <html>. Retry in the
+    // mutation microtask instead of waiting for the much later body event.
+    let timeout = 0
+    const pending = new MutationObserver(() => {
+      if (document.documentElement) {
+        pending.disconnect()
+        window.clearTimeout(timeout)
+        installLoadingCover(force, timeoutMs)
+      }
+    })
+    pending.observe(document, { childList: true })
+    timeout = window.setTimeout(() => pending.disconnect(), timeoutMs)
+    window.addEventListener(
+      "pagehide",
+      () => {
+        pending.disconnect()
+        window.clearTimeout(timeout)
+      },
+      { once: true }
+    )
     return null
   }
   const isChallenge = () =>
@@ -50,7 +71,13 @@
     style.id = "userpatch-page-loader-style"
     style.textContent = `
       html[data-userpatch-loading] { background: #0a0a0a !important; }
-      html[data-userpatch-loading] > body { visibility: hidden !important; }
+      /* Visibility alone can be overridden by the source's visible children.
+         Opacity suppresses the entire body, including its white background. */
+      html[data-userpatch-loading] > body {
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+      }
       #userpatch-page-loader {
         all: initial !important; position: fixed !important; inset: 0 !important;
         z-index: 2147483647 !important; display: grid !important;
@@ -154,6 +181,24 @@
   function installLoadingCover(force = false, timeoutMs = 8e3) {
     const root = document.documentElement
     if (!root) {
+      let timeout = 0
+      const pending = new MutationObserver(() => {
+        if (document.documentElement) {
+          pending.disconnect()
+          window.clearTimeout(timeout)
+          installLoadingCover(force, timeoutMs)
+        }
+      })
+      pending.observe(document, { childList: true })
+      timeout = window.setTimeout(() => pending.disconnect(), timeoutMs)
+      window.addEventListener(
+        "pagehide",
+        () => {
+          pending.disconnect()
+          window.clearTimeout(timeout)
+        },
+        { once: true }
+      )
       return null
     }
     const isChallenge = () =>
@@ -190,7 +235,13 @@
       style.id = "userpatch-page-loader-style"
       style.textContent = `
       html[data-userpatch-loading] { background: #0a0a0a !important; }
-      html[data-userpatch-loading] > body { visibility: hidden !important; }
+      /* Visibility alone can be overridden by the source's visible children.
+         Opacity suppresses the entire body, including its white background. */
+      html[data-userpatch-loading] > body {
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+      }
       #userpatch-page-loader {
         all: initial !important; position: fixed !important; inset: 0 !important;
         z-index: 2147483647 !important; display: grid !important;
@@ -676,6 +727,7 @@ html.userpatch-maia img.userpatch-progressive-image.userpatch-image-loaded {
     mobileNavigationWidth: "260px",
     ongoingPosterSessionKey: "userpatch-4khdhub-ongoing-poster-path",
     storageKeys: Object.freeze({
+      detailTab: "userpatch-4khdhub-detail-tab",
       movieQualityTab: "userpatch-4khdhub-quality-tab",
       seriesArchiveQualityTab: "userpatch-4khdhub-series-archive-quality-tab",
       seriesTab: "userpatch-4khdhub-series-tab",
@@ -718,6 +770,11 @@ html.userpatch-maia img.userpatch-progressive-image.userpatch-image-loaded {
   const DETAIL_INFO_CSS = `
 html.userpatch-maia.userpatch-detail-page body .userpatch-detail-info {
   container: detail-info / inline-size;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 html.userpatch-maia.userpatch-detail-page body .userpatch-detail-info #userpatch-detail-info-list {
@@ -789,6 +846,92 @@ html.userpatch-maia.userpatch-detail-page .userpatch-detail-tabs .userpatch-qual
   inline-size: 1rem !important;
   block-size: 1rem !important;
   flex: 0 0 1rem !important;
+}
+`
+
+  // src/shared/trailer.js
+  const findTrailerUrl = (root) => {
+    const candidate =
+      root.querySelector("[data-trailer-url]")?.dataset.trailerUrl
+    const links = Array.from(root.querySelectorAll("a[href]"))
+      .filter((link) => /trailer/i.test(link.textContent))
+      .map((link) => link.href)
+    const frames = Array.from(root.querySelectorAll("iframe[src]")).map(
+      (frame) => frame.getAttribute("src")
+    )
+    for (const source of [candidate, ...links, ...frames]) {
+      try {
+        const url = new URL(source, location.href)
+        let id = ""
+        if (
+          /^(www\.)?(youtube\.com|youtube-nocookie\.com)$/.test(url.hostname)
+        ) {
+          id =
+            url.searchParams.get("v") ||
+            url.pathname.match(/^\/(?:embed|shorts)\/([^/]+)/)?.[1] ||
+            ""
+        } else if (url.hostname === "youtu.be") {
+          id = url.pathname.slice(1)
+        }
+        if (/^[\w-]{11}$/.test(id)) {
+          return `https://www.youtube-nocookie.com/embed/${id}`
+        }
+        if (/^(?:player\.)?vimeo\.com$/.test(url.hostname)) {
+          const video = url.pathname.match(/^\/(?:video\/)?(\d+)\/?$/)?.[1]
+          if (video) {
+            return `https://player.vimeo.com/video/${video}`
+          }
+        }
+      } catch {}
+    }
+    return null
+  }
+  const createTrailer = (url) => {
+    if (!url) {
+      return null
+    }
+    const section = document.createElement("div")
+    section.className = "userpatch-trailer"
+    const frame = document.createElement("div")
+    frame.className = "userpatch-trailer-frame"
+    const player = document.createElement("iframe")
+    player.src = url
+    player.title = "Trailer"
+    player.loading = "lazy"
+    player.allow = "encrypted-media; fullscreen; picture-in-picture"
+    player.allowFullscreen = true
+    player.referrerPolicy = "strict-origin-when-cross-origin"
+    frame.append(player)
+    section.append(frame)
+    return section
+  }
+  const TRAILER_CSS = `
+html.userpatch-maia .userpatch-detail-info .userpatch-trailer {
+  display: block;
+  margin: 1.5rem 0 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+html.userpatch-maia .userpatch-trailer-frame {
+  aspect-ratio: 16 / 9;
+  inline-size: 100%;
+  overflow: clip;
+  border: 0 !important;
+  box-shadow: none !important;
+  border-radius: 1rem;
+  background: var(--maia-card);
+}
+html.userpatch-maia .userpatch-trailer-frame > iframe {
+  display: block !important;
+  position: static !important;
+  inline-size: 100% !important;
+  block-size: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
 }
 `
 
@@ -5335,17 +5478,14 @@ html.userpatch-maia.userpatch-detail-page .userpatch-mobile-nav {
     inline-size: fit-content;
     margin-block: 0 ${CONFIG.mobileQualityVerticalGapRem}rem;
     margin-inline: auto;
-    border: 1px solid color-mix(in oklch, var(--maia-foreground) 12%, transparent);
+    /* The shared tab pseudo-elements already draw the glass and outline. */
+    border: 0;
     border-radius: 1rem;
-    background: color-mix(in oklch, var(--maia-card) 88%, transparent);
-    box-shadow: 0 8px 24px rgb(0 0 0 / 0.18);
+    background: transparent;
+    box-shadow: none;
   }
 
   @media (max-width: ${CONFIG.mobileCompactQualityBreakpointRem}rem) {
-    html.userpatch-maia.userpatch-detail-page .userpatch-movie-releases > .userpatch-quality-tabs {
-      border-radius: calc(12px + 0.25rem + 1px);
-    }
-
     html.userpatch-maia.userpatch-detail-page .userpatch-movie-releases > .userpatch-quality-tabs .userpatch-quality-tab {
       padding-inline: ${CONFIG.mobileCompactQualityTabPaddingInlinePx}px;
     }
@@ -5432,6 +5572,9 @@ html.userpatch-maia.userpatch-detail-page .userpatch-mobile-nav {
 
 ${PROGRESSIVE_IMAGE_CSS}
 html.userpatch-maia.userpatch-detail-page .userpatch-release-toolbar > .userpatch-detail-tabs {
+  /* Confine the absolute glass backdrop even when mobile filters are static. */
+  position: relative !important;
+  isolation: isolate;
   grid-row: 1;
   grid-column: 1 !important;
   justify-self: start !important;
@@ -5488,6 +5631,21 @@ html.userpatch-maia.userpatch-detail-page .userpatch-release-toolbar > [hidden] 
   }
 }
 @media (max-width: ${CONFIG.mobileLayoutBreakpointRem}rem) {
+  html.userpatch-maia.userpatch-detail-page .userpatch-release-main > .userpatch-release-toolbar {
+    display: flex;
+    position: static;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    min-block-size: 0;
+    padding: 0;
+    margin-block-end: ${CONFIG.mobileDetailSectionGapRem}rem;
+  }
+  html.userpatch-maia.userpatch-detail-page .userpatch-release-toolbar > .userpatch-detail-tabs {
+    inset-block-start: auto !important;
+    flex: none;
+    margin: 0 auto;
+  }
   html.userpatch-maia.userpatch-detail-page .userpatch-series-main > .userpatch-series-toolbar > .userpatch-detail-tabs {
     display: flex;
     inline-size: fit-content;
@@ -5500,6 +5658,7 @@ html.userpatch-maia.userpatch-detail-page .userpatch-series-main > .userpatch-se
   inset-block-start: auto;
 }
 
+${TRAILER_CSS}
 ${DETAIL_INFO_CSS}
 `
 
@@ -6216,6 +6375,10 @@ ${DETAIL_INFO_CSS}
       ])
     }
     pane.append(createDetailInfoList(entries))
+    const trailer = createTrailer(findTrailerUrl(main))
+    if (trailer) {
+      pane.append(trailer)
+    }
     main.append(pane)
     const screenshots = document.createElement("section")
     screenshots.className = "userpatch-detail-screenshots"
@@ -6276,6 +6439,11 @@ ${DETAIL_INFO_CSS}
           control.hidden = value !== "links"
         }
       }
+      for (const filter of main.querySelectorAll(
+        ":scope > .userpatch-movie-releases > .userpatch-quality-tabs"
+      )) {
+        filter.hidden = value !== "links"
+      }
       for (const [key, button] of buttons) {
         button.setAttribute("aria-pressed", String(key === value))
       }
@@ -6303,12 +6471,16 @@ ${DETAIL_INFO_CSS}
         links: "download",
       }
       button.append(text, createLucideIcon(icons[value]))
-      button.addEventListener("click", () => select(value))
+      button.addEventListener("click", () => {
+        storageSet(CONFIG.storageKeys.detailTab, value)
+        select(value)
+      })
       buttons.set(value, button)
       group.append(button)
     }
     toolbar.prepend(group)
-    select("info")
+    const savedTab = storageGet(CONFIG.storageKeys.detailTab)
+    select(buttons.has(savedTab) ? savedTab : "info")
     document.fonts?.ready.then(() => {
       if (group.isConnected) {
         const active = [...buttons.values()].find(

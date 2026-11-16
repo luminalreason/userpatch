@@ -12,6 +12,7 @@ import {
   storageGet,
   storageSet,
 } from "../shared/storage.js"
+import { createTrailer, findTrailerUrl } from "../shared/trailer.js"
 import { HEADER_WORDMARK_DATA_URI } from "./branding.js"
 import { CONFIG } from "./config.js"
 import { normalizeText } from "./dom.js"
@@ -279,6 +280,7 @@ export const extractDetail = () => {
       isSeries,
       screenshots,
       storyline,
+      trailer: findTrailerUrl(body),
     }
   } catch (error) {
     console.warn("userpatch extract failed:", error)
@@ -416,7 +418,13 @@ export const buildDetailPage = (data) => {
     ...(hasArchiveTab ? [["archive", "Archive", "file-archive"]] : []),
     ...(hasEpisodesTab ? [["episodes", "Single Episode", "file-play"]] : []),
   ]
+  const savedTab = storageGet(CONFIG.storageKeys.detailTab)
   let activeTab = "info"
+  if (savedTab === "links") {
+    activeTab = hasLinksTab ? "links" : activeMode
+  } else if (savedTab === "screenshot" && data.screenshots.length) {
+    activeTab = "screenshot"
+  }
 
   const tabs = document.createElement("div")
   tabs.className = "userpatch-mode-tabs"
@@ -585,7 +593,12 @@ export const buildDetailPage = (data) => {
     if (!button || button.dataset.tab === activeTab) {
       return
     }
-    applyTab(button.dataset.tab)
+    const tab = button.dataset.tab
+    storageSet(
+      CONFIG.storageKeys.detailTab,
+      tab === "info" || tab === "screenshot" ? tab : "links"
+    )
+    applyTab(tab)
   }
   const positionActiveTabIndicator = () => {
     requestAnimationFrame(() => {
@@ -629,6 +642,10 @@ export const buildDetailPage = (data) => {
     ["Storyline", data.storyline],
   ]
   infoPane.append(createDetailInfoList(infoEntries))
+  const trailer = createTrailer(data.trailer)
+  if (trailer) {
+    infoPane.append(trailer)
+  }
 
   root.append(panel, mainColumn)
   document.body.append(root)

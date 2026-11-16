@@ -8,6 +8,7 @@ export const CONFIG = Object.freeze({
   mobileMenuPopoverId: "userpatch-mobile-menu",
   mobileNavigationWidth: "260px",
   storageKeys: Object.freeze({
+    detailTab: "userpatch-hdhub4u-detail-tab",
     movieQualityTab: "userpatch-hdhub4u-quality-tab",
     seriesTab: "userpatch-hdhub4u-series-tab",
     openedReleases: "userpatch-hdhub4u-opened-releases",

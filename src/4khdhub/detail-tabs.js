@@ -1,5 +1,8 @@
 import { createDetailInfoList } from "../shared/detail-info.js"
 import { positionSelectionIndicator } from "../shared/quality-tabs.js"
+import { storageGet, storageSet } from "../shared/storage.js"
+import { createTrailer, findTrailerUrl } from "../shared/trailer.js"
+import { CONFIG } from "./config.js"
 import { createLucideIcon } from "./icons.js"
 
 export const captureDetailInfo = (main, titleContainer) => {
@@ -34,6 +37,10 @@ export const captureDetailInfo = (main, titleContainer) => {
     ])
   }
   pane.append(createDetailInfoList(entries))
+  const trailer = createTrailer(findTrailerUrl(main))
+  if (trailer) {
+    pane.append(trailer)
+  }
   main.append(pane)
   const screenshots = document.createElement("section")
   screenshots.className = "userpatch-detail-screenshots"
@@ -95,6 +102,12 @@ export const ensureDetailTabs = (siteRoot) => {
         control.hidden = value !== "links"
       }
     }
+    // Mobile moves the movie filter out of the toolbar into the list.
+    for (const filter of main.querySelectorAll(
+      ":scope > .userpatch-movie-releases > .userpatch-quality-tabs"
+    )) {
+      filter.hidden = value !== "links"
+    }
     for (const [key, button] of buttons) {
       button.setAttribute("aria-pressed", String(key === value))
     }
@@ -113,12 +126,16 @@ export const ensureDetailTabs = (siteRoot) => {
     text.textContent = label
     const icons = { info: "info", screenshot: "film", links: "download" }
     button.append(text, createLucideIcon(icons[value]))
-    button.addEventListener("click", () => select(value))
+    button.addEventListener("click", () => {
+      storageSet(CONFIG.storageKeys.detailTab, value)
+      select(value)
+    })
     buttons.set(value, button)
     group.append(button)
   }
   toolbar.prepend(group)
-  select("info")
+  const savedTab = storageGet(CONFIG.storageKeys.detailTab)
+  select(buttons.has(savedTab) ? savedTab : "info")
   document.fonts?.ready.then(() => {
     if (group.isConnected) {
       const active = [...buttons.values()].find(

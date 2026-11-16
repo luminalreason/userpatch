@@ -21,6 +21,11 @@ export const createDetailInfoList = (entries) => {
 export const DETAIL_INFO_CSS = `
 html.userpatch-maia.userpatch-detail-page body .userpatch-detail-info {
   container: detail-info / inline-size;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 html.userpatch-maia.userpatch-detail-page body .userpatch-detail-info #userpatch-detail-info-list {

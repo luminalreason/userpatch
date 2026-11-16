@@ -1,5 +1,6 @@
 import { DETAIL_INFO_CSS } from "../shared/detail-info.js"
 import { PROGRESSIVE_IMAGE_CSS } from "../shared/progressive-images.js"
+import { TRAILER_CSS } from "../shared/trailer.js"
 import { CONFIG } from "./config.js"
 
 // Only 36 micro-blocks (~7 KB, ~5%) match across ~460 block positions.
@@ -4547,17 +4548,14 @@ html.userpatch-maia.userpatch-detail-page .userpatch-mobile-nav {
     inline-size: fit-content;
     margin-block: 0 ${CONFIG.mobileQualityVerticalGapRem}rem;
     margin-inline: auto;
-    border: 1px solid color-mix(in oklch, var(--maia-foreground) 12%, transparent);
+    /* The shared tab pseudo-elements already draw the glass and outline. */
+    border: 0;
     border-radius: 1rem;
-    background: color-mix(in oklch, var(--maia-card) 88%, transparent);
-    box-shadow: 0 8px 24px rgb(0 0 0 / 0.18);
+    background: transparent;
+    box-shadow: none;
   }
 
   @media (max-width: ${CONFIG.mobileCompactQualityBreakpointRem}rem) {
-    html.userpatch-maia.userpatch-detail-page .userpatch-movie-releases > .userpatch-quality-tabs {
-      border-radius: calc(12px + 0.25rem + 1px);
-    }
-
     html.userpatch-maia.userpatch-detail-page .userpatch-movie-releases > .userpatch-quality-tabs .userpatch-quality-tab {
       padding-inline: ${CONFIG.mobileCompactQualityTabPaddingInlinePx}px;
     }
@@ -4644,6 +4642,9 @@ html.userpatch-maia.userpatch-detail-page .userpatch-mobile-nav {
 
 ${PROGRESSIVE_IMAGE_CSS}
 html.userpatch-maia.userpatch-detail-page .userpatch-release-toolbar > .userpatch-detail-tabs {
+  /* Confine the absolute glass backdrop even when mobile filters are static. */
+  position: relative !important;
+  isolation: isolate;
   grid-row: 1;
   grid-column: 1 !important;
   justify-self: start !important;
@@ -4700,6 +4701,21 @@ html.userpatch-maia.userpatch-detail-page .userpatch-release-toolbar > [hidden] 
   }
 }
 @media (max-width: ${CONFIG.mobileLayoutBreakpointRem}rem) {
+  html.userpatch-maia.userpatch-detail-page .userpatch-release-main > .userpatch-release-toolbar {
+    display: flex;
+    position: static;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    min-block-size: 0;
+    padding: 0;
+    margin-block-end: ${CONFIG.mobileDetailSectionGapRem}rem;
+  }
+  html.userpatch-maia.userpatch-detail-page .userpatch-release-toolbar > .userpatch-detail-tabs {
+    inset-block-start: auto !important;
+    flex: none;
+    margin: 0 auto;
+  }
   html.userpatch-maia.userpatch-detail-page .userpatch-series-main > .userpatch-series-toolbar > .userpatch-detail-tabs {
     display: flex;
     inline-size: fit-content;
@@ -4712,5 +4728,6 @@ html.userpatch-maia.userpatch-detail-page .userpatch-series-main > .userpatch-se
   inset-block-start: auto;
 }
 
+${TRAILER_CSS}
 ${DETAIL_INFO_CSS}
 `

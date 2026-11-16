@@ -70,7 +70,8 @@ const normalizeRefreshNotice = () => {
   for (const notice of document.querySelectorAll("body > div")) {
     if (
       notice.textContent.trim() === "New version available! Click to refresh" &&
-      typeof notice.onclick === "function"
+      (notice.style.position === "fixed" ||
+        notice.classList.contains("userpatch-landing-refresh"))
     ) {
       notice.classList.add("userpatch-landing-refresh")
       notice.setAttribute("role", "button")

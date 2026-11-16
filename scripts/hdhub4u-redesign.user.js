@@ -1,11 +1,12 @@
 // ==UserScript==
 // @name         HDHub4u + HUBLinks Redesign
 // @namespace    https://github.com/luminalreason/userpatch
-// @version      0.1.1
+// @version      0.2.0
 // @description  Reworks HDHub4u and HUBLinks with a shared responsive dark interface and clearer release links.
 // @author       luminalreason
 // @match        *://*/*
 // @run-at       document-start
+// @inject-into  content
 // @grant        none
 // @noframes
 // ==/UserScript==
@@ -14,6 +15,26 @@
 ;(function installLoadingCover(force = false, timeoutMs = 8000) {
   const root = document.documentElement
   if (!root) {
+    // Some injection paths run before the parser creates <html>. Retry in the
+    // mutation microtask instead of waiting for the much later body event.
+    let timeout = 0
+    const pending = new MutationObserver(() => {
+      if (document.documentElement) {
+        pending.disconnect()
+        window.clearTimeout(timeout)
+        installLoadingCover(force, timeoutMs)
+      }
+    })
+    pending.observe(document, { childList: true })
+    timeout = window.setTimeout(() => pending.disconnect(), timeoutMs)
+    window.addEventListener(
+      "pagehide",
+      () => {
+        pending.disconnect()
+        window.clearTimeout(timeout)
+      },
+      { once: true }
+    )
     return null
   }
   const isChallenge = () =>
@@ -50,7 +71,13 @@
     style.id = "userpatch-page-loader-style"
     style.textContent = `
       html[data-userpatch-loading] { background: #0a0a0a !important; }
-      html[data-userpatch-loading] > body { visibility: hidden !important; }
+      /* Visibility alone can be overridden by the source's visible children.
+         Opacity suppresses the entire body, including its white background. */
+      html[data-userpatch-loading] > body {
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+      }
       #userpatch-page-loader {
         all: initial !important; position: fixed !important; inset: 0 !important;
         z-index: 2147483647 !important; display: grid !important;
@@ -1209,6 +1236,24 @@
   function installLoadingCover(force = false, timeoutMs = 8e3) {
     const root = document.documentElement
     if (!root) {
+      let timeout = 0
+      const pending = new MutationObserver(() => {
+        if (document.documentElement) {
+          pending.disconnect()
+          window.clearTimeout(timeout)
+          installLoadingCover(force, timeoutMs)
+        }
+      })
+      pending.observe(document, { childList: true })
+      timeout = window.setTimeout(() => pending.disconnect(), timeoutMs)
+      window.addEventListener(
+        "pagehide",
+        () => {
+          pending.disconnect()
+          window.clearTimeout(timeout)
+        },
+        { once: true }
+      )
       return null
     }
     const isChallenge = () =>
@@ -1245,7 +1290,13 @@
       style.id = "userpatch-page-loader-style"
       style.textContent = `
       html[data-userpatch-loading] { background: #0a0a0a !important; }
-      html[data-userpatch-loading] > body { visibility: hidden !important; }
+      /* Visibility alone can be overridden by the source's visible children.
+         Opacity suppresses the entire body, including its white background. */
+      html[data-userpatch-loading] > body {
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+      }
       #userpatch-page-loader {
         all: initial !important; position: fixed !important; inset: 0 !important;
         z-index: 2147483647 !important; display: grid !important;
@@ -1734,6 +1785,7 @@
     mobileMenuPopoverId: "userpatch-mobile-menu",
     mobileNavigationWidth: "260px",
     storageKeys: Object.freeze({
+      detailTab: "userpatch-hdhub4u-detail-tab",
       movieQualityTab: "userpatch-hdhub4u-quality-tab",
       seriesTab: "userpatch-hdhub4u-series-tab",
       openedReleases: "userpatch-hdhub4u-opened-releases",
@@ -2066,6 +2118,11 @@ html.userpatch-maia.userpatch-hblinks-page #page > br {
   const DETAIL_INFO_CSS = `
 html.userpatch-maia.userpatch-detail-page body .userpatch-detail-info {
   container: detail-info / inline-size;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 html.userpatch-maia.userpatch-detail-page body .userpatch-detail-info #userpatch-detail-info-list {
@@ -2264,6 +2321,92 @@ html.userpatch-maia img.userpatch-progressive-image.userpatch-image-loaded {
     }
   })
 
+  // src/shared/trailer.js
+  const findTrailerUrl = (root) => {
+    const candidate =
+      root.querySelector("[data-trailer-url]")?.dataset.trailerUrl
+    const links = Array.from(root.querySelectorAll("a[href]"))
+      .filter((link) => /trailer/i.test(link.textContent))
+      .map((link) => link.href)
+    const frames = Array.from(root.querySelectorAll("iframe[src]")).map(
+      (frame) => frame.getAttribute("src")
+    )
+    for (const source of [candidate, ...links, ...frames]) {
+      try {
+        const url = new URL(source, location.href)
+        let id = ""
+        if (
+          /^(www\.)?(youtube\.com|youtube-nocookie\.com)$/.test(url.hostname)
+        ) {
+          id =
+            url.searchParams.get("v") ||
+            url.pathname.match(/^\/(?:embed|shorts)\/([^/]+)/)?.[1] ||
+            ""
+        } else if (url.hostname === "youtu.be") {
+          id = url.pathname.slice(1)
+        }
+        if (/^[\w-]{11}$/.test(id)) {
+          return `https://www.youtube-nocookie.com/embed/${id}`
+        }
+        if (/^(?:player\.)?vimeo\.com$/.test(url.hostname)) {
+          const video = url.pathname.match(/^\/(?:video\/)?(\d+)\/?$/)?.[1]
+          if (video) {
+            return `https://player.vimeo.com/video/${video}`
+          }
+        }
+      } catch {}
+    }
+    return null
+  }
+  const createTrailer = (url) => {
+    if (!url) {
+      return null
+    }
+    const section = document.createElement("div")
+    section.className = "userpatch-trailer"
+    const frame = document.createElement("div")
+    frame.className = "userpatch-trailer-frame"
+    const player = document.createElement("iframe")
+    player.src = url
+    player.title = "Trailer"
+    player.loading = "lazy"
+    player.allow = "encrypted-media; fullscreen; picture-in-picture"
+    player.allowFullscreen = true
+    player.referrerPolicy = "strict-origin-when-cross-origin"
+    frame.append(player)
+    section.append(frame)
+    return section
+  }
+  const TRAILER_CSS = `
+html.userpatch-maia .userpatch-detail-info .userpatch-trailer {
+  display: block;
+  margin: 1.5rem 0 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+html.userpatch-maia .userpatch-trailer-frame {
+  aspect-ratio: 16 / 9;
+  inline-size: 100%;
+  overflow: clip;
+  border: 0 !important;
+  box-shadow: none !important;
+  border-radius: 1rem;
+  background: var(--maia-card);
+}
+html.userpatch-maia .userpatch-trailer-frame > iframe {
+  display: block !important;
+  position: static !important;
+  inline-size: 100% !important;
+  block-size: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
+`
+
   // src/hdhub4u/images.js
   const recoveredPosters = new WeakSet()
   const setupPosterRecovery = (image) => {
@@ -2394,7 +2537,8 @@ html.userpatch-maia li.thumb .userpatch-poster-fallback {
       if (
         notice.textContent.trim() ===
           "New version available! Click to refresh" &&
-        typeof notice.onclick === "function"
+        (notice.style.position === "fixed" ||
+          notice.classList.contains("userpatch-landing-refresh"))
       ) {
         notice.classList.add("userpatch-landing-refresh")
         notice.setAttribute("role", "button")
@@ -4273,8 +4417,18 @@ html.userpatch-maia .userpatch-detail-toolbar > .userpatch-quality-tabs {
 }
 
 @media (max-width: ${CONFIG.mobileLayoutBreakpointRem}rem) {
+  html.userpatch-maia .userpatch-detail-root,
+  html.userpatch-maia .userpatch-detail-main {
+    gap: 0.75rem !important;
+  }
   html.userpatch-maia .userpatch-detail-toolbar {
+    flex-direction: column;
+    align-items: center;
     justify-content: center;
+    gap: 0.75rem !important;
+    min-block-size: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
   html.userpatch-maia .userpatch-detail-toolbar > .userpatch-quality-tabs {
     margin-inline: auto;
@@ -4854,11 +5008,17 @@ html.userpatch-maia .userpatch-story {
   }
 
   html.userpatch-maia .userpatch-mode-tabs {
-    inline-size: 100%;
+    inline-size: fit-content;
+    max-inline-size: 100%;
+    margin-inline: auto;
   }
 
-  html.userpatch-maia .userpatch-mode-tab {
-    flex: 1 1 auto;
+  html.userpatch-maia .userpatch-mode-tab,
+  html.userpatch-maia .userpatch-quality-tab {
+    flex: none;
+    block-size: 2.5rem !important;
+    min-block-size: 2.5rem !important;
+    max-block-size: 2.5rem !important;
   }
 
 }
@@ -4935,6 +5095,7 @@ ${PROGRESSIVE_IMAGE_CSS}
 ${SCREENSHOT_VIEWER_CSS}
 ${POSTER_RECOVERY_CSS}
 ${LANDING_CSS}
+${TRAILER_CSS}
 ${DETAIL_INFO_CSS}
 `
 
@@ -5501,6 +5662,7 @@ ${DETAIL_INFO_CSS}
         isSeries,
         screenshots,
         storyline,
+        trailer: findTrailerUrl(body),
       }
     } catch (error) {
       console.warn("userpatch extract failed:", error)
@@ -5622,7 +5784,13 @@ ${DETAIL_INFO_CSS}
       ...(hasArchiveTab ? [["archive", "Archive", "file-archive"]] : []),
       ...(hasEpisodesTab ? [["episodes", "Single Episode", "file-play"]] : []),
     ]
+    const savedTab = storageGet(CONFIG.storageKeys.detailTab)
     let activeTab = "info"
+    if (savedTab === "links") {
+      activeTab = hasLinksTab ? "links" : activeMode
+    } else if (savedTab === "screenshot" && data.screenshots.length) {
+      activeTab = "screenshot"
+    }
     const tabs = document.createElement("div")
     tabs.className = "userpatch-mode-tabs"
     tabs.setAttribute("role", "group")
@@ -5780,7 +5948,12 @@ ${DETAIL_INFO_CSS}
       if (!button || button.dataset.tab === activeTab) {
         return
       }
-      applyTab(button.dataset.tab)
+      const tab = button.dataset.tab
+      storageSet(
+        CONFIG.storageKeys.detailTab,
+        tab === "info" || tab === "screenshot" ? tab : "links"
+      )
+      applyTab(tab)
     }
     const positionActiveTabIndicator = () => {
       requestAnimationFrame(() => {
@@ -5819,6 +5992,10 @@ ${DETAIL_INFO_CSS}
       ["Storyline", data.storyline],
     ]
     infoPane.append(createDetailInfoList(infoEntries))
+    const trailer = createTrailer(data.trailer)
+    if (trailer) {
+      infoPane.append(trailer)
+    }
     root.append(panel, mainColumn)
     document.body.append(root)
     const onReleaseClick = (event) => {

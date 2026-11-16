@@ -1,6 +1,7 @@
 import { HBLINKS_CSS } from "../hblinks/css.js"
 import { DETAIL_INFO_CSS } from "../shared/detail-info.js"
 import { PROGRESSIVE_IMAGE_CSS } from "../shared/progressive-images.js"
+import { TRAILER_CSS } from "../shared/trailer.js"
 import { CONFIG } from "./config.js"
 import { POSTER_RECOVERY_CSS } from "./images.js"
 import { LANDING_CSS } from "./landing.js"
@@ -1694,8 +1695,18 @@ html.userpatch-maia .userpatch-detail-toolbar > .userpatch-quality-tabs {
 }
 
 @media (max-width: ${CONFIG.mobileLayoutBreakpointRem}rem) {
+  html.userpatch-maia .userpatch-detail-root,
+  html.userpatch-maia .userpatch-detail-main {
+    gap: 0.75rem !important;
+  }
   html.userpatch-maia .userpatch-detail-toolbar {
+    flex-direction: column;
+    align-items: center;
     justify-content: center;
+    gap: 0.75rem !important;
+    min-block-size: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
   html.userpatch-maia .userpatch-detail-toolbar > .userpatch-quality-tabs {
     margin-inline: auto;
@@ -2275,11 +2286,17 @@ html.userpatch-maia .userpatch-story {
   }
 
   html.userpatch-maia .userpatch-mode-tabs {
-    inline-size: 100%;
+    inline-size: fit-content;
+    max-inline-size: 100%;
+    margin-inline: auto;
   }
 
-  html.userpatch-maia .userpatch-mode-tab {
-    flex: 1 1 auto;
+  html.userpatch-maia .userpatch-mode-tab,
+  html.userpatch-maia .userpatch-quality-tab {
+    flex: none;
+    block-size: 2.5rem !important;
+    min-block-size: 2.5rem !important;
+    max-block-size: 2.5rem !important;
   }
 
 }
@@ -2356,5 +2373,6 @@ ${PROGRESSIVE_IMAGE_CSS}
 ${SCREENSHOT_VIEWER_CSS}
 ${POSTER_RECOVERY_CSS}
 ${LANDING_CSS}
+${TRAILER_CSS}
 ${DETAIL_INFO_CSS}
 `

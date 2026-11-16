@@ -1,11 +1,12 @@
 // ==UserScript==
 // @name         HDHub4u + HUBLinks Redesign
 // @namespace    https://github.com/luminalreason/userpatch
-// @version      0.1.1
+// @version      0.2.0
 // @description  Reworks HDHub4u and HUBLinks with a shared responsive dark interface and clearer release links.
 // @author       luminalreason
 // @match        *://*/*
 // @run-at       document-start
+// @inject-into  content
 // @grant        none
 // @noframes
 // ==/UserScript==

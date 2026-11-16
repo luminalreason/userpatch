@@ -21,6 +21,10 @@
     "GM_setValue": "readonly",
     "GM_xmlhttpRequest": "readonly"
   },
+  // Generated redesign bundles are linted through their src modules.
+  // src/*/header.js files are userscript metadata blocks (banner text for the
+  // build), not program source — linting them only trips no-empty-file.
+  "ignorePatterns": ["scripts/*-redesign.user.js", "src/*/header.js"],
   "plugins": ["unicorn"],
   "categories": {
     "correctness": "warn",
@@ -28,6 +32,15 @@
     "perf": "warn"
   },
   "rules": {
+    "no-undef": "warn",
+    "no-console": "off",
+    "no-case-declarations": "warn",
+    "no-inner-declarations": "warn",
+    "no-hex-escape": "warn",
+    "escape-case": "warn",
+    "no-alert": "warn",
+    "no-new-func": "warn",
+    "no-template-curly-in-string": "warn",
     "eqeqeq": "warn",
     "no-var": "warn",
     "prefer-const": "warn",

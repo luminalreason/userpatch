@@ -6,6 +6,7 @@
   "license": "MIT",
   "scripts": {
     "prepare": "husky",
+    "build": "node build.mjs",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "lint:markdown": "markdownlint-cli2",
@@ -14,11 +15,13 @@
     "check": "pnpm run fmt:check && pnpm run lint && pnpm run lint:markdown"
   },
   "devDependencies": {
+    "acorn": "^8.19.0",
     "husky": "^9.1.7",
     "lint-staged": "^17.6.0",
     "markdownlint-cli2": "^0.23.3",
     "oxfmt": "^0.71.0",
-    "oxlint": "^1.86.0"
+    "oxlint": "^1.86.0",
+    "rolldown": "1.3.0"
   },
   "packageManager": "pnpm@12.5.1"
 }

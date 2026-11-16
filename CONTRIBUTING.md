@@ -21,6 +21,15 @@ pnpm fmt:check     # oxfmt --check
 
 `pnpm install` also installs a Git pre-commit hook. It runs oxfmt, oxlint, and markdownlint on every staged file — warnings are denied, so a commit only lands on clean code.
 
+## Editing the redesign scripts
+
+The four `-redesign` scripts are **generated** from `src/` — never hand-edit `scripts/*-redesign.user.js`. The loop is: edit `src/<site>/`, run `pnpm build`, then update the script in Violentmonkey. Two ways to keep Violentmonkey in sync:
+
+- **External-editor tracking** — drag the built `.user.js` from `scripts/` into a Violentmonkey installer tab, open the settings for the installed script, and enable "Track external editor file" (or serve `scripts/` over localhost; the filename must end in `.user.js` for Violentmonkey to pick it up). Violentmonkey then reloads the script from disk on every build.
+- **`npx @violentmonkey/mcp`** — lets an agent manage installed scripts directly. Requires Violentmonkey ≥ 2.49.5 and Node ≥ 24; reconnect after browser restarts.
+
+`hub-helper` and `xd-helper` are hand-written single files — edit them directly.
+
 ## Writing scripts
 
 - One `.user.js` per automation in `scripts/`, named `<site>-helper.user.js`.

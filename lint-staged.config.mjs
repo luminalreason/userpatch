@@ -4,6 +4,10 @@ const markdownFilePattern = /\.(?:md|mdx)$/
 
 const jsonFilePattern = /(?:^|\/)package\.json$/
 
+const generatedRedesignPattern = /(?:^|\/)scripts\/[^/]+-redesign\.user\.js$/
+
+const bannerTextPattern = /(?:^|\/)src\/[^/]+\/header\.js$/
+
 const quoteShellArgument = (filePath) =>
   `'${filePath.replaceAll("'", "'\\''")}'`
 
@@ -12,8 +16,13 @@ const getFileArguments = (filePaths) =>
 
 export default {
   "*": (stagedFilePaths) => {
-    const sourceFilePaths = stagedFilePaths.filter((filePath) =>
-      sourceFilePattern.test(filePath)
+    // Generated redesign bundles are checked from src, not as staged source.
+    // header.js files are metadata banner text, not program source.
+    const sourceFilePaths = stagedFilePaths.filter(
+      (filePath) =>
+        sourceFilePattern.test(filePath) &&
+        !generatedRedesignPattern.test(filePath.replaceAll("\\", "/")) &&
+        !bannerTextPattern.test(filePath.replaceAll("\\", "/"))
     )
     const jsonFilePaths = stagedFilePaths.filter((filePath) =>
       jsonFilePattern.test(filePath)

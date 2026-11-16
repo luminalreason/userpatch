@@ -58,7 +58,7 @@ export function installLoadingCover(force = false, timeoutMs = 8000) {
     style = document.createElement("style")
     style.id = "userpatch-page-loader-style"
     style.textContent = `
-      html[data-userpatch-loading] { background: #0a0a0a !important; }
+      html[data-userpatch-loading] { background: #0a0a0a !important; color-scheme: light dark !important; }
       /* Visibility alone can be overridden by the source's visible children.
          Opacity suppresses the entire body, including its white background. */
       html[data-userpatch-loading] > body {
@@ -85,6 +85,14 @@ export function installLoadingCover(force = false, timeoutMs = 8000) {
       #userpatch-page-loader progress::-moz-progress-bar,
       progress.userpatch-loading-spinner::-moz-progress-bar { background: transparent; }
       @keyframes userpatch-loader-spin { to { transform: rotate(360deg); } }
+      @media (prefers-color-scheme: light) {
+        html[data-userpatch-loading] { background: #ffffff !important; }
+        #userpatch-page-loader { background: #ffffff !important; color: #0a0a0a !important; }
+        #userpatch-page-loader progress, progress.userpatch-loading-spinner {
+          border-color: #ddd !important;
+          border-block-start-color: #0a0a0a !important;
+        }
+      }
       @media (prefers-reduced-motion: reduce) {
         #userpatch-page-loader progress, progress.userpatch-loading-spinner { animation-duration: 6s !important; }
       }

@@ -1,6 +1,7 @@
 import { KEEP_CLASS, LISTING_READY_CLASS } from "./config.js"
 import { createLucideIcon } from "./icons.js"
 import { setupPosterRecovery, setupProgressiveImage } from "./images.js"
+import { normalizeListingTitles } from "./titles.js"
 
 export const normalizePagination = (root = document) => {
   for (const list of root.querySelectorAll("ul.pagination")) {
@@ -57,6 +58,7 @@ export const ensureListingPage = () => {
     return false
   }
   normalizePagination(main)
+  normalizeListingTitles(main)
   if (main.classList.contains(LISTING_READY_CLASS)) {
     return true
   }

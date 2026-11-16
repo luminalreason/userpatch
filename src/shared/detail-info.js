@@ -49,7 +49,7 @@ html.userpatch-maia.userpatch-detail-page body .userpatch-detail-info #userpatch
   font-size: inherit !important;
   line-height: inherit !important;
   font-weight: 400 !important;
-  color: oklch(0.985 0 0) !important;
+  color: var(--maia-foreground) !important;
   -webkit-text-fill-color: currentColor !important;
 }
 html.userpatch-maia.userpatch-detail-page body .userpatch-detail-info #userpatch-detail-info-list > dd {
@@ -61,7 +61,7 @@ html.userpatch-maia.userpatch-detail-page body .userpatch-detail-info #userpatch
   font-size: inherit !important;
   line-height: inherit !important;
   font-weight: 400 !important;
-  color: oklch(0.708 0 0) !important;
+  color: var(--maia-muted-foreground) !important;
   -webkit-text-fill-color: currentColor !important;
   overflow-wrap: anywhere;
 }

@@ -1,4 +1,5 @@
 import { GENERATED_PAGE_CSS } from "../shared/generated-page.js"
+import { systemThemeCss } from "../shared/system-theme.js"
 import {
   BUTTON_GROUP_CLASS,
   BUTTON_MAIN_CLASS,
@@ -10,7 +11,6 @@ import {
 } from "./config.js"
 
 export const REDESIGN_CSS = `
-.dark,
 :root {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
@@ -721,8 +721,8 @@ button#button1,
   overflow: hidden !important;
   box-sizing: border-box !important;
   position: relative !important;
-  background-color: var(--userpatch-btn-bg, #27272a) !important;
-  color: var(--userpatch-btn-color, #ffffff) !important;
+  background-color: var(--userpatch-btn-bg, var(--secondary)) !important;
+  color: var(--userpatch-btn-color, var(--foreground)) !important;
   transition: filter 100ms ease !important;
 }
 
@@ -941,8 +941,8 @@ button.btn:not(.${COPY_BUTTON_CLASS}):not(.${DIRECT_DOWNLOAD_BUTTON_CLASS}):not(
   letter-spacing: -0.01em !important;
   text-decoration: none !important;
   border-radius: var(--radius-lg, 0.625rem) !important;
-  background-color: #27272a !important;
-  color: #f4f4f5 !important;
+  background-color: var(--secondary) !important;
+  color: var(--foreground) !important;
   border: 1px solid rgba(255, 255, 255, 0.14) !important;
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.22), 0 1px 2px 0 rgba(0, 0, 0, 0.24) !important;
   box-sizing: border-box !important;
@@ -1511,8 +1511,8 @@ button.btn:not(.${COPY_BUTTON_CLASS}):not(.${DIRECT_DOWNLOAD_BUTTON_CLASS}):not(
   padding: 0.25rem 0.625rem !important;
   border: 1px solid rgba(255, 255, 255, 0.14) !important;
   border-radius: var(--radius-md, 0.5rem) !important;
-  background-color: var(--userpatch-btn-bg, #27272a) !important;
-  color: var(--userpatch-btn-color, #f4f4f5) !important;
+  background-color: var(--userpatch-btn-bg, var(--secondary)) !important;
+  color: var(--userpatch-btn-color, var(--foreground)) !important;
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.18),
     0 1px 2px 0 rgba(0, 0, 0, 0.16) !important;
@@ -1652,4 +1652,5 @@ button.btn:not(.${COPY_BUTTON_CLASS}):not(.${DIRECT_DOWNLOAD_BUTTON_CLASS}):not(
 }
 
 ${GENERATED_PAGE_CSS}
+${systemThemeCss()}
 `

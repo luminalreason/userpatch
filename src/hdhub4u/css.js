@@ -1,6 +1,7 @@
 import { HBLINKS_CSS } from "../hblinks/css.js"
 import { DETAIL_INFO_CSS } from "../shared/detail-info.js"
 import { PROGRESSIVE_IMAGE_CSS } from "../shared/progressive-images.js"
+import { systemThemeCss } from "../shared/system-theme.js"
 import { TRAILER_CSS } from "../shared/trailer.js"
 import { CONFIG } from "./config.js"
 import { POSTER_RECOVERY_CSS } from "./images.js"
@@ -227,8 +228,8 @@ html.userpatch-maia .userpatch-header-inner::before {
   z-index: -1;
   inset: 0;
   border-radius: inherit;
-  background: color-mix(in oklch, var(--maia-card) 60%, transparent);
-  box-shadow: 0 10px 40px rgb(0 0 0 / 0.2);
+  background: var(--maia-control-surface, color-mix(in oklch, var(--maia-card) 60%, transparent));
+  box-shadow: var(--maia-glass-shadow, 0 10px 40px rgb(0 0 0 / 0.2));
   backdrop-filter: saturate(2.2) blur(16px);
   -webkit-backdrop-filter: saturate(2.2) blur(16px);
   content: "";
@@ -245,7 +246,7 @@ html.userpatch-maia .userpatch-header-inner::after {
     inset 0.5px -0.5px var(--maia-foreground),
     inset -0.5px 0.5px var(--maia-foreground),
     inset -0.5px -0.5px var(--maia-foreground);
-  opacity: 0.2;
+  opacity: var(--maia-control-border-opacity, 0.2);
   content: "";
   pointer-events: none;
 }
@@ -423,8 +424,8 @@ html.userpatch-maia .userpatch-nav-indicator {
   border-radius:
     var(--userpatch-nav-radius-x, 0.875rem) /
     var(--userpatch-nav-radius-y, 0.875rem);
-  background: color-mix(in oklch, var(--maia-foreground) 9%, transparent);
-  box-shadow: inset 0 1px 2px color-mix(in oklch, var(--maia-foreground) 12%, transparent);
+  background: var(--maia-selection-bg, color-mix(in oklch, var(--maia-foreground) 9%, transparent));
+  box-shadow: var(--maia-selection-shadow, inset 0 1px 2px color-mix(in oklch, var(--maia-foreground) 12%, transparent));
   opacity: 0;
   pointer-events: none;
   transform: translate3d(
@@ -826,7 +827,7 @@ html.userpatch-maia .userpatch-mobile-nav-item:active {
 }
 
 html.userpatch-maia .userpatch-mobile-nav-item[aria-current="page"] {
-  background: color-mix(in oklch, var(--maia-foreground) 9%, transparent);
+  background: var(--maia-selection-bg, color-mix(in oklch, var(--maia-foreground) 9%, transparent));
   box-shadow: inset 0 1px 2px
     color-mix(in oklch, var(--maia-foreground) 12%, transparent);
   color: var(--maia-foreground);
@@ -997,7 +998,7 @@ html.userpatch-maia .userpatch-mobile-menu-summary::-webkit-details-marker {
 html.userpatch-maia .userpatch-mobile-menu-link:focus-visible,
 html.userpatch-maia .userpatch-mobile-menu-summary:focus-visible,
 html.userpatch-maia .userpatch-mobile-menu-close:focus-visible {
-  background: color-mix(in oklch, var(--maia-foreground) 9%, transparent);
+  background: var(--maia-selection-bg, color-mix(in oklch, var(--maia-foreground) 9%, transparent));
   color: var(--maia-foreground);
   outline: 2px solid var(--maia-ring);
   outline-offset: -2px;
@@ -1006,7 +1007,7 @@ html.userpatch-maia .userpatch-mobile-menu-close:focus-visible {
 @media (hover: hover) and (pointer: fine) {
   html.userpatch-maia .userpatch-mobile-menu-link:hover,
   html.userpatch-maia .userpatch-mobile-menu-summary:hover {
-    background: color-mix(in oklch, var(--maia-foreground) 9%, transparent);
+    background: var(--maia-selection-bg, color-mix(in oklch, var(--maia-foreground) 9%, transparent));
     color: var(--maia-foreground);
   }
 }
@@ -1465,7 +1466,7 @@ html.userpatch-maia .userpatch-detail-root {
   html.userpatch-maia .userpatch-detail-root {
     grid-template-columns: minmax(17rem, min(21rem, 30vw)) minmax(0, 1fr);
     align-items: stretch;
-    gap: var(--maia-gutter);
+    column-gap: 2rem;
     block-size: 100dvh;
     padding-block: 0;
   }
@@ -1494,6 +1495,11 @@ html.userpatch-maia .userpatch-poster-panel {
     align-self: start;
     inline-size: min(100%, 21rem, 42dvh);
     max-block-size: calc(100dvh - 2rem);
+    /* Keep the scrollport beyond the glow without moving or shrinking the
+       poster. Overflow must stay scrollable for shorter desktop windows. */
+    box-sizing: content-box;
+    padding-inline: 1.5rem;
+    margin-inline: -1.5rem;
     overflow: auto;
     overscroll-behavior-x: auto;
   overscroll-behavior-y: contain;
@@ -1667,6 +1673,10 @@ html.userpatch-maia .userpatch-detail-main {
   overscroll-behavior-y: contain;
     scrollbar-gutter: auto;
   }
+  html.userpatch-maia .userpatch-detail-main:has(.userpatch-screens:not([hidden])),
+  html.userpatch-maia .userpatch-detail-main:has(.userpatch-detail-info:not([hidden]) .userpatch-trailer) {
+    padding-block-end: calc(8rem + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 html.userpatch-maia .userpatch-detail-toolbar {
@@ -1695,11 +1705,16 @@ html.userpatch-maia .userpatch-detail-toolbar > .userpatch-quality-tabs {
 }
 
 @media (max-width: ${CONFIG.mobileLayoutBreakpointRem}rem) {
+  html.userpatch-maia .userpatch-detail-root:has(.userpatch-detail-info:not([hidden]) .userpatch-trailer),
+  html.userpatch-maia .userpatch-detail-root:has(.userpatch-screens:not([hidden])) {
+    padding-block-end: calc(8rem + env(safe-area-inset-bottom, 0px));
+  }
   html.userpatch-maia .userpatch-detail-root,
   html.userpatch-maia .userpatch-detail-main {
     gap: 0.75rem !important;
   }
   html.userpatch-maia .userpatch-detail-toolbar {
+    inset-block-start: calc(12px + env(safe-area-inset-top, 0px));
     flex-direction: column;
     align-items: center;
     justify-content: center;
@@ -1734,14 +1749,46 @@ html.userpatch-maia .userpatch-quality-tabs {
   box-sizing: border-box;
 }
 
+/* Scroll the whole glass group so its indicator and border stay aligned. */
+html.userpatch-maia .userpatch-mode-scroll {
+  flex: 0 1 auto;
+  min-inline-size: 0;
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-radius: 1rem;
+  scrollbar-width: none;
+}
+html.userpatch-maia .userpatch-mode-scroll::-webkit-scrollbar {
+  display: none;
+}
+html.userpatch-maia .userpatch-mode-scroll > .userpatch-mode-tabs {
+  inline-size: max-content;
+  max-inline-size: none;
+  margin: 0;
+}
+@media (max-width: ${CONFIG.mobileLayoutBreakpointRem}rem) {
+  html.userpatch-maia .userpatch-mode-scroll {
+    inline-size: calc(100% + 2 * var(--maia-gutter));
+    max-inline-size: none;
+    margin-inline: calc(-1 * var(--maia-gutter));
+    border-radius: 0;
+  }
+  html.userpatch-maia .userpatch-mode-scroll > .userpatch-mode-tabs {
+    display: flex;
+    margin-inline: auto;
+  }
+}
+
 html.userpatch-maia .userpatch-mode-tabs::before,
 html.userpatch-maia .userpatch-quality-tabs::before {
   position: absolute;
   z-index: -1;
   inset: 0;
   border-radius: inherit;
-  background: color-mix(in oklch, var(--maia-card) 60%, transparent);
-  box-shadow: 0 10px 40px rgb(0 0 0 / 0.2);
+  background: var(--maia-control-surface, color-mix(in oklch, var(--maia-card) 60%, transparent));
+  box-shadow: var(--maia-glass-shadow, 0 10px 40px rgb(0 0 0 / 0.2));
   backdrop-filter: saturate(2.2) blur(16px);
   -webkit-backdrop-filter: saturate(2.2) blur(16px);
   content: "";
@@ -1759,7 +1806,7 @@ html.userpatch-maia .userpatch-quality-tabs::after {
     inset 0.5px -0.5px var(--maia-foreground),
     inset -0.5px 0.5px var(--maia-foreground),
     inset -0.5px -0.5px var(--maia-foreground);
-  opacity: 0.2;
+  opacity: var(--maia-control-border-opacity, 0.2);
   content: "";
   pointer-events: none;
 }
@@ -1830,8 +1877,8 @@ html.userpatch-maia .userpatch-quality-indicator {
 }
 
 html.userpatch-maia .userpatch-mode-indicator {
-  background: color-mix(in oklch, var(--maia-foreground) 9%, transparent);
-  box-shadow: inset 0 1px 2px color-mix(in oklch, var(--maia-foreground) 12%, transparent);
+  background: var(--maia-selection-bg, color-mix(in oklch, var(--maia-foreground) 9%, transparent));
+  box-shadow: var(--maia-selection-shadow, inset 0 1px 2px color-mix(in oklch, var(--maia-foreground) 12%, transparent));
   transform: translate3d(
       var(--userpatch-mode-x, 0px),
       var(--userpatch-mode-y, 0px),
@@ -1844,8 +1891,8 @@ html.userpatch-maia .userpatch-mode-indicator {
 }
 
 html.userpatch-maia .userpatch-quality-indicator {
-  background: rgb(255 255 255 / 0.15);
-  box-shadow: inset 0 1px 2px rgb(255 255 255 / 0.12);
+  background: var(--maia-selection-bg, rgb(255 255 255 / 0.15));
+  box-shadow: var(--maia-selection-shadow, inset 0 1px 2px rgb(255 255 255 / 0.12));
   transform: translate3d(
       var(--userpatch-quality-x, 0px),
       var(--userpatch-quality-y, 0px),
@@ -2375,4 +2422,28 @@ ${POSTER_RECOVERY_CSS}
 ${LANDING_CSS}
 ${TRAILER_CSS}
 ${DETAIL_INFO_CSS}
+
+html.userpatch-maia .userpatch-series-progress {
+  display: block;
+  margin-block-start: 0.25rem;
+  color: var(--maia-muted-foreground);
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.4;
+  text-align: center;
+}
+html.userpatch-maia .userpatch-poster-panel > .userpatch-series-progress {
+  margin-block-start: -0.5rem;
+}
+html.userpatch-maia main#main-content.userpatch-listing-ready li.thumb figure > a.userpatch-ongoing-poster,
+html.userpatch-maia .userpatch-poster-frame.userpatch-ongoing-poster {
+  border: 2px solid transparent !important;
+  background:
+    linear-gradient(var(--maia-muted), var(--maia-muted)) padding-box,
+    var(--maia-hdhub-running-border, linear-gradient(135deg, #ff931e, #ff4938 52%, #dc2626)) border-box !important;
+  box-shadow: var(--maia-hdhub-running-shadow,
+    0 0 16px rgb(255 147 30 / 0.16),
+    0 0 28px rgb(220 38 38 / 0.14)) !important;
+}
+${systemThemeCss()}
 `

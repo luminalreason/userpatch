@@ -1,5 +1,8 @@
 import { createDetailInfoList } from "../shared/detail-info.js"
-import { positionSelectionIndicator } from "../shared/quality-tabs.js"
+import {
+  positionSelectionIndicator,
+  setupIndicatorHover,
+} from "../shared/quality-tabs.js"
 import { storageGet, storageSet } from "../shared/storage.js"
 import { createTrailer, findTrailerUrl } from "../shared/trailer.js"
 import { CONFIG } from "./config.js"
@@ -80,6 +83,12 @@ export const ensureDetailTabs = (siteRoot) => {
   indicator.setAttribute("aria-hidden", "true")
   group.append(indicator)
   const buttons = new Map()
+  const positionIndicator = (target) => {
+    const selected = [...buttons.values()].find(
+      (button) => button.getAttribute("aria-pressed") === "true"
+    )
+    positionSelectionIndicator(indicator, group, target || selected, "quality")
+  }
   const releasePanels = Array.from(main.children).filter(
     (node) =>
       node !== info &&
@@ -111,7 +120,7 @@ export const ensureDetailTabs = (siteRoot) => {
     for (const [key, button] of buttons) {
       button.setAttribute("aria-pressed", String(key === value))
     }
-    positionSelectionIndicator(indicator, group, buttons.get(value), "quality")
+    positionIndicator(buttons.get(value))
   }
   for (const [value, label] of [
     ["info", "Info"],
@@ -134,6 +143,7 @@ export const ensureDetailTabs = (siteRoot) => {
     group.append(button)
   }
   toolbar.prepend(group)
+  setupIndicatorHover(group, positionIndicator)
   const savedTab = storageGet(CONFIG.storageKeys.detailTab)
   select(buttons.has(savedTab) ? savedTab : "info")
   document.fonts?.ready.then(() => {

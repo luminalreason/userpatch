@@ -1,3 +1,4 @@
+import { SITE_ICON_DATA_URI as FOUR_K_ICON } from "../shared/4khdhub-icon.js"
 import {
   POSTER_BADGE_ASPECT_RATIOS,
   POSTER_BADGE_LABELS,
@@ -109,9 +110,9 @@ export const buildReleaseRow = (row, openedReleases) => {
   item.target = "_blank"
   item.rel = "noopener noreferrer nofollow"
   item.dataset.userpatchFilename = row.title
-  item.dataset.userpatchQuality = getReleaseQuality(
-    `${row.title} ${row.size || ""}`
-  )
+  item.dataset.userpatchQuality = row.external
+    ? "unknown"
+    : getReleaseQuality(`${row.title} ${row.size || ""}`)
 
   const rowLayout = document.createElement("div")
   rowLayout.className = "userpatch-release-row"
@@ -123,21 +124,17 @@ export const buildReleaseRow = (row, openedReleases) => {
   copy.className = "userpatch-release-copy"
   const title = document.createElement("div")
   title.className = "userpatch-release-file-title"
-  title.textContent = row.title
+  title.textContent = row.external ? "More formats on 4KHDHub" : row.title
   copy.append(title)
 
   const meta = document.createElement("div")
   meta.className = "userpatch-release-meta"
-  if (row.external) {
-    const source = document.createElement("span")
-    source.textContent = "More formats on 4KHDHub"
-    meta.append(source)
-  } else if (row.size) {
+  if (!row.external && row.size) {
     const size = document.createElement("span")
     size.textContent = row.size
     meta.append(size)
   }
-  if (row.audio) {
+  if (!row.external && row.audio) {
     const audioBadge = document.createElement("span")
     audioBadge.className = "userpatch-series-language-badge"
     audioBadge.setAttribute("aria-label", `Audio: ${row.audio}`)
@@ -156,9 +153,9 @@ export const buildReleaseRow = (row, openedReleases) => {
   const action = document.createElement("span")
   action.className = "userpatch-release-action"
   action.setAttribute("aria-hidden", "true")
-  if (row.provider) {
+  if (row.external || row.provider) {
     const image = document.createElement("img")
-    image.src = row.provider.logo
+    image.src = row.external ? FOUR_K_ICON : row.provider.logo
     image.alt = ""
     image.width = 36
     image.height = 36
@@ -166,9 +163,7 @@ export const buildReleaseRow = (row, openedReleases) => {
     action.append(image)
   } else {
     let actionIcon = "download"
-    if (row.external) {
-      actionIcon = "external-link"
-    } else if (row.isWatch) {
+    if (row.isWatch) {
       actionIcon = "play"
     }
     action.append(createLucideIcon(actionIcon))

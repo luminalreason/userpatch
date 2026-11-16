@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         HubCloud Redesign
 // @namespace    https://github.com/luminalreason/userpatch
-// @version      0.2.2
-// @description  A dark interface with clearer download choices, link sharing, copy controls, and a guide to compare download mirrors.
+// @version      0.3.0
+// @description  A system-themed interface with clearer download choices, link sharing, copy controls, and a guide to compare download mirrors.
 // @author       luminalreason
 // @match        *://*/*
 // @run-at       document-start
@@ -70,7 +70,7 @@
     style = document.createElement("style")
     style.id = "userpatch-page-loader-style"
     style.textContent = `
-      html[data-userpatch-loading] { background: #0a0a0a !important; }
+      html[data-userpatch-loading] { background: #0a0a0a !important; color-scheme: light dark !important; }
       /* Visibility alone can be overridden by the source's visible children.
          Opacity suppresses the entire body, including its white background. */
       html[data-userpatch-loading] > body {
@@ -97,6 +97,14 @@
       #userpatch-page-loader progress::-moz-progress-bar,
       progress.userpatch-loading-spinner::-moz-progress-bar { background: transparent; }
       @keyframes userpatch-loader-spin { to { transform: rotate(360deg); } }
+      @media (prefers-color-scheme: light) {
+        html[data-userpatch-loading] { background: #ffffff !important; }
+        #userpatch-page-loader { background: #ffffff !important; color: #0a0a0a !important; }
+        #userpatch-page-loader progress, progress.userpatch-loading-spinner {
+          border-color: #ddd !important;
+          border-block-start-color: #0a0a0a !important;
+        }
+      }
       @media (prefers-reduced-motion: reduce) {
         #userpatch-page-loader progress, progress.userpatch-loading-spinner { animation-duration: 6s !important; }
       }
@@ -1422,7 +1430,7 @@ html.userpatch-generated-page :is(.note, .note-text) {
       style = document.createElement("style")
       style.id = "userpatch-page-loader-style"
       style.textContent = `
-      html[data-userpatch-loading] { background: #0a0a0a !important; }
+      html[data-userpatch-loading] { background: #0a0a0a !important; color-scheme: light dark !important; }
       /* Visibility alone can be overridden by the source's visible children.
          Opacity suppresses the entire body, including its white background. */
       html[data-userpatch-loading] > body {
@@ -1449,6 +1457,14 @@ html.userpatch-generated-page :is(.note, .note-text) {
       #userpatch-page-loader progress::-moz-progress-bar,
       progress.userpatch-loading-spinner::-moz-progress-bar { background: transparent; }
       @keyframes userpatch-loader-spin { to { transform: rotate(360deg); } }
+      @media (prefers-color-scheme: light) {
+        html[data-userpatch-loading] { background: #ffffff !important; }
+        #userpatch-page-loader { background: #ffffff !important; color: #0a0a0a !important; }
+        #userpatch-page-loader progress, progress.userpatch-loading-spinner {
+          border-color: #ddd !important;
+          border-block-start-color: #0a0a0a !important;
+        }
+      }
       @media (prefers-reduced-motion: reduce) {
         #userpatch-page-loader progress, progress.userpatch-loading-spinner { animation-duration: 6s !important; }
       }
@@ -2279,9 +2295,139 @@ html.userpatch-generated-page :is(.note, .note-text) {
     }
   }
 
+  // src/shared/system-theme.js
+  let preference = null
+  const updateSystemTheme = () => {
+    const root = document.documentElement
+    if (!root || !Object.hasOwn(root.dataset, "userpatchTheme")) {
+      return
+    }
+    const theme = preference.matches ? "dark" : "light"
+    if (root.dataset.userpatchTheme !== theme) {
+      root.dataset.userpatchTheme = theme
+    }
+    if (Object.hasOwn(root.dataset, "detailTheme")) {
+      root.classList.toggle("dark", theme === "dark")
+      root.classList.toggle("light", theme === "light")
+      root.dataset.detailTheme = theme
+    }
+    for (const meta of document.querySelectorAll(
+      'meta[id^="userpatch-"][name="theme-color"]'
+    )) {
+      meta.content = theme === "dark" ? "#0a0a0a" : "#ffffff"
+    }
+  }
+  const ensureSystemTheme = () => {
+    if (!preference) {
+      preference = window.matchMedia("(prefers-color-scheme: dark)")
+      preference.addEventListener("change", updateSystemTheme)
+      window.addEventListener("pagehide", () => {
+        preference.removeEventListener("change", updateSystemTheme)
+      })
+      window.addEventListener("pageshow", (event) => {
+        if (event.persisted) {
+          preference.addEventListener("change", updateSystemTheme)
+          updateSystemTheme()
+        }
+      })
+    }
+    const theme = preference.matches ? "dark" : "light"
+    document.documentElement.dataset.userpatchTheme = theme
+    updateSystemTheme()
+    return theme
+  }
+  const systemThemeCss = (legacyHsl = false) => {
+    const light = {
+      background: "1 0 0",
+      foreground: "0.145 0 0",
+      card: "1 0 0",
+      "card-foreground": "0.145 0 0",
+      popover: "1 0 0",
+      "popover-foreground": "0.145 0 0",
+      primary: "0.205 0 0",
+      "primary-foreground": "0.985 0 0",
+      secondary: "0.97 0 0",
+      "secondary-foreground": "0.205 0 0",
+      muted: "0.97 0 0",
+      "muted-foreground": "0.556 0 0",
+      accent: "0.97 0 0",
+      "accent-foreground": "0.205 0 0",
+      destructive: "0.577 0.245 27.325",
+      border: "0.922 0 0",
+      input: "0.922 0 0",
+      ring: "0.708 0 0",
+    }
+    const hsl = {
+      background: "0 0% 100%",
+      foreground: "0 0% 3.94%",
+      card: "0 0% 100%",
+      "card-foreground": "0 0% 3.94%",
+      popover: "0 0% 100%",
+      "popover-foreground": "0 0% 3.94%",
+      primary: "0 0% 9%",
+      "primary-foreground": "0 0% 98%",
+      secondary: "0 0% 96%",
+      "secondary-foreground": "0 0% 9%",
+      muted: "0 0% 96%",
+      "muted-foreground": "0 0% 45%",
+      accent: "0 0% 96%",
+      "accent-foreground": "0 0% 9%",
+      destructive: "0 72% 51%",
+      border: "0 0% 90%",
+      input: "0 0% 90%",
+      ring: "0 0% 64%",
+    }
+    const tokens = Object.entries(light)
+      .map(
+        ([name, value]) =>
+          `--maia-${name}: oklch(${value}) !important; --${name}: ${legacyHsl ? hsl[name] : `oklch(${value})`} !important;`
+      )
+      .join("\n")
+    return `
+    html.userpatch-maia, html[data-userpatch-theme] {
+      color-scheme: light dark !important;
+    }
+    @media (prefers-color-scheme: light) {
+      html.userpatch-maia, html[data-userpatch-theme] {
+        ${tokens}
+        --maia-control-surface: oklch(0.98 0 0 / 90%);
+        --maia-control-border-opacity: 0.14;
+        --maia-ongoing-orange: #c65a00;
+        --maia-ongoing-gold: #d97706;
+        --maia-ongoing-deep-orange: #b45309;
+        --maia-ongoing-glow-opacity: 0.32;
+        --maia-ongoing-glow-blur: 12px;
+        --maia-ongoing-shadow: 0 0 12px rgb(198 90 0 / 0.28),
+          0 0 24px rgb(180 83 9 / 0.18);
+        --maia-hdhub-running-border: linear-gradient(135deg in oklch,
+          #c2410c, #d63d32 52%, #b91c1c);
+        --maia-hdhub-running-shadow: 0 0 12px rgb(194 65 12 / 0.28),
+          0 0 24px rgb(185 28 28 / 0.18);
+        --maia-selection-bg: linear-gradient(180deg in oklch,
+          oklch(0.90 0 0), oklch(0.84 0 0));
+        --maia-select-hover-bg: linear-gradient(180deg in oklch,
+          oklch(0.87 0 0), oklch(0.81 0 0));
+        --maia-selection-shadow: inset 0 1px 0 rgb(255 255 255 / 0.9),
+          inset 0 0 0 1px rgb(0 0 0 / 0.12), 0 1px 2px rgb(0 0 0 / 0.06);
+        --maia-glass-shadow: 0 1px 2px rgb(0 0 0 / 0.04),
+          0 2px 6px rgb(0 0 0 / 0.02);
+        --maia-card-depth-shadow: inset 0 1px 0 rgb(255 255 255 / 0.8),
+          0 1px 3px rgb(0 0 0 / 0.08), 0 3px 8px rgb(0 0 0 / 0.04);
+      }
+      html.userpatch-maia .userpatch-media-badge img,
+      html.userpatch-maia .userpatch-quality-tab img,
+      html.userpatch-maia .userpatch-quality-filter img {
+        filter: none !important;
+      }
+      html.userpatch-maia .userpatch-quality-tab:disabled img {
+        filter: opacity(0.45) !important;
+      }
+    }
+  `
+  }
+
   // src/hubcloud/css.js
   const REDESIGN_CSS = `
-.dark,
 :root {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
@@ -2992,8 +3138,8 @@ button#button1,
   overflow: hidden !important;
   box-sizing: border-box !important;
   position: relative !important;
-  background-color: var(--userpatch-btn-bg, #27272a) !important;
-  color: var(--userpatch-btn-color, #ffffff) !important;
+  background-color: var(--userpatch-btn-bg, var(--secondary)) !important;
+  color: var(--userpatch-btn-color, var(--foreground)) !important;
   transition: filter 100ms ease !important;
 }
 
@@ -3212,8 +3358,8 @@ button.btn:not(.${COPY_BUTTON_CLASS}):not(.${DIRECT_DOWNLOAD_BUTTON_CLASS}):not(
   letter-spacing: -0.01em !important;
   text-decoration: none !important;
   border-radius: var(--radius-lg, 0.625rem) !important;
-  background-color: #27272a !important;
-  color: #f4f4f5 !important;
+  background-color: var(--secondary) !important;
+  color: var(--foreground) !important;
   border: 1px solid rgba(255, 255, 255, 0.14) !important;
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.22), 0 1px 2px 0 rgba(0, 0, 0, 0.24) !important;
   box-sizing: border-box !important;
@@ -3782,8 +3928,8 @@ button.btn:not(.${COPY_BUTTON_CLASS}):not(.${DIRECT_DOWNLOAD_BUTTON_CLASS}):not(
   padding: 0.25rem 0.625rem !important;
   border: 1px solid rgba(255, 255, 255, 0.14) !important;
   border-radius: var(--radius-md, 0.5rem) !important;
-  background-color: var(--userpatch-btn-bg, #27272a) !important;
-  color: var(--userpatch-btn-color, #f4f4f5) !important;
+  background-color: var(--userpatch-btn-bg, var(--secondary)) !important;
+  color: var(--userpatch-btn-color, var(--foreground)) !important;
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.18),
     0 1px 2px 0 rgba(0, 0, 0, 0.16) !important;
@@ -3923,26 +4069,28 @@ button.btn:not(.${COPY_BUTTON_CLASS}):not(.${DIRECT_DOWNLOAD_BUTTON_CLASS}):not(
 }
 
 ${GENERATED_PAGE_CSS}
+${systemThemeCss()}
 `
 
   // src/hubcloud/site-header.js
   const ensureThemeMetadata = () => {
+    const theme = ensureSystemTheme()
     let colorSchemeMeta = document.getElementById(COLOR_SCHEME_META_ID)
     if (!colorSchemeMeta) {
       colorSchemeMeta = document.createElement("meta")
       colorSchemeMeta.id = COLOR_SCHEME_META_ID
       colorSchemeMeta.name = "color-scheme"
-      colorSchemeMeta.content = "dark"
       document.head?.append(colorSchemeMeta)
     }
+    colorSchemeMeta.content = "light dark"
     let themeColorMeta = document.getElementById(THEME_COLOR_META_ID)
     if (!themeColorMeta) {
       themeColorMeta = document.createElement("meta")
       themeColorMeta.id = THEME_COLOR_META_ID
       themeColorMeta.name = "theme-color"
-      themeColorMeta.content = CONFIG.themeColor
       document.head?.append(themeColorMeta)
     }
+    themeColorMeta.content = theme === "dark" ? CONFIG.themeColor : "#ffffff"
   }
   const ensureFavicon = () => {
     try {

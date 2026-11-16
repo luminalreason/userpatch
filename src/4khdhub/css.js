@@ -1,5 +1,6 @@
 import { DETAIL_INFO_CSS } from "../shared/detail-info.js"
 import { PROGRESSIVE_IMAGE_CSS } from "../shared/progressive-images.js"
+import { systemThemeCss } from "../shared/system-theme.js"
 import { TRAILER_CSS } from "../shared/trailer.js"
 import { CONFIG } from "./config.js"
 
@@ -7,8 +8,7 @@ import { CONFIG } from "./config.js"
 // Keep CSS per-site: regrouping those blocks could change cascade ties.
 // The measurement tool is .temp/css-blocks.mjs.
 export const MAIA_CSS = `
-html.userpatch-maia.dark,
-html.userpatch-maia[data-detail-theme="dark"] {
+html.userpatch-maia {
   --background: 0 0% 3.94%;
   --foreground: 0 0% 98.03%;
   --card: 0 0% 9.05%;
@@ -151,7 +151,7 @@ html.userpatch-maia :where(*)::-webkit-scrollbar {
 }
 
 /* The site loads smaller utility classes after this userscript stylesheet. */
-html.userpatch-maia.dark[data-detail-theme="dark"] body :not(
+html.userpatch-maia[data-detail-theme] body :not(
   h1,
   h2,
   h3,
@@ -299,22 +299,22 @@ html.userpatch-maia.userpatch-detail-page .userpatch-series-language-badge::befo
   inset: 0;
   border-radius: inherit;
   background: color-mix(in oklch, var(--maia-background) 82%, transparent);
-  box-shadow: 0 10px 40px rgb(0 0 0 / 0.2);
+  box-shadow: var(--maia-glass-shadow, 0 10px 40px rgb(0 0 0 / 0.2));
   backdrop-filter: saturate(2.2) blur(16px);
   -webkit-backdrop-filter: saturate(2.2) blur(16px);
   content: "";
   pointer-events: none;
 }
 
-html.userpatch-maia.dark header.sticky > .header::before,
-html.userpatch-maia[data-detail-theme="dark"] header.sticky > .header::before,
-html.userpatch-maia.dark.userpatch-detail-page .userpatch-quality-tabs::before,
-html.userpatch-maia.userpatch-detail-page[data-detail-theme="dark"] .userpatch-quality-tabs::before,
-html.userpatch-maia.dark.userpatch-detail-page .userpatch-season-control::before,
-html.userpatch-maia.userpatch-detail-page[data-detail-theme="dark"] .userpatch-season-control::before,
-html.userpatch-maia.dark.userpatch-detail-page .userpatch-series-language-badge::before,
-html.userpatch-maia.userpatch-detail-page[data-detail-theme="dark"] .userpatch-series-language-badge::before {
-  background: color-mix(in oklch, var(--maia-card) 60%, transparent);
+html.userpatch-maia header.sticky > .header::before,
+html.userpatch-maia[data-detail-theme] header.sticky > .header::before,
+html.userpatch-maia.userpatch-detail-page .userpatch-quality-tabs::before,
+html.userpatch-maia.userpatch-detail-page[data-detail-theme] .userpatch-quality-tabs::before,
+html.userpatch-maia.userpatch-detail-page .userpatch-season-control::before,
+html.userpatch-maia.userpatch-detail-page[data-detail-theme] .userpatch-season-control::before,
+html.userpatch-maia.userpatch-detail-page .userpatch-series-language-badge::before,
+html.userpatch-maia.userpatch-detail-page[data-detail-theme] .userpatch-series-language-badge::before {
+  background: var(--maia-control-surface, color-mix(in oklch, var(--maia-card) 60%, transparent));
 }
 
 html.userpatch-maia header.sticky > .header::after,
@@ -330,7 +330,7 @@ html.userpatch-maia.userpatch-detail-page .userpatch-series-language-badge::afte
     inset 0.5px -0.5px var(--maia-foreground),
     inset -0.5px 0.5px var(--maia-foreground),
     inset -0.5px -0.5px var(--maia-foreground);
-  opacity: 0.2;
+  opacity: var(--maia-control-border-opacity, 0.2);
   content: "";
   pointer-events: none;
 }
@@ -541,8 +541,8 @@ html.userpatch-maia .userpatch-nav-indicator {
   block-size: 2.75rem;
   border-radius: var(--userpatch-nav-radius-x, 0.875rem) /
     var(--userpatch-nav-radius-y, 0.875rem);
-  background: color-mix(in oklch, var(--maia-foreground) 9%, transparent);
-  box-shadow: inset 0 1px 2px color-mix(in oklch, var(--maia-foreground) 12%, transparent);
+  background: var(--maia-selection-bg, color-mix(in oklch, var(--maia-foreground) 9%, transparent));
+  box-shadow: var(--maia-selection-shadow, inset 0 1px 2px color-mix(in oklch, var(--maia-foreground) 12%, transparent));
   opacity: 0;
   pointer-events: none;
   transform: translate3d(
@@ -1096,7 +1096,7 @@ html.userpatch-maia dialog.userpatch-search-dialog .search-input-overlay {
   outline: 0 !important;
 }
 
-html.userpatch-maia.dark[data-detail-theme] dialog.userpatch-search-dialog .search-input-overlay {
+html.userpatch-maia[data-detail-theme] dialog.userpatch-search-dialog .search-input-overlay {
   font-size: 1.125rem !important;
 }
 
@@ -1151,8 +1151,8 @@ html.userpatch-maia #series-tabs .series-tab.active {
   box-shadow: none;
 }
 
-html.userpatch-maia.dark #series-tabs .series-tab.active,
-html.userpatch-maia[data-detail-theme="dark"] #series-tabs .series-tab.active {
+html.userpatch-maia #series-tabs .series-tab.active,
+html.userpatch-maia[data-detail-theme] #series-tabs .series-tab.active {
   border-color: var(--maia-input) !important;
   background: color-mix(in oklch, var(--maia-input) 30%, transparent) !important;
 }
@@ -1683,8 +1683,8 @@ html.userpatch-maia .movie-card.userpatch-ongoing-series::before {
     var(--maia-ongoing-gold) 52%,
     var(--maia-ongoing-deep-orange)
   );
-  opacity: 0.22;
-  filter: blur(16px);
+  opacity: var(--maia-ongoing-glow-opacity, 0.22);
+  filter: blur(var(--maia-ongoing-glow-blur, 16px));
   transform: scale(1.04);
   pointer-events: none;
   content: "";
@@ -1942,23 +1942,23 @@ html.userpatch-maia #back-to-top {
   }
 }
 
-html.userpatch-maia.dark body {
+html.userpatch-maia body {
   background: var(--maia-background) !important;
   color: var(--maia-foreground) !important;
 }
 
-/* The site uses a more specific important gradient on dark pages. */
-html.userpatch-maia.dark main {
+/* The source loads important theme gradients after the redesign. */
+html.userpatch-maia[data-userpatch-theme] #swup > main {
   background: var(--maia-background) !important;
   background-image: none !important;
   color: var(--maia-foreground) !important;
 }
 
-html.userpatch-maia.dark[data-detail-theme="dark"] .content-main .info-box.mt-8.detail-info-box {
+html.userpatch-maia[data-detail-theme] .content-main .info-box.mt-8.detail-info-box {
   display: none !important;
 }
 
-html.userpatch-maia.dark[data-detail-theme="dark"] .content-main :is(
+html.userpatch-maia[data-detail-theme] .content-main :is(
   .episode-file-title,
   .file-title,
   .up-release-id
@@ -1968,7 +1968,7 @@ html.userpatch-maia.dark[data-detail-theme="dark"] .content-main :is(
   font-weight: 400 !important;
 }
 
-html.userpatch-maia.dark[data-detail-theme="dark"] body :is(
+html.userpatch-maia[data-detail-theme] body :is(
   .badge,
   .badge-outline,
   .badge-psa,
@@ -1984,13 +1984,13 @@ html.userpatch-maia.dark[data-detail-theme="dark"] body :is(
   font-weight: 400 !important;
 }
 
-html.userpatch-maia.dark[data-detail-theme="dark"] body .content-main > div:first-child > .mt-2 .badge.badge-outline,
-html.userpatch-maia.dark[data-detail-theme="dark"] body .content-main > div:first-child > .mt-2 .badge.badge-outline > a {
+html.userpatch-maia[data-detail-theme] body .content-main > div:first-child > .mt-2 .badge.badge-outline,
+html.userpatch-maia[data-detail-theme] body .content-main > div:first-child > .mt-2 .badge.badge-outline > a {
   font-size: 1rem !important;
   font-weight: 400 !important;
 }
 
-html.userpatch-maia.dark[data-detail-theme="dark"] body .content-main > div:first-child > .mt-2 .badge.badge-outline {
+html.userpatch-maia[data-detail-theme] body .content-main > div:first-child > .mt-2 .badge.badge-outline {
   display: inline-flex !important;
   min-block-size: 1.25rem !important;
   align-items: center;
@@ -2004,7 +2004,7 @@ html.userpatch-maia.dark[data-detail-theme="dark"] body .content-main > div:firs
   line-height: 1.25 !important;
 }
 
-html.userpatch-maia.dark[data-detail-theme="dark"] body .content-main > div:first-child > .mt-2 .badge.badge-outline > a {
+html.userpatch-maia[data-detail-theme] body .content-main > div:first-child > .mt-2 .badge.badge-outline > a {
   padding: 0 !important;
   border: 0 !important;
   border-radius: inherit;
@@ -2043,8 +2043,8 @@ html.userpatch-maia[data-detail-theme] #series-tabs .series-tab.active {
   box-shadow: none !important;
 }
 
-html.userpatch-maia.dark[data-detail-theme] #series-tabs .series-tab.active,
-html.userpatch-maia[data-detail-theme="dark"] #series-tabs .series-tab.active {
+html.userpatch-maia[data-detail-theme] #series-tabs .series-tab.active,
+html.userpatch-maia[data-detail-theme] #series-tabs .series-tab.active {
   border-color: var(--maia-input) !important;
   background: color-mix(in oklch, var(--maia-input) 30%, transparent) !important;
 }
@@ -2456,14 +2456,14 @@ html.userpatch-maia .userpatch-mobile-menu-summary::-webkit-details-marker {
 html.userpatch-maia .userpatch-mobile-menu-link:focus-visible,
 html.userpatch-maia .userpatch-mobile-menu-summary:focus-visible,
 html.userpatch-maia .userpatch-mobile-menu-close:focus-visible {
-  background: color-mix(in oklch, var(--maia-foreground) 9%, transparent);
+  background: var(--maia-selection-bg, color-mix(in oklch, var(--maia-foreground) 9%, transparent));
   color: var(--maia-foreground);
 }
 
 @media (hover: hover) and (pointer: fine) {
   html.userpatch-maia .userpatch-mobile-menu-link:hover,
   html.userpatch-maia .userpatch-mobile-menu-summary:hover {
-    background: color-mix(in oklch, var(--maia-foreground) 9%, transparent);
+    background: var(--maia-selection-bg, color-mix(in oklch, var(--maia-foreground) 9%, transparent));
     color: var(--maia-foreground);
   }
 }
@@ -2560,6 +2560,7 @@ html.userpatch-maia.userpatch-detail-page .content-grid.container {
   grid-template-columns: minmax(17rem, min(21rem, 30vw)) minmax(0, 1fr);
   align-items: stretch;
   gap: var(--maia-gutter);
+  column-gap: 2rem;
   inline-size: 100%;
   max-inline-size: none;
   min-block-size: 0;
@@ -2844,8 +2845,9 @@ html.userpatch-maia.userpatch-detail-page
       border-box !important;
   box-shadow:
     var(--maia-card-depth-shadow),
-    0 0 18px color-mix(in oklch, var(--maia-ongoing-orange) 24%, transparent),
-    0 0 34px color-mix(in oklch, var(--maia-ongoing-gold) 15%, transparent) !important;
+    var(--maia-ongoing-shadow,
+      0 0 18px color-mix(in oklch, var(--maia-ongoing-orange) 24%, transparent),
+      0 0 34px color-mix(in oklch, var(--maia-ongoing-gold) 15%, transparent)) !important;
 }
 
 html.userpatch-maia.userpatch-detail-page .userpatch-detail-title {
@@ -3185,8 +3187,8 @@ html.userpatch-maia.userpatch-detail-page .userpatch-quality-indicator {
   border-radius:
     var(--userpatch-quality-radius-x, 12px) /
     var(--userpatch-quality-radius-y, 12px);
-  background: rgb(255 255 255 / 0.15);
-  box-shadow: inset 0 1px 2px rgb(255 255 255 / 0.12);
+  background: var(--maia-selection-bg, rgb(255 255 255 / 0.15));
+  box-shadow: var(--maia-selection-shadow, inset 0 1px 2px rgb(255 255 255 / 0.12));
   opacity: 0;
   pointer-events: none;
   transform: translate3d(
@@ -3363,8 +3365,8 @@ html.userpatch-maia .userpatch-release-file-title,
 html.userpatch-maia .userpatch-release-file-text,
 html.userpatch-maia.userpatch-detail-page .userpatch-release-file-title,
 html.userpatch-maia.userpatch-detail-page .userpatch-release-file-text,
-html.userpatch-maia.dark[data-detail-theme="dark"] .userpatch-release-file-title,
-html.userpatch-maia.dark[data-detail-theme="dark"] .userpatch-release-file-text {
+html.userpatch-maia[data-detail-theme] .userpatch-release-file-title,
+html.userpatch-maia[data-detail-theme] .userpatch-release-file-text {
   color: var(--maia-foreground);
   font-size: 14px !important;
   font-weight: 400;
@@ -3377,8 +3379,8 @@ html.userpatch-maia.dark[data-detail-theme="dark"] .userpatch-release-file-text 
   html.userpatch-maia .userpatch-release-file-text,
   html.userpatch-maia.userpatch-detail-page .userpatch-release-file-title,
   html.userpatch-maia.userpatch-detail-page .userpatch-release-file-text,
-  html.userpatch-maia.dark[data-detail-theme="dark"] .userpatch-release-file-title,
-  html.userpatch-maia.dark[data-detail-theme="dark"] .userpatch-release-file-text {
+  html.userpatch-maia[data-detail-theme] .userpatch-release-file-title,
+  html.userpatch-maia[data-detail-theme] .userpatch-release-file-text {
     font-size: 18px !important;
   }
 }
@@ -3689,8 +3691,8 @@ html.userpatch-maia.userpatch-detail-page .userpatch-season-trigger {
   padding: 0.375rem 0.75rem;
   border: 1px solid transparent;
   border-radius: 0.75rem;
-  background: rgb(255 255 255 / 0.15);
-  box-shadow: inset 0 1px 2px rgb(255 255 255 / 0.12);
+  background: var(--maia-selection-bg, rgb(255 255 255 / 0.15));
+  box-shadow: var(--maia-selection-shadow, inset 0 1px 2px rgb(255 255 255 / 0.12));
   color: var(--maia-foreground);
   font: inherit;
   font-size: 0.875rem !important;
@@ -3707,13 +3709,13 @@ html.userpatch-maia.userpatch-detail-page .userpatch-season-trigger {
 
 @media (hover: hover) and (pointer: fine) {
   html.userpatch-maia.userpatch-detail-page .userpatch-season-trigger:hover:not(:disabled) {
-    background: rgb(255 255 255 / 0.2);
+    background: var(--maia-select-hover-bg, rgb(255 255 255 / 0.2));
   }
 }
 
 html.userpatch-maia.userpatch-detail-page .userpatch-season-trigger:active:not(:disabled) {
   transform: scale(0.98);
-  background: rgb(255 255 255 / 0.25);
+  background: var(--maia-select-hover-bg, rgb(255 255 255 / 0.25));
 }
 
 html.userpatch-maia.userpatch-detail-page .userpatch-season-trigger:focus-visible {
@@ -4302,7 +4304,7 @@ html.userpatch-maia.userpatch-detail-page .userpatch-mobile-nav {
   }
 
   html.userpatch-maia .userpatch-mobile-nav-item[aria-current="page"] {
-    background: color-mix(in oklch, var(--maia-foreground) 9%, transparent);
+    background: var(--maia-selection-bg, color-mix(in oklch, var(--maia-foreground) 9%, transparent));
     box-shadow: inset 0 1px 2px
       color-mix(in oklch, var(--maia-foreground) 12%, transparent);
     color: var(--maia-foreground);
@@ -4701,7 +4703,9 @@ html.userpatch-maia.userpatch-detail-page .userpatch-release-toolbar > [hidden] 
   }
 }
 @media (max-width: ${CONFIG.mobileLayoutBreakpointRem}rem) {
-  html.userpatch-maia.userpatch-detail-page .userpatch-release-main > .userpatch-release-toolbar {
+  /* Series filters need the release main as their sticky containing block.
+     Keep their toolbar boxless; the movie toolbar can stack with flex. */
+  html.userpatch-maia.userpatch-detail-page .userpatch-release-main:not(.userpatch-series-main) > .userpatch-release-toolbar {
     display: flex;
     position: static;
     flex-direction: column;
@@ -4730,4 +4734,5 @@ html.userpatch-maia.userpatch-detail-page .userpatch-series-main > .userpatch-se
 
 ${TRAILER_CSS}
 ${DETAIL_INFO_CSS}
+${systemThemeCss(true)}
 `

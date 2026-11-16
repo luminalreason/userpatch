@@ -1,5 +1,6 @@
 import { getGeneratedPage } from "../shared/generated-page.js"
 import { HUBCDN_LOGO_DATA_URI } from "../shared/provider-logos.js"
+import { ensureSystemTheme } from "../shared/system-theme.js"
 import {
   COLOR_SCHEME_META_ID,
   CONFIG,
@@ -13,23 +14,24 @@ import { isCloudflareChallenge } from "./detect.js"
 import { HUBCLOUD_LOGO_DATA_URI } from "./icons.js"
 
 export const ensureThemeMetadata = () => {
+  const theme = ensureSystemTheme()
   let colorSchemeMeta = document.getElementById(COLOR_SCHEME_META_ID)
   if (!colorSchemeMeta) {
     colorSchemeMeta = document.createElement("meta")
     colorSchemeMeta.id = COLOR_SCHEME_META_ID
     colorSchemeMeta.name = "color-scheme"
-    colorSchemeMeta.content = "dark"
     document.head?.append(colorSchemeMeta)
   }
+  colorSchemeMeta.content = "light dark"
 
   let themeColorMeta = document.getElementById(THEME_COLOR_META_ID)
   if (!themeColorMeta) {
     themeColorMeta = document.createElement("meta")
     themeColorMeta.id = THEME_COLOR_META_ID
     themeColorMeta.name = "theme-color"
-    themeColorMeta.content = CONFIG.themeColor
     document.head?.append(themeColorMeta)
   }
+  themeColorMeta.content = theme === "dark" ? CONFIG.themeColor : "#ffffff"
 }
 
 export const ensureFavicon = () => {

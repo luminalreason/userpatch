@@ -1,9 +1,14 @@
 export const makeSvgDataUri = (svg) =>
   `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
 
-// Brand artwork for the dark interface: the header wordmark and the
+// Brand artwork for the interface: the header wordmark and the
 // favicon replacement, rendered as self-contained inline SVG.
 export const HEADER_WORDMARK_SVG = String.raw`<svg xmlns="http://www.w3.org/2000/svg" viewBox="10.435 7.939 224.971 68.462" width="260" height="82">
+  <style>
+    @media (prefers-color-scheme: light) {
+      g[filter="url(#bevel-white)"] { fill: #202020; }
+    }
+  </style>
   <defs>
     <filter id="outer-shadow" filterUnits="userSpaceOnUse" x="-10" y="-10" width="280" height="102">
       <feMorphology in="SourceAlpha" operator="dilate" radius="1.35" result="haloMask"/>

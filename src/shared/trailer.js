@@ -57,12 +57,18 @@ export const createTrailer = (url) => {
 export const TRAILER_CSS = `
 html.userpatch-maia .userpatch-detail-info .userpatch-trailer {
   display: block;
+  inline-size: 100%;
   margin: 1.5rem 0 0 !important;
   padding: 0 !important;
   border: 0 !important;
   border-radius: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
+}
+@media (min-width: 52.01rem) {
+  html.userpatch-maia .userpatch-detail-info .userpatch-trailer {
+    max-inline-size: 640px;
+  }
 }
 html.userpatch-maia .userpatch-trailer-frame {
   aspect-ratio: 16 / 9;

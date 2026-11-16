@@ -64,4 +64,5 @@ export const removeAppChrome = () => {
     DETAIL_PAGE_CLASS,
     HBLINKS_PAGE_CLASS
   )
+  delete document.documentElement.dataset.userpatchTheme
 }

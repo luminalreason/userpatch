@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         HDHub4u + HUBLinks Redesign
 // @namespace    https://github.com/luminalreason/userpatch
-// @version      0.2.0
-// @description  Reworks HDHub4u and HUBLinks with a shared responsive dark interface and clearer release links.
+// @version      0.3.0
+// @description  Reworks HDHub4u and HUBLinks with a shared responsive, system-themed interface and clearer release links.
 // @author       luminalreason
 // @match        *://*/*
 // @run-at       document-start
@@ -70,7 +70,7 @@
     style = document.createElement("style")
     style.id = "userpatch-page-loader-style"
     style.textContent = `
-      html[data-userpatch-loading] { background: #0a0a0a !important; }
+      html[data-userpatch-loading] { background: #0a0a0a !important; color-scheme: light dark !important; }
       /* Visibility alone can be overridden by the source's visible children.
          Opacity suppresses the entire body, including its white background. */
       html[data-userpatch-loading] > body {
@@ -97,6 +97,14 @@
       #userpatch-page-loader progress::-moz-progress-bar,
       progress.userpatch-loading-spinner::-moz-progress-bar { background: transparent; }
       @keyframes userpatch-loader-spin { to { transform: rotate(360deg); } }
+      @media (prefers-color-scheme: light) {
+        html[data-userpatch-loading] { background: #ffffff !important; }
+        #userpatch-page-loader { background: #ffffff !important; color: #0a0a0a !important; }
+        #userpatch-page-loader progress, progress.userpatch-loading-spinner {
+          border-color: #ddd !important;
+          border-block-start-color: #0a0a0a !important;
+        }
+      }
       @media (prefers-reduced-motion: reduce) {
         #userpatch-page-loader progress, progress.userpatch-loading-spinner { animation-duration: 6s !important; }
       }
@@ -165,6 +173,50 @@
       .replaceAll(/[\uE000-\uF8FF]/gu, " ")
       .replaceAll(/\s+/g, " ")
       .trim()
+
+  // src/shared/4khdhub-icon.js
+  const SITE_ICON_SVG$1 = String.raw`<svg xmlns="http://www.w3.org/2000/svg" viewBox="17.94 17.564 152.818 156.906" width="192" height="192">
+  <defs>
+    <style>
+      :root {
+        color: #000000;
+        --brand-text: #000000;
+        --play-icon: #ff931e;
+      }
+      .play-icon {
+        stroke: var(--play-icon, #ff931e);
+      }
+      .brand-text {
+        fill: var(--brand-text, currentColor);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          color: #ffffff;
+          --brand-text: #ffffff;
+        }
+        .brand-text {
+          fill: var(--brand-text, #ffffff) !important;
+        }
+      }
+      .dark .brand-text,
+      [data-theme="dark"] .brand-text,
+      [data-detail-theme="dark"] .brand-text {
+        fill: #ffffff !important;
+      }
+      .light .brand-text,
+      [data-theme="light"] .brand-text,
+      [data-detail-theme="light"] .brand-text {
+        fill: #000000 !important;
+      }
+    </style>
+  </defs>
+  <path id="play-triangle" class="play-icon" d="M 45.5 23.5 L 164.5 96 L 45.5 168.5 Z" fill="none" stroke="#ff931e" stroke-width="11" stroke-linejoin="round" stroke-linecap="round"/>
+  <g id="brand-4k" class="brand-text" fill="currentColor">
+    <path d="M 52.84 59.98 C 52.82 60 52.85 60.06 52.9 60.13 C 52.95 60.19 53.01 60.3 53.03 60.38 C 53.05 60.47 53.18 60.57 53.43 60.7 C 53.64 60.81 53.85 60.93 53.9 60.98 C 53.95 61.03 54.12 61.13 54.27 61.19 C 54.42 61.25 54.62 61.37 54.71 61.44 C 54.8 61.52 54.97 61.61 55.08 61.66 C 55.19 61.7 55.38 61.81 55.49 61.89 C 55.6 61.97 55.8 62.09 55.93 62.15 C 56.06 62.21 56.21 62.3 56.26 62.34 C 56.31 62.39 56.51 62.5 56.71 62.6 C 56.91 62.69 57.09 62.8 57.11 62.83 C 57.13 62.87 57.32 62.98 57.52 63.06 C 57.72 63.15 57.91 63.26 57.93 63.29 C 57.95 63.33 58.12 63.42 58.31 63.51 C 58.49 63.59 58.69 63.7 58.76 63.76 C 58.82 63.82 58.98 63.91 59.11 63.97 C 59.24 64.02 59.43 64.13 59.53 64.2 C 59.64 64.28 59.85 64.4 60 64.46 C 60.15 64.52 60.33 64.63 60.4 64.69 C 60.46 64.75 60.66 64.87 60.85 64.94 C 61.03 65.02 61.21 65.13 61.25 65.18 C 61.29 65.23 61.48 65.34 61.67 65.43 C 61.86 65.52 62.05 65.62 62.08 65.66 C 62.12 65.71 62.26 65.79 62.4 65.85 C 62.54 65.91 62.74 66.03 62.85 66.11 C 62.96 66.19 63.14 66.29 63.25 66.33 C 63.36 66.37 63.52 66.46 63.6 66.54 C 63.68 66.61 63.89 66.74 64.07 66.82 C 64.25 66.9 64.42 67 64.45 67.04 C 64.47 67.08 64.66 67.19 64.86 67.27 C 65.06 67.36 65.25 67.46 65.27 67.5 C 65.29 67.54 65.48 67.64 65.67 67.73 C 66 67.88 66.05 67.92 66.14 68.17 L 66.25 68.45 L 66.1 68.6 C 66.02 68.69 65.91 68.85 65.86 68.95 C 65.81 69.06 65.74 69.14 65.71 69.14 C 65.66 69.14 65.53 69.32 65.08 70.02 C 64.98 70.18 64.82 70.4 64.72 70.52 C 64.61 70.63 64.53 70.75 64.53 70.78 C 64.53 70.81 64.44 70.93 64.34 71.05 C 64.23 71.17 64.09 71.35 64.03 71.45 C 63.85 71.74 63.58 72.1 63.34 72.39 C 63.22 72.54 63.12 72.68 63.12 72.71 C 63.12 72.73 63.03 72.86 62.93 72.99 C 62.82 73.12 62.67 73.34 62.57 73.48 C 62.36 73.82 62.15 74.11 61.97 74.32 C 61.89 74.41 61.75 74.61 61.65 74.76 C 61.39 75.16 61.21 75.41 61.01 75.67 C 60.79 75.96 60.59 76.23 60.38 76.57 C 60.29 76.71 60.13 76.92 60.03 77.04 C 59.92 77.16 59.84 77.29 59.84 77.32 C 59.84 77.35 59.75 77.47 59.65 77.58 C 59.54 77.7 59.39 77.9 59.29 78.04 C 59.08 78.38 58.89 78.66 58.66 78.94 C 58.44 79.23 58.24 79.5 58.03 79.84 C 57.94 79.98 57.78 80.19 57.68 80.3 C 57.57 80.42 57.49 80.53 57.49 80.56 C 57.49 80.58 57.4 80.71 57.3 80.82 C 57.19 80.94 57.03 81.16 56.94 81.31 C 56.73 81.65 56.55 81.93 56.32 82.22 C 56.09 82.52 55.8 82.91 55.62 83.19 C 55.36 83.58 55.12 83.9 54.95 84.11 C 54.86 84.23 54.72 84.41 54.66 84.51 C 54.47 84.81 54.09 85.37 53.93 85.58 C 53.5 86.14 53.38 86.3 53.22 86.54 C 52.97 86.93 52.79 87.18 52.58 87.45 C 52.37 87.71 52.19 87.98 51.94 88.36 C 51.85 88.51 51.7 88.7 51.62 88.8 C 51.47 88.97 51.28 89.23 51.08 89.53 C 50.55 90.31 50.44 90.47 50.24 90.73 C 49.89 91.18 49.55 91.67 49.45 91.86 C 49.4 91.97 49.33 92.05 49.3 92.05 C 49.27 92.05 49.18 92.15 49.11 92.27 C 49.04 92.39 48.91 92.57 48.83 92.67 C 48.75 92.77 48.61 92.97 48.51 93.11 C 48.3 93.45 48.11 93.73 47.88 94.01 C 47.6 94.37 47.33 94.74 47.21 94.95 C 47.15 95.05 47 95.24 46.91 95.35 C 46.8 95.47 46.72 95.59 46.72 95.62 C 46.72 95.66 46.63 95.78 46.53 95.9 C 46.42 96.02 46.27 96.24 46.18 96.39 C 46.1 96.54 45.97 96.71 45.9 96.77 C 45.83 96.83 45.78 96.91 45.78 96.95 C 45.78 96.99 45.7 97.11 45.6 97.22 C 45.41 97.44 45.22 97.69 44.97 98.08 C 44.88 98.22 44.71 98.46 44.59 98.6 C 44.47 98.75 44.37 98.89 44.37 98.92 C 44.37 98.95 44.27 99.09 44.15 99.23 C 44.03 99.37 43.88 99.56 43.82 99.66 C 43.62 99.98 43.31 100.42 43.17 100.56 C 43.09 100.64 43 100.77 42.96 100.85 C 42.92 100.93 42.82 101.07 42.74 101.17 C 42.6 101.35 42.35 101.7 42.02 102.21 C 41.91 102.37 41.81 102.49 41.78 102.49 C 41.76 102.49 41.69 102.58 41.63 102.68 C 41.51 102.91 41.13 103.45 40.83 103.82 C 40.71 103.97 40.61 104.11 40.61 104.14 C 40.61 104.16 40.52 104.29 40.42 104.42 C 40.31 104.55 40.16 104.77 40.06 104.91 C 39.85 105.25 39.64 105.54 39.46 105.75 C 39.38 105.84 39.24 106.04 39.14 106.19 C 38.88 106.59 38.7 106.84 38.5 107.1 C 38.29 107.36 38.11 107.62 37.86 108.01 C 37.77 108.16 37.6 108.38 37.5 108.51 C 37.4 108.64 37.24 108.86 37.13 108.98 C 37.02 109.11 36.87 109.34 36.78 109.48 C 36.57 109.81 36.38 110.1 36.15 110.38 C 35.69 110.98 35.56 111.16 35.41 111.42 C 35.32 111.58 35.23 111.7 35.2 111.7 C 35.18 111.7 35.09 111.8 35.02 111.92 C 34.95 112.04 34.81 112.24 34.71 112.35 C 34.53 112.56 34.32 112.88 34.05 113.32 C 33.99 113.43 33.86 113.6 33.78 113.68 C 33.7 113.77 33.57 113.94 33.5 114.06 C 33.42 114.18 33.34 114.28 33.31 114.28 C 33.28 114.28 33.2 114.39 33.13 114.53 C 33.06 114.67 32.91 114.88 32.81 115 C 32.7 115.12 32.61 115.24 32.61 115.27 C 32.61 115.31 32.51 115.45 32.39 115.59 C 32.16 115.86 32.03 116.05 31.75 116.5 C 31.66 116.64 31.5 116.85 31.4 116.97 C 31.29 117.09 31.21 117.22 31.21 117.25 C 31.21 117.29 31.15 117.36 31.09 117.42 C 31.02 117.48 30.88 117.67 30.77 117.83 C 30.66 117.99 30.52 118.19 30.44 118.28 C 30.25 118.48 29.88 118.96 29.74 119.18 C 29.68 119.27 29.49 119.53 29.34 119.74 C 29.18 119.95 29 120.2 28.94 120.29 C 28.89 120.38 28.76 120.56 28.66 120.67 C 28.55 120.79 28.34 121.03 28.17 121.22 C 28.01 121.4 27.87 121.58 27.87 121.6 C 27.87 121.62 27.8 121.72 27.72 121.82 C 27.64 121.91 27.53 122.07 27.48 122.17 C 27.43 122.26 27.29 122.46 27.18 122.59 C 27.06 122.72 26.87 122.97 26.75 123.12 C 26.63 123.27 26.46 123.5 26.37 123.61 C 26.28 123.72 26.14 123.91 26.07 124.02 C 25.99 124.13 25.85 124.32 25.75 124.44 C 25.65 124.56 25.47 124.78 25.36 124.93 C 25.25 125.08 25.06 125.3 24.94 125.42 C 24.82 125.54 24.69 125.71 24.64 125.81 C 24.59 125.91 24.51 126.03 24.45 126.07 C 24.4 126.12 24.3 126.26 24.23 126.39 C 24.17 126.52 24.04 126.71 23.94 126.81 C 23.69 127.07 23.35 127.48 23.17 127.75 C 23.09 127.88 22.89 128.13 22.75 128.31 C 22.6 128.49 22.44 128.71 22.38 128.81 C 22.33 128.9 22.2 129.06 22.12 129.16 C 22.03 129.25 21.89 129.44 21.81 129.56 C 21.73 129.68 21.65 129.78 21.62 129.78 C 21.6 129.78 21.49 129.9 21.39 130.06 C 21.04 130.58 20.77 130.95 20.64 131.07 C 20.56 131.13 20.46 131.27 20.42 131.36 C 20.37 131.45 20.28 131.56 20.21 131.59 C 20.15 131.63 20.03 131.77 19.97 131.9 C 19.84 132.15 19.64 132.42 19.25 132.85 C 19.13 132.98 19.03 133.14 19.03 133.18 C 19.03 133.23 19.08 133.31 19.14 133.36 C 19.23 133.45 19.77 133.46 24.66 133.47 C 29.03 133.49 30.12 133.51 30.28 133.57 C 30.43 133.63 30.54 133.63 30.84 133.58 C 31.1 133.53 36.23 133.52 48.69 133.52 L 66.17 133.52 L 66.27 133.68 C 66.37 133.83 66.38 134.27 66.39 141.33 C 66.4 145.45 66.38 148.9 66.35 149.01 C 66.31 149.16 66.24 149.23 66 149.34 C 65.84 149.42 65.65 149.53 65.59 149.59 C 65.53 149.64 65.36 149.74 65.21 149.8 C 65.06 149.86 64.92 149.95 64.89 149.99 C 64.87 150.03 64.69 150.14 64.5 150.22 C 64.31 150.31 64.09 150.44 64.02 150.51 C 63.96 150.57 63.77 150.68 63.6 150.75 C 63.44 150.82 63.25 150.93 63.19 150.98 C 63.13 151.04 62.97 151.13 62.84 151.19 C 62.71 151.24 62.53 151.34 62.43 151.42 C 62.34 151.49 62.12 151.62 61.95 151.7 C 61.79 151.79 61.63 151.89 61.6 151.92 C 61.58 151.96 61.41 152.05 61.23 152.13 C 61.05 152.21 60.85 152.32 60.78 152.38 C 60.72 152.44 60.56 152.53 60.43 152.59 C 60.3 152.64 60.12 152.74 60.02 152.82 C 59.93 152.89 59.71 153.02 59.54 153.1 C 59.38 153.19 59.22 153.29 59.19 153.32 C 59.17 153.36 59 153.45 58.82 153.53 C 58.64 153.61 58.44 153.72 58.37 153.78 C 58.31 153.84 58.11 153.96 57.92 154.03 C 57.74 154.11 57.56 154.22 57.52 154.28 C 57.48 154.33 57.31 154.44 57.16 154.52 C 57.01 154.6 56.88 154.69 56.88 154.73 C 56.88 154.76 56.97 154.83 57.09 154.88 C 57.27 154.95 59.35 154.96 72.52 154.96 C 83.94 154.96 87.81 154.94 88.01 154.89 C 88.16 154.85 88.28 154.78 88.3 154.75 C 88.31 154.7 88.21 154.62 88.04 154.55 C 87.89 154.49 87.69 154.37 87.61 154.29 C 87.53 154.21 87.33 154.1 87.17 154.03 C 87.01 153.96 86.82 153.85 86.76 153.8 C 86.7 153.74 86.52 153.64 86.37 153.58 C 86.22 153.52 86.08 153.43 86.05 153.39 C 86.03 153.35 85.85 153.24 85.66 153.16 C 85.47 153.07 85.25 152.94 85.18 152.87 C 85.12 152.81 84.93 152.7 84.76 152.63 C 84.6 152.56 84.41 152.45 84.35 152.4 C 84.29 152.34 84.11 152.24 83.96 152.18 C 83.81 152.12 83.67 152.03 83.64 151.99 C 83.62 151.95 83.44 151.84 83.25 151.76 C 83.06 151.67 82.84 151.54 82.77 151.47 C 82.71 151.41 82.52 151.3 82.35 151.23 C 82.19 151.16 82 151.05 81.94 151 C 81.88 150.94 81.72 150.85 81.59 150.79 C 81.46 150.74 81.28 150.64 81.18 150.56 C 81.09 150.49 80.87 150.36 80.7 150.28 C 80.54 150.19 80.38 150.09 80.36 150.06 C 80.34 150.02 80.15 149.92 79.96 149.83 C 79.77 149.74 79.51 149.6 79.4 149.51 C 79.29 149.43 79.13 149.32 79.05 149.27 C 78.74 149.05 78.75 149.36 78.75 141.42 C 78.75 133.26 78.73 133.79 79.13 133.62 C 79.3 133.55 80.11 133.54 84.07 133.54 C 88.46 133.54 88.82 133.53 89.01 133.43 L 89.22 133.33 L 89.24 128.78 C 89.25 124.6 89.25 124.22 89.16 124.15 C 89.08 124.08 88.19 124.06 84.04 124.04 C 80.11 124.02 78.99 123.99 78.89 123.93 L 78.76 123.85 L 78.75 101.94 C 78.73 80.48 78.73 80.02 78.62 79.9 C 78.46 79.72 78.3 79.75 78.19 79.96 C 78.14 80.07 77.99 80.26 77.87 80.41 C 77.75 80.55 77.65 80.69 77.65 80.72 C 77.65 80.75 77.57 80.86 77.48 80.97 C 77.39 81.08 77.27 81.26 77.21 81.37 C 77.15 81.48 77.02 81.67 76.91 81.8 C 76.8 81.92 76.71 82.05 76.71 82.08 C 76.71 82.11 76.62 82.24 76.52 82.36 C 76.41 82.48 76.26 82.7 76.17 82.85 C 76.09 83 75.96 83.17 75.89 83.23 C 75.82 83.29 75.77 83.38 75.77 83.42 C 75.77 83.46 75.69 83.57 75.61 83.66 C 75.52 83.75 75.38 83.95 75.29 84.09 C 75.2 84.24 75.09 84.39 75.04 84.44 C 74.99 84.48 74.88 84.64 74.79 84.8 C 74.71 84.96 74.61 85.09 74.59 85.09 C 74.57 85.09 74.47 85.21 74.37 85.37 C 74.16 85.69 73.98 85.96 73.74 86.29 C 73.65 86.41 73.52 86.6 73.46 86.71 C 73.4 86.81 73.25 87 73.16 87.11 C 73.05 87.23 72.97 87.34 72.97 87.37 C 72.97 87.39 72.85 87.57 72.71 87.76 C 72.56 87.95 72.45 88.14 72.45 88.16 C 72.45 88.19 72.37 88.31 72.27 88.42 C 71.94 88.81 71.7 89.16 71.54 89.43 C 71.46 89.59 71.37 89.71 71.34 89.71 C 71.31 89.71 71.21 89.83 71.11 89.99 C 71.01 90.15 70.88 90.34 70.82 90.42 C 70.76 90.5 70.64 90.67 70.55 90.8 C 70.26 91.24 70.11 91.44 69.93 91.68 C 69.71 91.97 69.51 92.24 69.3 92.58 C 69.21 92.72 69.05 92.94 68.95 93.07 C 68.84 93.2 68.76 93.33 68.76 93.35 C 68.76 93.38 68.66 93.52 68.54 93.66 C 68.42 93.8 68.27 93.99 68.22 94.09 C 68.05 94.37 67.72 94.84 67.6 94.96 C 67.54 95.02 67.45 95.16 67.39 95.26 C 67.34 95.36 67.21 95.55 67.1 95.68 C 66.99 95.81 66.86 96 66.8 96.08 C 66.75 96.17 66.64 96.34 66.55 96.45 L 66.4 96.65 L 66.4 110.26 C 66.4 123.37 66.39 123.88 66.29 123.96 C 66.19 124.05 65.17 124.06 52.79 124.06 C 43.78 124.06 39.33 124.04 39.19 124 C 39.07 123.96 38.96 123.91 38.94 123.88 C 38.92 123.85 38.97 123.75 39.05 123.65 C 39.13 123.55 39.2 123.45 39.2 123.42 C 39.2 123.39 39.3 123.25 39.42 123.11 C 39.54 122.97 39.68 122.78 39.74 122.68 C 39.91 122.4 40.24 121.94 40.4 121.75 C 40.58 121.53 40.79 121.24 41 120.91 C 41.09 120.77 41.25 120.55 41.36 120.42 C 41.46 120.29 41.55 120.16 41.55 120.14 C 41.55 120.11 41.65 119.97 41.77 119.82 C 42.07 119.45 42.45 118.92 42.57 118.68 C 42.62 118.58 42.69 118.49 42.72 118.49 C 42.75 118.49 42.84 118.39 42.91 118.27 C 42.98 118.15 43.11 117.97 43.19 117.87 C 43.27 117.77 43.41 117.57 43.51 117.43 C 43.72 117.09 43.91 116.81 44.14 116.53 C 44.42 116.17 44.69 115.8 44.81 115.59 C 44.87 115.49 45.02 115.3 45.12 115.19 C 45.22 115.07 45.31 114.95 45.31 114.92 C 45.31 114.88 45.4 114.76 45.5 114.64 C 45.61 114.52 45.76 114.3 45.85 114.15 C 45.93 114 46.06 113.83 46.13 113.77 C 46.2 113.71 46.25 113.63 46.25 113.59 C 46.25 113.55 46.33 113.43 46.43 113.32 C 46.62 113.1 46.81 112.85 47.06 112.46 C 47.15 112.32 47.32 112.08 47.45 111.94 C 47.57 111.79 47.67 111.65 47.67 111.62 C 47.67 111.59 47.76 111.47 47.86 111.35 C 47.96 111.23 48.1 111.05 48.16 110.95 C 48.34 110.66 48.61 110.29 48.81 110.05 C 48.91 109.93 49.03 109.77 49.07 109.69 C 49.11 109.61 49.21 109.46 49.29 109.37 C 49.43 109.19 49.68 108.84 50.01 108.33 C 50.12 108.18 50.22 108.05 50.25 108.05 C 50.27 108.05 50.34 107.96 50.4 107.86 C 50.52 107.63 50.9 107.1 51.2 106.73 C 51.32 106.58 51.42 106.44 51.42 106.41 C 51.42 106.39 51.51 106.26 51.61 106.13 C 51.71 106 51.87 105.78 51.96 105.64 C 52.17 105.3 52.38 105.01 52.56 104.8 C 52.64 104.7 52.78 104.51 52.88 104.36 C 53.14 103.96 53.32 103.71 53.52 103.45 C 53.73 103.19 53.91 102.93 54.16 102.54 C 54.32 102.3 54.44 102.14 54.87 101.58 C 55.03 101.37 55.42 100.82 55.6 100.51 C 55.66 100.41 55.79 100.23 55.88 100.12 C 56.2 99.73 56.44 99.39 56.6 99.11 C 56.69 98.96 56.78 98.83 56.81 98.83 C 56.83 98.83 56.92 98.73 56.99 98.61 C 57.06 98.49 57.2 98.3 57.3 98.18 C 57.4 98.06 57.53 97.89 57.59 97.8 C 57.88 97.33 58.11 96.98 58.23 96.84 C 58.31 96.76 58.43 96.59 58.5 96.46 C 58.58 96.34 58.66 96.24 58.69 96.24 C 58.72 96.24 58.8 96.13 58.87 95.99 C 58.94 95.86 59.09 95.64 59.19 95.52 C 59.3 95.4 59.39 95.28 59.39 95.25 C 59.39 95.21 59.49 95.07 59.61 94.93 C 59.83 94.66 59.97 94.47 60.25 94.02 C 60.34 93.88 60.5 93.67 60.61 93.55 C 60.71 93.43 60.8 93.31 60.8 93.29 C 60.8 93.27 60.89 93.15 60.99 93.03 C 61.09 92.91 61.25 92.7 61.34 92.56 C 61.55 92.22 61.74 91.94 61.97 91.66 C 62.17 91.4 62.35 91.15 62.61 90.75 C 62.71 90.6 62.85 90.4 62.93 90.31 C 63.12 90.09 63.32 89.81 63.53 89.47 C 63.62 89.33 63.78 89.11 63.89 88.98 C 63.99 88.85 64.08 88.72 64.08 88.7 C 64.08 88.67 64.18 88.53 64.3 88.38 C 64.54 88.09 64.81 87.72 64.99 87.44 C 65.05 87.34 65.2 87.15 65.3 87.04 C 65.4 86.92 65.49 86.8 65.49 86.77 C 65.49 86.73 65.58 86.61 65.68 86.49 C 65.79 86.37 65.95 86.15 66.04 86 C 66.24 85.67 66.44 85.37 66.63 85.15 C 66.81 84.94 67.15 84.46 67.29 84.22 C 67.34 84.13 67.49 83.93 67.61 83.79 C 67.73 83.65 67.83 83.51 67.83 83.48 C 67.83 83.45 67.93 83.31 68.05 83.17 C 68.17 83.03 68.31 82.84 68.37 82.74 C 68.52 82.5 68.86 82.01 69.03 81.81 C 69.22 81.59 69.42 81.29 69.62 80.96 C 69.71 80.81 69.87 80.6 69.98 80.47 C 70.09 80.35 70.17 80.23 70.17 80.19 C 70.17 80.16 70.26 80.04 70.36 79.92 C 70.46 79.8 70.6 79.62 70.66 79.52 C 70.84 79.23 71.11 78.87 71.35 78.58 C 71.47 78.43 71.57 78.29 71.57 78.26 C 71.57 78.24 71.66 78.11 71.76 77.98 C 71.86 77.85 72.02 77.63 72.11 77.49 C 72.32 77.15 72.53 76.86 72.71 76.65 C 72.79 76.55 72.93 76.36 73.03 76.21 C 73.29 75.81 73.47 75.56 73.67 75.3 C 73.89 75.01 74.09 74.74 74.3 74.4 C 74.39 74.26 74.55 74.05 74.66 73.93 C 74.76 73.81 74.85 73.68 74.85 73.65 C 74.85 73.62 74.94 73.5 75.04 73.39 C 75.14 73.27 75.3 73.07 75.39 72.93 C 75.6 72.59 75.79 72.31 76.02 72.03 C 76.24 71.74 76.44 71.47 76.65 71.13 C 76.74 70.99 76.9 70.78 77.01 70.67 C 77.11 70.55 77.2 70.44 77.2 70.41 C 77.2 70.39 77.28 70.27 77.39 70.16 C 77.55 69.97 77.78 69.65 78.06 69.17 C 78.12 69.08 78.25 68.91 78.35 68.79 C 78.45 68.67 78.59 68.48 78.66 68.36 C 78.73 68.24 78.81 68.14 78.84 68.14 C 78.86 68.14 78.96 68.02 79.05 67.86 C 79.21 67.59 79.45 67.25 79.77 66.86 C 79.86 66.75 79.99 66.57 80.05 66.47 C 80.35 65.98 80.72 65.46 80.84 65.36 C 80.91 65.3 80.96 65.23 80.96 65.19 C 80.96 65.16 81.05 65.04 81.15 64.91 C 81.25 64.79 81.41 64.58 81.5 64.44 C 81.71 64.1 81.9 63.82 82.13 63.54 C 82.33 63.28 82.51 63.03 82.77 62.63 C 82.87 62.48 83.01 62.28 83.09 62.19 C 83.28 61.97 83.48 61.69 83.69 61.35 C 83.78 61.21 83.94 60.99 84.05 60.86 C 84.15 60.73 84.24 60.6 84.24 60.56 C 84.26 60.35 84.22 60.07 84.16 60.04 C 84.08 59.99 52.91 59.98 52.86 60.03 L 52.84 59.98 Z M 90.12 34.13 C 90.03 34.19 89.91 34.3 89.86 34.36 C 89.78 34.46 89.77 40.42 89.77 81.05 L 89.77 127.62 L 89.99 127.82 L 90.2 128.03 L 95.66 128.03 C 99.94 128.03 101.14 128.01 101.21 127.96 C 101.26 127.92 101.34 127.81 101.41 127.73 C 101.5 127.59 101.51 124.15 101.51 81.08 C 101.51 46.76 101.49 34.54 101.44 34.44 C 101.4 34.37 101.31 34.24 101.24 34.16 L 101.12 34.03 L 95.7 34.03 C 90.56 34.03 90.27 34.04 90.11 34.14 L 90.12 34.13 Z M 143.87 34.12 C 143.68 34.19 143.46 34.38 143.01 34.86 C 142.67 35.21 142.2 35.72 141.95 35.99 C 141.7 36.25 141.26 36.72 140.97 37.02 C 140.68 37.33 140.26 37.78 140.02 38.02 C 139.79 38.26 139.36 38.72 139.07 39.04 C 138.78 39.35 138.37 39.8 138.15 40.04 C 137.93 40.27 137.43 40.81 137.05 41.23 C 136.67 41.65 136.29 42.06 136.2 42.15 C 136.11 42.24 135.73 42.65 135.34 43.07 C 134.95 43.49 134.53 43.94 134.39 44.08 C 134.26 44.22 133.82 44.69 133.41 45.12 C 133.01 45.55 132.6 45.99 132.5 46.1 C 132.4 46.2 131.92 46.72 131.44 47.26 C 130.95 47.8 130.48 48.31 130.39 48.4 C 130.3 48.49 130 48.82 129.71 49.13 C 129.42 49.44 128.98 49.91 128.73 50.18 C 128.48 50.44 128.04 50.91 127.75 51.21 C 127.46 51.52 127.03 51.98 126.79 52.24 C 126.55 52.5 126.23 52.83 126.09 52.99 C 125.85 53.24 125.22 53.93 124.15 55.09 C 123.45 55.86 122.35 57.03 122.1 57.3 C 121.97 57.44 121.54 57.89 121.15 58.31 C 120.76 58.73 120.34 59.18 120.2 59.31 C 119.84 59.68 118.76 60.85 117.97 61.73 C 117.18 62.6 117 62.8 116.66 63.16 C 116.53 63.3 116.1 63.75 115.71 64.17 C 115.32 64.59 114.8 65.14 114.55 65.41 C 114.3 65.68 113.87 66.13 113.6 66.42 C 113.33 66.71 113 67.06 112.87 67.2 C 112.74 67.34 112.35 67.76 112.01 68.12 C 111.67 68.49 111.21 69 110.97 69.25 C 110.74 69.51 110.32 69.95 110.05 70.25 C 109.78 70.54 109.35 71 109.1 71.27 C 108.45 71.96 107.8 72.67 107.69 72.84 C 107.63 72.92 107.53 73.05 107.46 73.13 C 107.28 73.31 106.83 73.89 106.68 74.13 C 106.62 74.23 106.51 74.37 106.45 74.44 C 106.39 74.51 106.28 74.73 106.22 74.92 C 106.16 75.11 106.04 75.35 105.95 75.45 C 105.86 75.55 105.77 75.77 105.73 75.98 C 105.69 76.18 105.58 76.58 105.48 76.89 C 105.31 77.39 105.28 77.54 105.24 78.69 C 105.17 80.26 105.25 82.07 105.42 82.7 C 105.69 83.68 105.82 84.06 106.02 84.43 C 106.14 84.64 106.23 84.86 106.23 84.9 C 106.23 84.95 106.32 85.08 106.42 85.2 C 106.61 85.42 106.71 85.55 107.08 86.07 C 107.36 86.46 108.1 87.31 108.89 88.14 C 109.18 88.45 109.46 88.75 110.11 89.48 C 110.38 89.78 110.72 90.15 110.85 90.3 C 110.99 90.45 111.38 90.88 111.71 91.25 C 112.04 91.62 112.38 92 112.46 92.08 C 112.55 92.17 112.83 92.47 113.08 92.75 C 113.33 93.03 113.65 93.37 113.78 93.51 C 113.91 93.65 114.24 94.01 114.51 94.31 C 114.78 94.61 115.1 94.95 115.21 95.07 C 115.33 95.19 115.56 95.46 115.74 95.65 C 116.58 96.6 117.21 97.31 117.35 97.45 C 117.44 97.54 117.73 97.85 118 98.15 C 118.27 98.45 118.59 98.8 118.7 98.91 C 118.82 99.03 119.13 99.37 119.4 99.67 C 119.86 100.18 119.97 100.31 120.54 100.91 C 120.66 101.04 120.95 101.36 121.18 101.63 C 121.63 102.15 121.84 102.39 122.19 102.76 C 122.31 102.88 122.62 103.22 122.89 103.52 C 123.16 103.82 123.49 104.17 123.62 104.32 C 123.75 104.46 124.07 104.8 124.32 105.08 C 124.57 105.37 124.86 105.68 124.97 105.78 C 125.07 105.88 125.42 106.26 125.73 106.61 C 126.04 106.96 126.41 107.38 126.55 107.53 C 126.68 107.68 127.02 108.05 127.29 108.35 C 127.56 108.65 127.88 109 127.99 109.13 C 128.11 109.25 128.42 109.59 128.69 109.89 C 128.96 110.19 129.29 110.54 129.42 110.69 C 129.55 110.83 129.75 111.04 129.85 111.15 C 129.95 111.26 130.65 112.04 131.4 112.88 C 132.15 113.72 132.83 114.48 132.92 114.57 C 133.01 114.66 133.3 114.97 133.57 115.27 C 133.84 115.56 134.14 115.89 134.24 115.99 C 134.34 116.09 135.16 116.99 136.04 117.98 C 136.93 118.97 137.74 119.87 137.84 119.97 C 137.94 120.08 138.23 120.39 138.48 120.67 C 138.73 120.95 139.02 121.26 139.13 121.37 C 139.23 121.47 139.93 122.24 140.68 123.09 C 142.05 124.63 142.22 124.81 142.67 125.29 C 142.8 125.43 143.13 125.79 143.4 126.09 C 143.67 126.38 143.99 126.73 144.1 126.85 C 144.22 126.98 144.47 127.25 144.66 127.46 C 144.89 127.73 145.08 127.87 145.27 127.94 C 145.5 128.02 146.6 128.03 154.11 128.03 L 162.68 128.03 L 162.64 127.75 C 162.6 127.52 162.54 127.41 162.24 127.1 C 161.88 126.72 161.58 126.4 160.17 124.89 C 159.77 124.46 159.23 123.89 158.98 123.64 C 158.73 123.38 158.19 122.81 157.79 122.39 C 157.39 121.96 156.85 121.4 156.6 121.14 C 155.98 120.5 155.32 119.79 154.37 118.78 C 152.02 116.26 151.17 115.35 150.67 114.84 C 150.42 114.58 149.88 114.01 149.48 113.59 C 149.08 113.16 148.54 112.6 148.29 112.34 C 148.04 112.08 147.49 111.5 147.07 111.06 C 146.65 110.61 146.23 110.16 146.12 110.05 C 146.02 109.95 145.45 109.34 144.87 108.7 C 144.28 108.06 143.59 107.33 143.34 107.07 C 143.09 106.81 142.55 106.24 142.15 105.81 C 141.75 105.38 141.21 104.82 140.96 104.56 C 140.71 104.3 140.17 103.74 139.77 103.31 C 139.37 102.88 138.85 102.33 138.61 102.08 C 138.38 101.84 138.06 101.51 137.91 101.34 C 136.6 99.92 135.41 98.65 135.04 98.26 C 134.79 98 134.25 97.43 133.85 97 C 133.45 96.57 132.91 96.01 132.66 95.75 C 132.41 95.49 131.87 94.92 131.47 94.5 C 131.07 94.07 130.53 93.51 130.28 93.25 C 130.03 92.99 129.23 92.14 128.51 91.35 C 127.79 90.57 126.99 89.71 126.74 89.45 C 126.49 89.19 125.95 88.62 125.55 88.2 C 125.15 87.77 124.61 87.21 124.36 86.95 C 124.11 86.69 123.57 86.13 123.17 85.7 C 122.77 85.27 122.25 84.72 122.01 84.48 C 121.78 84.24 121.4 83.85 121.18 83.61 C 120.5 82.87 118.83 81.07 118.37 80.59 C 118.13 80.34 117.94 80.11 117.94 80.07 C 117.96 79.8 118.2 79.49 119.03 78.62 C 119.55 78.08 120.3 77.32 120.68 76.92 C 121.07 76.52 121.82 75.74 122.36 75.18 C 122.9 74.62 123.55 73.95 123.8 73.69 C 124.05 73.43 124.73 72.72 125.3 72.12 C 126.46 70.9 127.42 69.89 127.69 69.61 C 127.79 69.51 128.31 68.96 128.85 68.4 C 129.39 67.83 130.15 67.05 130.53 66.65 C 130.92 66.25 131.67 65.47 132.21 64.91 C 132.75 64.35 133.51 63.56 133.89 63.17 C 134.28 62.77 135.03 61.98 135.57 61.41 C 136.11 60.85 136.6 60.33 136.68 60.26 C 136.75 60.19 137.35 59.55 138.03 58.85 C 138.7 58.14 139.32 57.49 139.4 57.41 C 139.49 57.32 139.99 56.79 140.53 56.23 C 141.07 55.66 141.83 54.87 142.21 54.47 C 142.6 54.07 143.37 53.28 143.92 52.7 C 144.48 52.13 145.25 51.33 145.63 50.93 C 146.02 50.53 146.77 49.74 147.31 49.17 C 147.85 48.61 148.36 48.08 148.44 47.99 C 148.57 47.86 149.87 46.49 151.44 44.84 C 151.66 44.61 152.05 44.21 152.3 43.95 C 152.55 43.69 153.2 43.01 153.74 42.46 C 154.28 41.9 155.04 41.11 155.42 40.71 C 155.81 40.31 156.58 39.52 157.13 38.94 C 157.69 38.37 158.44 37.58 158.81 37.2 C 160.49 35.48 161.26 34.64 161.3 34.51 C 161.32 34.44 161.34 34.31 161.34 34.21 L 161.35 34.04 L 152.74 34.05 C 145.33 34.05 144.09 34.07 143.88 34.14 L 143.87 34.12 Z"/>
+  </g>
+</svg>`
+  const FAVICON_DATA_URI = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(SITE_ICON_SVG$1)}`
+  const SITE_ICON_DATA_URI$1 = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(SITE_ICON_SVG$1)}`
 
   // src/shared/badges.js
   const USERPATCH_BADGE_DATA = Object.freeze({
@@ -569,9 +621,9 @@
     item.target = "_blank"
     item.rel = "noopener noreferrer nofollow"
     item.dataset.userpatchFilename = row.title
-    item.dataset.userpatchQuality = getReleaseQuality(
-      `${row.title} ${row.size || ""}`
-    )
+    item.dataset.userpatchQuality = row.external
+      ? "unknown"
+      : getReleaseQuality(`${row.title} ${row.size || ""}`)
     const rowLayout = document.createElement("div")
     rowLayout.className = "userpatch-release-row"
     if (isReleaseOpened(row.href, null, openedReleases)) {
@@ -581,20 +633,16 @@
     copy.className = "userpatch-release-copy"
     const title = document.createElement("div")
     title.className = "userpatch-release-file-title"
-    title.textContent = row.title
+    title.textContent = row.external ? "More formats on 4KHDHub" : row.title
     copy.append(title)
     const meta = document.createElement("div")
     meta.className = "userpatch-release-meta"
-    if (row.external) {
-      const source = document.createElement("span")
-      source.textContent = "More formats on 4KHDHub"
-      meta.append(source)
-    } else if (row.size) {
+    if (!row.external && row.size) {
       const size = document.createElement("span")
       size.textContent = row.size
       meta.append(size)
     }
-    if (row.audio) {
+    if (!row.external && row.audio) {
       const audioBadge = document.createElement("span")
       audioBadge.className = "userpatch-series-language-badge"
       audioBadge.setAttribute("aria-label", `Audio: ${row.audio}`)
@@ -612,9 +660,9 @@
     const action = document.createElement("span")
     action.className = "userpatch-release-action"
     action.setAttribute("aria-hidden", "true")
-    if (row.provider) {
+    if (row.external || row.provider) {
       const image = document.createElement("img")
-      image.src = row.provider.logo
+      image.src = row.external ? SITE_ICON_DATA_URI$1 : row.provider.logo
       image.alt = ""
       image.width = 36
       image.height = 36
@@ -622,9 +670,7 @@
       action.append(image)
     } else {
       let actionIcon = "download"
-      if (row.external) {
-        actionIcon = "external-link"
-      } else if (row.isWatch) {
+      if (row.isWatch) {
         actionIcon = "play"
       }
       action.append(createLucideIcon(actionIcon))
@@ -1289,7 +1335,7 @@
       style = document.createElement("style")
       style.id = "userpatch-page-loader-style"
       style.textContent = `
-      html[data-userpatch-loading] { background: #0a0a0a !important; }
+      html[data-userpatch-loading] { background: #0a0a0a !important; color-scheme: light dark !important; }
       /* Visibility alone can be overridden by the source's visible children.
          Opacity suppresses the entire body, including its white background. */
       html[data-userpatch-loading] > body {
@@ -1316,6 +1362,14 @@
       #userpatch-page-loader progress::-moz-progress-bar,
       progress.userpatch-loading-spinner::-moz-progress-bar { background: transparent; }
       @keyframes userpatch-loader-spin { to { transform: rotate(360deg); } }
+      @media (prefers-color-scheme: light) {
+        html[data-userpatch-loading] { background: #ffffff !important; }
+        #userpatch-page-loader { background: #ffffff !important; color: #0a0a0a !important; }
+        #userpatch-page-loader progress, progress.userpatch-loading-spinner {
+          border-color: #ddd !important;
+          border-block-start-color: #0a0a0a !important;
+        }
+      }
       @media (prefers-reduced-motion: reduce) {
         #userpatch-page-loader progress, progress.userpatch-loading-spinner { animation-duration: 6s !important; }
       }
@@ -1502,6 +1556,137 @@
     )
   }
 
+  // src/shared/system-theme.js
+  let preference = null
+  const updateSystemTheme = () => {
+    const root = document.documentElement
+    if (!root || !Object.hasOwn(root.dataset, "userpatchTheme")) {
+      return
+    }
+    const theme = preference.matches ? "dark" : "light"
+    if (root.dataset.userpatchTheme !== theme) {
+      root.dataset.userpatchTheme = theme
+    }
+    if (Object.hasOwn(root.dataset, "detailTheme")) {
+      root.classList.toggle("dark", theme === "dark")
+      root.classList.toggle("light", theme === "light")
+      root.dataset.detailTheme = theme
+    }
+    for (const meta of document.querySelectorAll(
+      'meta[id^="userpatch-"][name="theme-color"]'
+    )) {
+      meta.content = theme === "dark" ? "#0a0a0a" : "#ffffff"
+    }
+  }
+  const ensureSystemTheme = () => {
+    if (!preference) {
+      preference = window.matchMedia("(prefers-color-scheme: dark)")
+      preference.addEventListener("change", updateSystemTheme)
+      window.addEventListener("pagehide", () => {
+        preference.removeEventListener("change", updateSystemTheme)
+      })
+      window.addEventListener("pageshow", (event) => {
+        if (event.persisted) {
+          preference.addEventListener("change", updateSystemTheme)
+          updateSystemTheme()
+        }
+      })
+    }
+    const theme = preference.matches ? "dark" : "light"
+    document.documentElement.dataset.userpatchTheme = theme
+    updateSystemTheme()
+    return theme
+  }
+  const systemThemeCss = (legacyHsl = false) => {
+    const light = {
+      background: "1 0 0",
+      foreground: "0.145 0 0",
+      card: "1 0 0",
+      "card-foreground": "0.145 0 0",
+      popover: "1 0 0",
+      "popover-foreground": "0.145 0 0",
+      primary: "0.205 0 0",
+      "primary-foreground": "0.985 0 0",
+      secondary: "0.97 0 0",
+      "secondary-foreground": "0.205 0 0",
+      muted: "0.97 0 0",
+      "muted-foreground": "0.556 0 0",
+      accent: "0.97 0 0",
+      "accent-foreground": "0.205 0 0",
+      destructive: "0.577 0.245 27.325",
+      border: "0.922 0 0",
+      input: "0.922 0 0",
+      ring: "0.708 0 0",
+    }
+    const hsl = {
+      background: "0 0% 100%",
+      foreground: "0 0% 3.94%",
+      card: "0 0% 100%",
+      "card-foreground": "0 0% 3.94%",
+      popover: "0 0% 100%",
+      "popover-foreground": "0 0% 3.94%",
+      primary: "0 0% 9%",
+      "primary-foreground": "0 0% 98%",
+      secondary: "0 0% 96%",
+      "secondary-foreground": "0 0% 9%",
+      muted: "0 0% 96%",
+      "muted-foreground": "0 0% 45%",
+      accent: "0 0% 96%",
+      "accent-foreground": "0 0% 9%",
+      destructive: "0 72% 51%",
+      border: "0 0% 90%",
+      input: "0 0% 90%",
+      ring: "0 0% 64%",
+    }
+    const tokens = Object.entries(light)
+      .map(
+        ([name, value]) =>
+          `--maia-${name}: oklch(${value}) !important; --${name}: ${legacyHsl ? hsl[name] : `oklch(${value})`} !important;`
+      )
+      .join("\n")
+    return `
+    html.userpatch-maia, html[data-userpatch-theme] {
+      color-scheme: light dark !important;
+    }
+    @media (prefers-color-scheme: light) {
+      html.userpatch-maia, html[data-userpatch-theme] {
+        ${tokens}
+        --maia-control-surface: oklch(0.98 0 0 / 90%);
+        --maia-control-border-opacity: 0.14;
+        --maia-ongoing-orange: #c65a00;
+        --maia-ongoing-gold: #d97706;
+        --maia-ongoing-deep-orange: #b45309;
+        --maia-ongoing-glow-opacity: 0.32;
+        --maia-ongoing-glow-blur: 12px;
+        --maia-ongoing-shadow: 0 0 12px rgb(198 90 0 / 0.28),
+          0 0 24px rgb(180 83 9 / 0.18);
+        --maia-hdhub-running-border: linear-gradient(135deg in oklch,
+          #c2410c, #d63d32 52%, #b91c1c);
+        --maia-hdhub-running-shadow: 0 0 12px rgb(194 65 12 / 0.28),
+          0 0 24px rgb(185 28 28 / 0.18);
+        --maia-selection-bg: linear-gradient(180deg in oklch,
+          oklch(0.90 0 0), oklch(0.84 0 0));
+        --maia-select-hover-bg: linear-gradient(180deg in oklch,
+          oklch(0.87 0 0), oklch(0.81 0 0));
+        --maia-selection-shadow: inset 0 1px 0 rgb(255 255 255 / 0.9),
+          inset 0 0 0 1px rgb(0 0 0 / 0.12), 0 1px 2px rgb(0 0 0 / 0.06);
+        --maia-glass-shadow: 0 1px 2px rgb(0 0 0 / 0.04),
+          0 2px 6px rgb(0 0 0 / 0.02);
+        --maia-card-depth-shadow: inset 0 1px 0 rgb(255 255 255 / 0.8),
+          0 1px 3px rgb(0 0 0 / 0.08), 0 3px 8px rgb(0 0 0 / 0.04);
+      }
+      html.userpatch-maia .userpatch-media-badge img,
+      html.userpatch-maia .userpatch-quality-tab img,
+      html.userpatch-maia .userpatch-quality-filter img {
+        filter: none !important;
+      }
+      html.userpatch-maia .userpatch-quality-tab:disabled img {
+        filter: opacity(0.45) !important;
+      }
+    }
+  `
+  }
+
   // src/shared/styles.js
   let maiaStyles = null
   const initMaiaStyles = (context) => {
@@ -1522,6 +1707,7 @@
       if (maiaStyles.preInject) {
         maiaStyles.preInject()
       }
+      const theme = ensureSystemTheme()
       if (!document.getElementById(maiaStyles.fontStyleId)) {
         const fontStylesheet = document.createElement("link")
         fontStylesheet.id = maiaStyles.fontStyleId
@@ -1548,11 +1734,15 @@
           }
           meta.content = content
         }
-        ensureManagedMeta(maiaStyles.colorSchemeMetaId, "color-scheme", "dark")
+        ensureManagedMeta(
+          maiaStyles.colorSchemeMetaId,
+          "color-scheme",
+          "light dark"
+        )
         ensureManagedMeta(
           maiaStyles.themeColorMetaId,
           "theme-color",
-          maiaStyles.themeColor
+          theme === "dark" ? maiaStyles.themeColor : "#ffffff"
         )
         const viewportMeta = document.querySelector('meta[name="viewport"]')
         if (viewportMeta) {
@@ -1596,6 +1786,11 @@
   const makeSvgDataUri = (svg) =>
     `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
   const HEADER_WORDMARK_SVG = String.raw`<svg xmlns="http://www.w3.org/2000/svg" viewBox="10.435 7.939 224.971 68.462" width="260" height="82">
+  <style>
+    @media (prefers-color-scheme: light) {
+      g[filter="url(#bevel-white)"] { fill: #202020; }
+    }
+  </style>
   <defs>
     <filter id="outer-shadow" filterUnits="userSpaceOnUse" x="-10" y="-10" width="280" height="102">
       <feMorphology in="SourceAlpha" operator="dilate" radius="1.35" result="haloMask"/>
@@ -2146,7 +2341,7 @@ html.userpatch-maia.userpatch-detail-page body .userpatch-detail-info #userpatch
   font-size: inherit !important;
   line-height: inherit !important;
   font-weight: 400 !important;
-  color: oklch(0.985 0 0) !important;
+  color: var(--maia-foreground) !important;
   -webkit-text-fill-color: currentColor !important;
 }
 html.userpatch-maia.userpatch-detail-page body .userpatch-detail-info #userpatch-detail-info-list > dd {
@@ -2158,7 +2353,7 @@ html.userpatch-maia.userpatch-detail-page body .userpatch-detail-info #userpatch
   font-size: inherit !important;
   line-height: inherit !important;
   font-weight: 400 !important;
-  color: oklch(0.708 0 0) !important;
+  color: var(--maia-muted-foreground) !important;
   -webkit-text-fill-color: currentColor !important;
   overflow-wrap: anywhere;
 }
@@ -2380,12 +2575,18 @@ html.userpatch-maia img.userpatch-progressive-image.userpatch-image-loaded {
   const TRAILER_CSS = `
 html.userpatch-maia .userpatch-detail-info .userpatch-trailer {
   display: block;
+  inline-size: 100%;
   margin: 1.5rem 0 0 !important;
   padding: 0 !important;
   border: 0 !important;
   border-radius: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
+}
+@media (min-width: 52.01rem) {
+  html.userpatch-maia .userpatch-detail-info .userpatch-trailer {
+    max-inline-size: 640px;
+  }
 }
 html.userpatch-maia .userpatch-trailer-frame {
   aspect-ratio: 16 / 9;
@@ -2949,8 +3150,8 @@ html.userpatch-maia .userpatch-header-inner::before {
   z-index: -1;
   inset: 0;
   border-radius: inherit;
-  background: color-mix(in oklch, var(--maia-card) 60%, transparent);
-  box-shadow: 0 10px 40px rgb(0 0 0 / 0.2);
+  background: var(--maia-control-surface, color-mix(in oklch, var(--maia-card) 60%, transparent));
+  box-shadow: var(--maia-glass-shadow, 0 10px 40px rgb(0 0 0 / 0.2));
   backdrop-filter: saturate(2.2) blur(16px);
   -webkit-backdrop-filter: saturate(2.2) blur(16px);
   content: "";
@@ -2967,7 +3168,7 @@ html.userpatch-maia .userpatch-header-inner::after {
     inset 0.5px -0.5px var(--maia-foreground),
     inset -0.5px 0.5px var(--maia-foreground),
     inset -0.5px -0.5px var(--maia-foreground);
-  opacity: 0.2;
+  opacity: var(--maia-control-border-opacity, 0.2);
   content: "";
   pointer-events: none;
 }
@@ -3145,8 +3346,8 @@ html.userpatch-maia .userpatch-nav-indicator {
   border-radius:
     var(--userpatch-nav-radius-x, 0.875rem) /
     var(--userpatch-nav-radius-y, 0.875rem);
-  background: color-mix(in oklch, var(--maia-foreground) 9%, transparent);
-  box-shadow: inset 0 1px 2px color-mix(in oklch, var(--maia-foreground) 12%, transparent);
+  background: var(--maia-selection-bg, color-mix(in oklch, var(--maia-foreground) 9%, transparent));
+  box-shadow: var(--maia-selection-shadow, inset 0 1px 2px color-mix(in oklch, var(--maia-foreground) 12%, transparent));
   opacity: 0;
   pointer-events: none;
   transform: translate3d(
@@ -3548,7 +3749,7 @@ html.userpatch-maia .userpatch-mobile-nav-item:active {
 }
 
 html.userpatch-maia .userpatch-mobile-nav-item[aria-current="page"] {
-  background: color-mix(in oklch, var(--maia-foreground) 9%, transparent);
+  background: var(--maia-selection-bg, color-mix(in oklch, var(--maia-foreground) 9%, transparent));
   box-shadow: inset 0 1px 2px
     color-mix(in oklch, var(--maia-foreground) 12%, transparent);
   color: var(--maia-foreground);
@@ -3719,7 +3920,7 @@ html.userpatch-maia .userpatch-mobile-menu-summary::-webkit-details-marker {
 html.userpatch-maia .userpatch-mobile-menu-link:focus-visible,
 html.userpatch-maia .userpatch-mobile-menu-summary:focus-visible,
 html.userpatch-maia .userpatch-mobile-menu-close:focus-visible {
-  background: color-mix(in oklch, var(--maia-foreground) 9%, transparent);
+  background: var(--maia-selection-bg, color-mix(in oklch, var(--maia-foreground) 9%, transparent));
   color: var(--maia-foreground);
   outline: 2px solid var(--maia-ring);
   outline-offset: -2px;
@@ -3728,7 +3929,7 @@ html.userpatch-maia .userpatch-mobile-menu-close:focus-visible {
 @media (hover: hover) and (pointer: fine) {
   html.userpatch-maia .userpatch-mobile-menu-link:hover,
   html.userpatch-maia .userpatch-mobile-menu-summary:hover {
-    background: color-mix(in oklch, var(--maia-foreground) 9%, transparent);
+    background: var(--maia-selection-bg, color-mix(in oklch, var(--maia-foreground) 9%, transparent));
     color: var(--maia-foreground);
   }
 }
@@ -4187,7 +4388,7 @@ html.userpatch-maia .userpatch-detail-root {
   html.userpatch-maia .userpatch-detail-root {
     grid-template-columns: minmax(17rem, min(21rem, 30vw)) minmax(0, 1fr);
     align-items: stretch;
-    gap: var(--maia-gutter);
+    column-gap: 2rem;
     block-size: 100dvh;
     padding-block: 0;
   }
@@ -4216,6 +4417,11 @@ html.userpatch-maia .userpatch-poster-panel {
     align-self: start;
     inline-size: min(100%, 21rem, 42dvh);
     max-block-size: calc(100dvh - 2rem);
+    /* Keep the scrollport beyond the glow without moving or shrinking the
+       poster. Overflow must stay scrollable for shorter desktop windows. */
+    box-sizing: content-box;
+    padding-inline: 1.5rem;
+    margin-inline: -1.5rem;
     overflow: auto;
     overscroll-behavior-x: auto;
   overscroll-behavior-y: contain;
@@ -4389,6 +4595,10 @@ html.userpatch-maia .userpatch-detail-main {
   overscroll-behavior-y: contain;
     scrollbar-gutter: auto;
   }
+  html.userpatch-maia .userpatch-detail-main:has(.userpatch-screens:not([hidden])),
+  html.userpatch-maia .userpatch-detail-main:has(.userpatch-detail-info:not([hidden]) .userpatch-trailer) {
+    padding-block-end: calc(8rem + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 html.userpatch-maia .userpatch-detail-toolbar {
@@ -4417,11 +4627,16 @@ html.userpatch-maia .userpatch-detail-toolbar > .userpatch-quality-tabs {
 }
 
 @media (max-width: ${CONFIG.mobileLayoutBreakpointRem}rem) {
+  html.userpatch-maia .userpatch-detail-root:has(.userpatch-detail-info:not([hidden]) .userpatch-trailer),
+  html.userpatch-maia .userpatch-detail-root:has(.userpatch-screens:not([hidden])) {
+    padding-block-end: calc(8rem + env(safe-area-inset-bottom, 0px));
+  }
   html.userpatch-maia .userpatch-detail-root,
   html.userpatch-maia .userpatch-detail-main {
     gap: 0.75rem !important;
   }
   html.userpatch-maia .userpatch-detail-toolbar {
+    inset-block-start: calc(12px + env(safe-area-inset-top, 0px));
     flex-direction: column;
     align-items: center;
     justify-content: center;
@@ -4456,14 +4671,46 @@ html.userpatch-maia .userpatch-quality-tabs {
   box-sizing: border-box;
 }
 
+/* Scroll the whole glass group so its indicator and border stay aligned. */
+html.userpatch-maia .userpatch-mode-scroll {
+  flex: 0 1 auto;
+  min-inline-size: 0;
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-radius: 1rem;
+  scrollbar-width: none;
+}
+html.userpatch-maia .userpatch-mode-scroll::-webkit-scrollbar {
+  display: none;
+}
+html.userpatch-maia .userpatch-mode-scroll > .userpatch-mode-tabs {
+  inline-size: max-content;
+  max-inline-size: none;
+  margin: 0;
+}
+@media (max-width: ${CONFIG.mobileLayoutBreakpointRem}rem) {
+  html.userpatch-maia .userpatch-mode-scroll {
+    inline-size: calc(100% + 2 * var(--maia-gutter));
+    max-inline-size: none;
+    margin-inline: calc(-1 * var(--maia-gutter));
+    border-radius: 0;
+  }
+  html.userpatch-maia .userpatch-mode-scroll > .userpatch-mode-tabs {
+    display: flex;
+    margin-inline: auto;
+  }
+}
+
 html.userpatch-maia .userpatch-mode-tabs::before,
 html.userpatch-maia .userpatch-quality-tabs::before {
   position: absolute;
   z-index: -1;
   inset: 0;
   border-radius: inherit;
-  background: color-mix(in oklch, var(--maia-card) 60%, transparent);
-  box-shadow: 0 10px 40px rgb(0 0 0 / 0.2);
+  background: var(--maia-control-surface, color-mix(in oklch, var(--maia-card) 60%, transparent));
+  box-shadow: var(--maia-glass-shadow, 0 10px 40px rgb(0 0 0 / 0.2));
   backdrop-filter: saturate(2.2) blur(16px);
   -webkit-backdrop-filter: saturate(2.2) blur(16px);
   content: "";
@@ -4481,7 +4728,7 @@ html.userpatch-maia .userpatch-quality-tabs::after {
     inset 0.5px -0.5px var(--maia-foreground),
     inset -0.5px 0.5px var(--maia-foreground),
     inset -0.5px -0.5px var(--maia-foreground);
-  opacity: 0.2;
+  opacity: var(--maia-control-border-opacity, 0.2);
   content: "";
   pointer-events: none;
 }
@@ -4552,8 +4799,8 @@ html.userpatch-maia .userpatch-quality-indicator {
 }
 
 html.userpatch-maia .userpatch-mode-indicator {
-  background: color-mix(in oklch, var(--maia-foreground) 9%, transparent);
-  box-shadow: inset 0 1px 2px color-mix(in oklch, var(--maia-foreground) 12%, transparent);
+  background: var(--maia-selection-bg, color-mix(in oklch, var(--maia-foreground) 9%, transparent));
+  box-shadow: var(--maia-selection-shadow, inset 0 1px 2px color-mix(in oklch, var(--maia-foreground) 12%, transparent));
   transform: translate3d(
       var(--userpatch-mode-x, 0px),
       var(--userpatch-mode-y, 0px),
@@ -4566,8 +4813,8 @@ html.userpatch-maia .userpatch-mode-indicator {
 }
 
 html.userpatch-maia .userpatch-quality-indicator {
-  background: rgb(255 255 255 / 0.15);
-  box-shadow: inset 0 1px 2px rgb(255 255 255 / 0.12);
+  background: var(--maia-selection-bg, rgb(255 255 255 / 0.15));
+  box-shadow: var(--maia-selection-shadow, inset 0 1px 2px rgb(255 255 255 / 0.12));
   transform: translate3d(
       var(--userpatch-quality-x, 0px),
       var(--userpatch-quality-y, 0px),
@@ -5097,10 +5344,79 @@ ${POSTER_RECOVERY_CSS}
 ${LANDING_CSS}
 ${TRAILER_CSS}
 ${DETAIL_INFO_CSS}
+
+html.userpatch-maia .userpatch-series-progress {
+  display: block;
+  margin-block-start: 0.25rem;
+  color: var(--maia-muted-foreground);
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.4;
+  text-align: center;
+}
+html.userpatch-maia .userpatch-poster-panel > .userpatch-series-progress {
+  margin-block-start: -0.5rem;
+}
+html.userpatch-maia main#main-content.userpatch-listing-ready li.thumb figure > a.userpatch-ongoing-poster,
+html.userpatch-maia .userpatch-poster-frame.userpatch-ongoing-poster {
+  border: 2px solid transparent !important;
+  background:
+    linear-gradient(var(--maia-muted), var(--maia-muted)) padding-box,
+    var(--maia-hdhub-running-border, linear-gradient(135deg, #ff931e, #ff4938 52%, #dc2626)) border-box !important;
+  box-shadow: var(--maia-hdhub-running-shadow,
+    0 0 16px rgb(255 147 30 / 0.16),
+    0 0 28px rgb(220 38 38 / 0.14)) !important;
+}
+${systemThemeCss()}
 `
 
   // src/shared/quality-tabs.js
   const QUALITY_TAB_KEYS = ["all", "4k", "hd", "sd"]
+  const setupIndicatorHover = (container, position, onFocus) => {
+    const getButton = (target) => {
+      const button = target instanceof Element ? target.closest("button") : null
+      return button && container.contains(button) && !button.disabled
+        ? button
+        : null
+    }
+    const onPointerOver = (event) => {
+      if (
+        (event.pointerType === "mouse" || event.pointerType === "pen") &&
+        window.matchMedia("(hover: hover) and (pointer: fine)").matches
+      ) {
+        const button = getButton(event.target)
+        if (button) {
+          position(button)
+        }
+      }
+    }
+    const restore = () => position()
+    const onFocusIn = (event) => {
+      const button = getButton(event.target)
+      if (button) {
+        onFocus?.(button)
+        position(button)
+      }
+    }
+    const onFocusOut = (event) => {
+      if (
+        !(event.relatedTarget instanceof Node) ||
+        !container.contains(event.relatedTarget)
+      ) {
+        restore()
+      }
+    }
+    container.addEventListener("pointerover", onPointerOver)
+    container.addEventListener("pointerleave", restore)
+    container.addEventListener("focusin", onFocusIn)
+    container.addEventListener("focusout", onFocusOut)
+    return () => {
+      container.removeEventListener("pointerover", onPointerOver)
+      container.removeEventListener("pointerleave", restore)
+      container.removeEventListener("focusin", onFocusIn)
+      container.removeEventListener("focusout", onFocusOut)
+    }
+  }
   const positionSelectionIndicator = (indicator, container, target, kind) => {
     if (!target || !container.contains(target)) {
       indicator.dataset.ready = "false"
@@ -5200,32 +5516,6 @@ ${DETAIL_INFO_CSS}
         ? button
         : null
     }
-    const onPointerOver = (event) => {
-      if (
-        (event.pointerType !== "mouse" && event.pointerType !== "pen") ||
-        !window.matchMedia("(hover: hover) and (pointer: fine)").matches
-      ) {
-        return
-      }
-      const button = getEventButton(event.target)
-      if (button && !button.disabled) {
-        positionIndicator(button)
-      }
-    }
-    const onFocusIn = (event) => {
-      const button = getEventButton(event.target)
-      if (button && !button.disabled) {
-        positionIndicator(button)
-      }
-    }
-    const onFocusOut = (event) => {
-      if (
-        !(event.relatedTarget instanceof Node) ||
-        !element.contains(event.relatedTarget)
-      ) {
-        positionActiveIndicator()
-      }
-    }
     const onClick = (event) => {
       const button = getEventButton(event.target)
       if (!button || button.disabled) {
@@ -5241,10 +5531,10 @@ ${DETAIL_INFO_CSS}
       onQualityChange?.(activeQuality)
     }
     element.addEventListener("click", onClick)
-    element.addEventListener("pointerover", onPointerOver)
-    element.addEventListener("pointerleave", positionActiveIndicator)
-    element.addEventListener("focusin", onFocusIn)
-    element.addEventListener("focusout", onFocusOut)
+    const cleanupIndicatorHover = setupIndicatorHover(
+      element,
+      positionIndicator
+    )
     element.addEventListener("scroll", positionActiveIndicator, {
       passive: true,
     })
@@ -5292,10 +5582,7 @@ ${DETAIL_INFO_CSS}
     }
     const cleanup = () => {
       element.removeEventListener("click", onClick)
-      element.removeEventListener("pointerover", onPointerOver)
-      element.removeEventListener("pointerleave", positionActiveIndicator)
-      element.removeEventListener("focusin", onFocusIn)
-      element.removeEventListener("focusout", onFocusOut)
+      cleanupIndicatorHover()
       element.removeEventListener("scroll", positionActiveIndicator)
       if (resizeObserver) {
         resizeObserver.disconnect()
@@ -5427,6 +5714,87 @@ ${DETAIL_INFO_CSS}
       tooltip: hubProvider
         ? hubProvider.name
         : `${provider.label}${host ? ` · ${host}` : ""}`,
+    }
+  }
+
+  // src/hdhub4u/titles.js
+  const parseDisplayTitle = (source) => {
+    const original = normalizeText(source)
+    const season = original.match(
+      /\(Seasons?\s+(\d{1,2})(?:\s*[-–&]\s*(?:Season\s*)?(\d{1,2}))?\)/i
+    )
+    const year = original.match(/\((?:19|20)\d{2}\)/)
+    const boundary =
+      season?.index ?? (year ? year.index + year[0].length : null)
+    const title =
+      boundary === null
+        ? original
+        : original.slice(0, boundary).trim() || original
+    const metadata = season
+      ? original.slice(season.index + season[0].length)
+      : ""
+    const complete =
+      /\b(?:all\s+episodes|complete(?:d)?(?:\s+season)?|season\s+finale)\b/i.test(
+        metadata
+      )
+    const episode = metadata.match(
+      /\bEP(?:ISODES?)?\s*[-:]?\s*(\d{1,3})(?:\s*[-–]\s*(\d{1,3}))?\s+ADDED\b/i
+    )
+    const ongoing = Boolean(
+      season && episode && Number(episode[2] || episode[1]) > 0 && !complete
+    )
+    const pad = (value) => String(Number(value)).padStart(2, "0")
+    let progress = season ? `S${pad(season[1])}` : ""
+    if (season?.[2]) {
+      progress += `-S${pad(season[2])}`
+    }
+    if (ongoing) {
+      progress += `-EP${pad(episode[2] || episode[1])}`
+    }
+    return {
+      title,
+      progress,
+      ongoing,
+    }
+  }
+  const createSeriesProgress = (progress) => {
+    if (!progress) {
+      return null
+    }
+    const label = document.createElement("span")
+    label.className = "userpatch-series-progress"
+    label.textContent = progress
+    return label
+  }
+  const normalizeListingTitles = (root) => {
+    for (const card of root.querySelectorAll("li.thumb")) {
+      const caption = card.querySelector("figcaption p")
+      if (!caption) {
+        continue
+      }
+      const source = normalizeText(caption.textContent)
+      if (caption.dataset.userpatchDisplayTitle === source) {
+        continue
+      }
+      const { title, progress, ongoing } = parseDisplayTitle(source)
+      caption.textContent = title
+      caption.dataset.userpatchDisplayTitle = title
+      card.querySelector(".userpatch-series-progress")?.remove()
+      const label = createSeriesProgress(progress)
+      if (label) {
+        card.querySelector("figcaption").append(label)
+      }
+      card
+        .querySelector("figure > a")
+        ?.classList.toggle("userpatch-ongoing-poster", ongoing)
+      const accessibleTitle = [title, progress].filter(Boolean).join(" ")
+      for (const link of card.querySelectorAll("a")) {
+        link.setAttribute("aria-label", accessibleTitle)
+      }
+      for (const image of card.querySelectorAll("img")) {
+        image.alt = title
+        image.title = accessibleTitle
+      }
     }
   }
 
@@ -5686,6 +6054,8 @@ ${DETAIL_INFO_CSS}
     panel.append(brand)
     const frame = document.createElement("div")
     frame.className = "userpatch-poster-frame"
+    const displayTitle = parseDisplayTitle(data.title)
+    frame.classList.toggle("userpatch-ongoing-poster", displayTitle.ongoing)
     if (data.poster) {
       const image = document.createElement("img")
       image.src = data.poster
@@ -5699,8 +6069,12 @@ ${DETAIL_INFO_CSS}
     }
     const title = document.createElement("h1")
     title.className = "userpatch-detail-title"
-    title.textContent = data.title
+    title.textContent = displayTitle.title
     panel.append(title)
+    const progress = createSeriesProgress(displayTitle.progress)
+    if (progress) {
+      panel.append(progress)
+    }
     if (data.rating) {
       const score = document.createElement("div")
       score.className = "userpatch-imdb-score"
@@ -5749,7 +6123,10 @@ ${DETAIL_INFO_CSS}
           .map((item) => item.dataset.userpatchQuality)
           .filter((quality) => quality && quality !== "unknown")
       )
-      const activeQuality = qualityTabs.refreshButtons(available)
+      const canFilter = available.size > 1
+      qualityTabs.element.hidden = !canFilter
+      const selectedQuality = qualityTabs.refreshButtons(available)
+      const activeQuality = canFilter ? selectedQuality : "all"
       let visible = 0
       for (const item of items) {
         const quality = item.dataset.userpatchQuality || "unknown"
@@ -5795,6 +6172,9 @@ ${DETAIL_INFO_CSS}
     tabs.className = "userpatch-mode-tabs"
     tabs.setAttribute("role", "group")
     tabs.setAttribute("aria-label", "Switch detail sections")
+    const tabScroller = document.createElement("div")
+    tabScroller.className = "userpatch-mode-scroll"
+    tabScroller.append(tabs)
     const tabIndicator = document.createElement("span")
     tabIndicator.className = "userpatch-mode-indicator"
     tabIndicator.setAttribute("aria-hidden", "true")
@@ -5815,6 +6195,7 @@ ${DETAIL_INFO_CSS}
     }
     if (tabButtons.size < 2) {
       tabs.hidden = true
+      tabScroller.hidden = true
     }
     const screenshotsPane = document.createElement("div")
     screenshotsPane.className = "userpatch-screens"
@@ -5873,32 +6254,6 @@ ${DETAIL_INFO_CSS}
         ? button
         : null
     }
-    const onPointerOver = (event) => {
-      if (
-        (event.pointerType !== "mouse" && event.pointerType !== "pen") ||
-        !window.matchMedia("(hover: hover) and (pointer: fine)").matches
-      ) {
-        return
-      }
-      const button = getEventButton(event.target)
-      if (button) {
-        positionTabIndicator(button)
-      }
-    }
-    const onFocusIn = (event) => {
-      const button = getEventButton(event.target)
-      if (button) {
-        positionTabIndicator(button)
-      }
-    }
-    const onFocusOut = (event) => {
-      if (
-        !(event.relatedTarget instanceof Node) ||
-        !tabs.contains(event.relatedTarget)
-      ) {
-        positionTabIndicator()
-      }
-    }
     const renderModeRows = () => {
       const openedReleases = getOpenedReleases()
       const fragment = document.createDocumentFragment()
@@ -5922,6 +6277,25 @@ ${DETAIL_INFO_CSS}
       }
       list.replaceChildren(fragment)
     }
+    const revealTab = (button) => {
+      if (!button || !tabScroller.isConnected) {
+        return
+      }
+      const viewport = tabScroller.getBoundingClientRect()
+      const target = button.getBoundingClientRect()
+      let left = 0
+      if (target.left < viewport.left) {
+        left = target.left - viewport.left - 4
+      } else if (target.right > viewport.right) {
+        left = target.right - viewport.right + 4
+      }
+      if (left) {
+        tabScroller.scrollBy({
+          left,
+          behavior: "instant",
+        })
+      }
+    }
     const applyTab = (tab) => {
       activeTab = tab
       for (const [key, button] of tabButtons) {
@@ -5941,6 +6315,7 @@ ${DETAIL_INFO_CSS}
         }
         applyQualityFilter()
       }
+      revealTab(tabButtons.get(tab))
       positionTabIndicator()
     }
     const onClick = (event) => {
@@ -5958,6 +6333,7 @@ ${DETAIL_INFO_CSS}
     const positionActiveTabIndicator = () => {
       requestAnimationFrame(() => {
         if (tabs.isConnected) {
+          revealTab(tabButtons.get(activeTab))
           positionTabIndicator()
         }
       })
@@ -5975,14 +6351,11 @@ ${DETAIL_INFO_CSS}
     }
     document.fonts?.ready.then(positionActiveTabIndicator)
     tabs.addEventListener("click", onClick)
-    tabs.addEventListener("pointerover", onPointerOver)
-    tabs.addEventListener("pointerleave", () => positionTabIndicator())
-    tabs.addEventListener("focusin", onFocusIn)
-    tabs.addEventListener("focusout", onFocusOut)
+    setupIndicatorHover(tabs, positionTabIndicator, revealTab)
     const infoPane = document.createElement("section")
     infoPane.className = "userpatch-detail-info"
     infoPane.hidden = true
-    toolbar.append(tabs, qualityTabs.element)
+    toolbar.append(tabScroller, qualityTabs.element)
     mainColumn.append(toolbar, infoPane, screenshotsPane, list, emptyNote)
     renderModeRows()
     applyTab(activeTab)
@@ -6548,6 +6921,7 @@ ${DETAIL_INFO_CSS}
       return false
     }
     normalizePagination(main)
+    normalizeListingTitles(main)
     if (main.classList.contains("userpatch-listing-ready")) {
       return true
     }
@@ -6836,6 +7210,7 @@ ${DETAIL_INFO_CSS}
       DETAIL_PAGE_CLASS,
       HBLINKS_PAGE_CLASS
     )
+    delete document.documentElement.dataset.userpatchTheme
   }
 
   // src/hdhub4u/main.js

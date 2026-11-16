@@ -4,6 +4,7 @@ import { setupProviderTooltip } from "../shared/provider-tooltip.js"
 import {
   createQualityTabs,
   positionSelectionIndicator,
+  setupIndicatorHover,
 } from "../shared/quality-tabs.js"
 import {
   getOpenedReleases,
@@ -32,6 +33,7 @@ import {
 import { createLucideIcon } from "./icons.js"
 import { setupProgressiveImage } from "./images.js"
 import { openScreenshotViewer } from "./screenshot-viewer.js"
+import { createSeriesProgress, parseDisplayTitle } from "./titles.js"
 
 export const extractDetail = () => {
   try {
@@ -308,6 +310,8 @@ export const buildDetailPage = (data) => {
 
   const frame = document.createElement("div")
   frame.className = "userpatch-poster-frame"
+  const displayTitle = parseDisplayTitle(data.title)
+  frame.classList.toggle("userpatch-ongoing-poster", displayTitle.ongoing)
   if (data.poster) {
     const image = document.createElement("img")
     image.src = data.poster
@@ -322,8 +326,12 @@ export const buildDetailPage = (data) => {
 
   const title = document.createElement("h1")
   title.className = "userpatch-detail-title"
-  title.textContent = data.title
+  title.textContent = displayTitle.title
   panel.append(title)
+  const progress = createSeriesProgress(displayTitle.progress)
+  if (progress) {
+    panel.append(progress)
+  }
 
   if (data.rating) {
     const score = document.createElement("div")
@@ -380,7 +388,11 @@ export const buildDetailPage = (data) => {
         .map((item) => item.dataset.userpatchQuality)
         .filter((quality) => quality && quality !== "unknown")
     )
-    const activeQuality = qualityTabs.refreshButtons(available)
+    const canFilter = available.size > 1
+    qualityTabs.element.hidden = !canFilter
+    const selectedQuality = qualityTabs.refreshButtons(available)
+    // A remembered filter must not hide rows when there is no usable chooser.
+    const activeQuality = canFilter ? selectedQuality : "all"
     let visible = 0
     for (const item of items) {
       const quality = item.dataset.userpatchQuality || "unknown"
@@ -430,6 +442,9 @@ export const buildDetailPage = (data) => {
   tabs.className = "userpatch-mode-tabs"
   tabs.setAttribute("role", "group")
   tabs.setAttribute("aria-label", "Switch detail sections")
+  const tabScroller = document.createElement("div")
+  tabScroller.className = "userpatch-mode-scroll"
+  tabScroller.append(tabs)
   const tabIndicator = document.createElement("span")
   tabIndicator.className = "userpatch-mode-indicator"
   tabIndicator.setAttribute("aria-hidden", "true")
@@ -450,6 +465,7 @@ export const buildDetailPage = (data) => {
   }
   if (tabButtons.size < 2) {
     tabs.hidden = true
+    tabScroller.hidden = true
   }
 
   const screenshotsPane = document.createElement("div")
@@ -513,33 +529,6 @@ export const buildDetailPage = (data) => {
       ? button
       : null
   }
-  const onPointerOver = (event) => {
-    if (
-      (event.pointerType !== "mouse" && event.pointerType !== "pen") ||
-      !window.matchMedia("(hover: hover) and (pointer: fine)").matches
-    ) {
-      return
-    }
-    const button = getEventButton(event.target)
-    if (button) {
-      positionTabIndicator(button)
-    }
-  }
-  const onFocusIn = (event) => {
-    const button = getEventButton(event.target)
-    if (button) {
-      positionTabIndicator(button)
-    }
-  }
-  const onFocusOut = (event) => {
-    if (
-      !(event.relatedTarget instanceof Node) ||
-      !tabs.contains(event.relatedTarget)
-    ) {
-      positionTabIndicator()
-    }
-  }
-
   const renderModeRows = () => {
     const openedReleases = getOpenedReleases()
     const fragment = document.createDocumentFragment()
@@ -566,6 +555,24 @@ export const buildDetailPage = (data) => {
     list.replaceChildren(fragment)
   }
 
+  const revealTab = (button) => {
+    if (!button || !tabScroller.isConnected) {
+      return
+    }
+    const viewport = tabScroller.getBoundingClientRect()
+    const target = button.getBoundingClientRect()
+    // Scroll just this strip, leaving the page's vertical position unchanged.
+    let left = 0
+    if (target.left < viewport.left) {
+      left = target.left - viewport.left - 4
+    } else if (target.right > viewport.right) {
+      left = target.right - viewport.right + 4
+    }
+    if (left) {
+      tabScroller.scrollBy({ left, behavior: "instant" })
+    }
+  }
+
   const applyTab = (tab) => {
     activeTab = tab
     for (const [key, button] of tabButtons) {
@@ -585,6 +592,7 @@ export const buildDetailPage = (data) => {
       }
       applyQualityFilter()
     }
+    revealTab(tabButtons.get(tab))
     positionTabIndicator()
   }
 
@@ -603,6 +611,7 @@ export const buildDetailPage = (data) => {
   const positionActiveTabIndicator = () => {
     requestAnimationFrame(() => {
       if (tabs.isConnected) {
+        revealTab(tabButtons.get(activeTab))
         positionTabIndicator()
       }
     })
@@ -621,16 +630,13 @@ export const buildDetailPage = (data) => {
   document.fonts?.ready.then(positionActiveTabIndicator)
 
   tabs.addEventListener("click", onClick)
-  tabs.addEventListener("pointerover", onPointerOver)
-  tabs.addEventListener("pointerleave", () => positionTabIndicator())
-  tabs.addEventListener("focusin", onFocusIn)
-  tabs.addEventListener("focusout", onFocusOut)
+  setupIndicatorHover(tabs, positionTabIndicator, revealTab)
 
   const infoPane = document.createElement("section")
   infoPane.className = "userpatch-detail-info"
   infoPane.hidden = true
 
-  toolbar.append(tabs, qualityTabs.element)
+  toolbar.append(tabScroller, qualityTabs.element)
   mainColumn.append(toolbar, infoPane, screenshotsPane, list, emptyNote)
 
   renderModeRows()

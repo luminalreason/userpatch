@@ -1,6 +1,7 @@
 import { restoreManagedMeta } from "../shared/managed-meta.js"
 import { dismissPageLoader } from "../shared/page-loader.js"
 import { MAIA_CLASS } from "../shared/styles.js"
+import { ensureSystemTheme } from "../shared/system-theme.js"
 import {
   COLOR_SCHEME_META_ID,
   FONT_STYLE_ID,
@@ -17,16 +18,17 @@ import {
 
 let originalTheme = null
 
-export const forceDarkTheme = () => {
+export const followSystemTheme = () => {
   const root = document.documentElement
   originalTheme ||= {
     light: root.classList.contains("light"),
     dark: root.classList.contains("dark"),
     detailTheme: root.dataset.detailTheme,
   }
-  root.classList.remove("light")
-  root.classList.add("dark")
-  root.dataset.detailTheme = "dark"
+  const theme = ensureSystemTheme()
+  root.classList.toggle("light", theme === "light")
+  root.classList.toggle("dark", theme === "dark")
+  root.dataset.detailTheme = theme
 }
 
 export const removeStyles = () => {
@@ -45,6 +47,7 @@ export const removeStyles = () => {
       MAIA_CLASS,
       "userpatch-detail-page"
     )
+    delete document.documentElement.dataset.userpatchTheme
     if (originalTheme) {
       const root = document.documentElement
       root.classList.toggle("light", originalTheme.light)

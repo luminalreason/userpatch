@@ -36,7 +36,7 @@ import {
   markOngoingSeriesPosters,
   setupOngoingCardNavigationTracking,
 } from "./ongoing-cards.js"
-import { forceDarkTheme, removeStyles } from "./style-lifecycle.js"
+import { followSystemTheme, removeStyles } from "./style-lifecycle.js"
 
 let releaseContentRoot = null
 showRedesignLoader(/(^|\.)4khdhub\./i)
@@ -152,7 +152,7 @@ initMaiaStyles({
     document.querySelector("#swup") &&
     document.querySelector(`${NAV_CONTAINER_SELECTOR} .navbar-brand`) &&
     document.querySelector("#main-nav .nav-list"),
-  preInject: forceDarkTheme,
+  preInject: followSystemTheme,
 })
 if (document.readyState === "loading") {
   if (ensureStyles()) {

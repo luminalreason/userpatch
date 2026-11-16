@@ -10,6 +10,52 @@ import { storageGet, storageSet } from "./storage.js"
 
 const QUALITY_TAB_KEYS = ["all", "4k", "hd", "sd"]
 
+export const setupIndicatorHover = (container, position, onFocus) => {
+  const getButton = (target) => {
+    const button = target instanceof Element ? target.closest("button") : null
+    return button && container.contains(button) && !button.disabled
+      ? button
+      : null
+  }
+  const onPointerOver = (event) => {
+    if (
+      (event.pointerType === "mouse" || event.pointerType === "pen") &&
+      window.matchMedia("(hover: hover) and (pointer: fine)").matches
+    ) {
+      const button = getButton(event.target)
+      if (button) {
+        position(button)
+      }
+    }
+  }
+  const restore = () => position()
+  const onFocusIn = (event) => {
+    const button = getButton(event.target)
+    if (button) {
+      onFocus?.(button)
+      position(button)
+    }
+  }
+  const onFocusOut = (event) => {
+    if (
+      !(event.relatedTarget instanceof Node) ||
+      !container.contains(event.relatedTarget)
+    ) {
+      restore()
+    }
+  }
+  container.addEventListener("pointerover", onPointerOver)
+  container.addEventListener("pointerleave", restore)
+  container.addEventListener("focusin", onFocusIn)
+  container.addEventListener("focusout", onFocusOut)
+  return () => {
+    container.removeEventListener("pointerover", onPointerOver)
+    container.removeEventListener("pointerleave", restore)
+    container.removeEventListener("focusin", onFocusIn)
+    container.removeEventListener("focusout", onFocusOut)
+  }
+}
+
 export const positionSelectionIndicator = (
   indicator,
   container,
@@ -122,36 +168,6 @@ export const createQualityTabs = ({ storageKey, onQualityChange }) => {
       : null
   }
 
-  const onPointerOver = (event) => {
-    if (
-      (event.pointerType !== "mouse" && event.pointerType !== "pen") ||
-      !window.matchMedia("(hover: hover) and (pointer: fine)").matches
-    ) {
-      return
-    }
-
-    const button = getEventButton(event.target)
-    if (button && !button.disabled) {
-      positionIndicator(button)
-    }
-  }
-
-  const onFocusIn = (event) => {
-    const button = getEventButton(event.target)
-    if (button && !button.disabled) {
-      positionIndicator(button)
-    }
-  }
-
-  const onFocusOut = (event) => {
-    if (
-      !(event.relatedTarget instanceof Node) ||
-      !element.contains(event.relatedTarget)
-    ) {
-      positionActiveIndicator()
-    }
-  }
-
   const onClick = (event) => {
     const button = getEventButton(event.target)
     if (!button || button.disabled) {
@@ -168,10 +184,7 @@ export const createQualityTabs = ({ storageKey, onQualityChange }) => {
   }
 
   element.addEventListener("click", onClick)
-  element.addEventListener("pointerover", onPointerOver)
-  element.addEventListener("pointerleave", positionActiveIndicator)
-  element.addEventListener("focusin", onFocusIn)
-  element.addEventListener("focusout", onFocusOut)
+  const cleanupIndicatorHover = setupIndicatorHover(element, positionIndicator)
   element.addEventListener("scroll", positionActiveIndicator, {
     passive: true,
   })
@@ -223,10 +236,7 @@ export const createQualityTabs = ({ storageKey, onQualityChange }) => {
 
   const cleanup = () => {
     element.removeEventListener("click", onClick)
-    element.removeEventListener("pointerover", onPointerOver)
-    element.removeEventListener("pointerleave", positionActiveIndicator)
-    element.removeEventListener("focusin", onFocusIn)
-    element.removeEventListener("focusout", onFocusOut)
+    cleanupIndicatorHover()
     element.removeEventListener("scroll", positionActiveIndicator)
     if (resizeObserver) {
       resizeObserver.disconnect()

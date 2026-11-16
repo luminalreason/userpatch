@@ -1,10 +1,11 @@
 // Interface:
 // Exports: initMaiaStyles, MAIA_CLASS, FONT_STYLESHEET_URL, ensureStyles
-// Options: initMaiaStyles receives the site's context once — styleId, fontStyleId, colorSchemeMetaId, themeColorMetaId, themeColor, css (the site's MAIA_CSS), siteSignature predicate, and an optional preInject hook (4K-HDHub's forceDarkTheme).
+// Options: initMaiaStyles receives the site's context once — styleId, fontStyleId, colorSchemeMetaId, themeColorMetaId, themeColor, css (the site's MAIA_CSS), siteSignature predicate, and an optional preInject hook (4K-HDHub's system theme sync).
 // Invariants: managed meta adopt/restore; the signature gate runs before any style install.
 // Error modes: returns false (no styles) when the signature fails or DOM access throws.
 
 import { isCloudflareChallenge } from "./cloudflare.js"
+import { ensureSystemTheme } from "./system-theme.js"
 
 let maiaStyles = null
 
@@ -30,6 +31,7 @@ export const ensureStyles = () => {
     if (maiaStyles.preInject) {
       maiaStyles.preInject()
     }
+    const theme = ensureSystemTheme()
 
     if (!document.getElementById(maiaStyles.fontStyleId)) {
       const fontStylesheet = document.createElement("link")
@@ -59,11 +61,15 @@ export const ensureStyles = () => {
         meta.content = content
       }
 
-      ensureManagedMeta(maiaStyles.colorSchemeMetaId, "color-scheme", "dark")
+      ensureManagedMeta(
+        maiaStyles.colorSchemeMetaId,
+        "color-scheme",
+        "light dark"
+      )
       ensureManagedMeta(
         maiaStyles.themeColorMetaId,
         "theme-color",
-        maiaStyles.themeColor
+        theme === "dark" ? maiaStyles.themeColor : "#ffffff"
       )
 
       const viewportMeta = document.querySelector('meta[name="viewport"]')

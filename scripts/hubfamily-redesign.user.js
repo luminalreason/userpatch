@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HubFamily Redesign
 // @namespace    https://github.com/luminalreason/userpatch
-// @version      0.3.0
+// @version      0.3.1
 // @description  A unified, responsive redesign for the Hub family, with consistent system-themed layouts, movie and series details, screenshot viewing, quality filters, and clearer download, share, and copy controls.
 // @author       luminalreason
 // @match        *://*/*
@@ -4608,7 +4608,7 @@ html.userpatch-maia.userpatch-detail-page .userpatch-release-file-text,
 html.userpatch-maia[data-detail-theme] .userpatch-release-file-title,
 html.userpatch-maia[data-detail-theme] .userpatch-release-file-text {
   color: var(--maia-foreground);
-  font-size: 14px !important;
+  font-size: 0.875rem !important;
   font-weight: 400;
   line-height: ${CONFIG.filenameLineHeight};
   overflow-wrap: anywhere;
@@ -4621,7 +4621,7 @@ html.userpatch-maia[data-detail-theme] .userpatch-release-file-text {
   html.userpatch-maia.userpatch-detail-page .userpatch-release-file-text,
   html.userpatch-maia[data-detail-theme] .userpatch-release-file-title,
   html.userpatch-maia[data-detail-theme] .userpatch-release-file-text {
-    font-size: 18px !important;
+    font-size: 1.125rem !important;
   }
 }
 
@@ -4640,7 +4640,7 @@ html.userpatch-maia.userpatch-detail-page .userpatch-release-file-title[data-exp
   overflow: visible;
 }
 
-html.userpatch-maia.userpatch-detail-page .userpatch-filename-toggle {
+html.userpatch-maia.userpatch-detail-page[data-detail-theme] .userpatch-filename-toggle {
   display: inline;
   margin-inline-start: 0.25rem;
   padding: 0;
@@ -4648,6 +4648,7 @@ html.userpatch-maia.userpatch-detail-page .userpatch-filename-toggle {
   background: transparent;
   color: var(--maia-muted-foreground);
   font: inherit;
+  font-size: inherit !important;
   font-weight: 500;
   line-height: inherit;
   text-decoration: underline;
@@ -4675,6 +4676,10 @@ html.userpatch-maia.userpatch-detail-page .content-main .userpatch-release-row .
   font-weight: 400;
   line-height: 1.4;
   overflow-wrap: anywhere;
+}
+
+html.userpatch-maia.userpatch-detail-page .userpatch-release-meta .userpatch-release-size {
+  font-size: inherit !important;
 }
 
 html.userpatch-maia.userpatch-detail-page .content-main .userpatch-release-row .userpatch-release-meta .userpatch-series-language-badge {

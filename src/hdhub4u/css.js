@@ -1,5 +1,6 @@
 import { HBLINKS_CSS } from "../hblinks/css.js"
 import { DETAIL_INFO_CSS } from "../shared/detail-info.js"
+import { POSTER_FRAME_CSS } from "../shared/poster-frame.js"
 import { PROGRESSIVE_IMAGE_CSS } from "../shared/progressive-images.js"
 import { systemThemeCss } from "../shared/system-theme.js"
 import { TRAILER_CSS } from "../shared/trailer.js"
@@ -661,9 +662,9 @@ html.userpatch-maia dialog.userpatch-search-dialog .search-input-container {
   align-items: center;
   gap: 0;
   padding: 0 0.25rem 0 0;
-  border: 1px solid rgb(255 255 255 / 20%);
+  border: 1px solid color-mix(in oklch, var(--maia-foreground) 24%, transparent);
   border-radius: 20px;
-  background: rgb(38 38 40 / 60%);
+  background: var(--maia-control-surface, rgb(38 38 40 / 60%));
   backdrop-filter: saturate(2.2) blur(16px);
   -webkit-backdrop-filter: saturate(2.2) blur(16px);
   transition: border-color 140ms ease-out;
@@ -692,10 +693,15 @@ html.userpatch-maia .userpatch-input-group-addon {
 }
 
 html.userpatch-maia dialog.userpatch-search-dialog .search-icon-overlay {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: static !important;
+  transform: none !important;
   flex: 0 0 1.25rem;
   inline-size: 1.25rem;
   block-size: 1.25rem;
-  color: #a1a1aa;
+  color: var(--maia-muted-foreground);
   pointer-events: none;
 }
 
@@ -705,7 +711,10 @@ html.userpatch-maia dialog.userpatch-search-dialog .search-input-overlay {
   flex: 1 1 auto;
   inline-size: auto;
   min-inline-size: 0;
-  block-size: 100%;
+  box-sizing: border-box;
+  align-self: stretch;
+  margin: 0 !important;
+  block-size: auto;
   min-block-size: 0;
   padding: 0 0.75rem;
   border: 0;
@@ -721,7 +730,7 @@ html.userpatch-maia dialog.userpatch-search-dialog .search-input-overlay {
 }
 
 html.userpatch-maia dialog.userpatch-search-dialog .search-input-overlay::placeholder {
-  color: #a1a1aa;
+  color: var(--maia-muted-foreground);
   font-size: inherit;
   opacity: 1;
 }
@@ -1172,7 +1181,7 @@ html.userpatch-maia main#main-content.userpatch-listing-ready li.thumb figure > 
   display: block;
   aspect-ratio: 2 / 3;
   overflow: hidden;
-  border: 1px solid color-mix(in oklch, var(--maia-foreground) 15%, transparent) !important;
+  border: 1px solid var(--maia-poster-border) !important;
   border-radius: 1rem !important;
   background: var(--maia-muted);
   box-shadow: var(--maia-card-depth-shadow);
@@ -1186,7 +1195,7 @@ html.userpatch-maia main#main-content.userpatch-listing-ready li.thumb figure > 
 
 /* Keep the poster border steady against the source theme's hover styling. */
 html.userpatch-maia main#main-content.userpatch-listing-ready li.thumb figure > a:hover {
-  border-color: color-mix(in oklch, var(--maia-foreground) 15%, transparent) !important;
+  border-color: var(--maia-poster-border) !important;
 }
 
 html.userpatch-maia main#main-content.userpatch-listing-ready li.thumb figure > a:focus,
@@ -1533,7 +1542,7 @@ html.userpatch-maia .userpatch-poster-frame {
   inline-size: min(100%, min(21rem, max(9rem, calc(66.667dvh - 7.333rem))));
   aspect-ratio: 2 / 3;
   overflow: hidden;
-  border: 1px solid color-mix(in oklch, var(--maia-foreground) 15%, transparent);
+  border: 1px solid var(--maia-poster-border);
   border-radius: 1rem;
   background: var(--maia-muted);
   box-shadow: var(--maia-card-depth-shadow);
@@ -2421,6 +2430,7 @@ ${SCREENSHOT_VIEWER_CSS}
 ${POSTER_RECOVERY_CSS}
 ${LANDING_CSS}
 ${TRAILER_CSS}
+${POSTER_FRAME_CSS}
 ${DETAIL_INFO_CSS}
 
 html.userpatch-maia .userpatch-series-progress {

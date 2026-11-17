@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HDHub4u + HUBLinks Redesign
 // @namespace    https://github.com/luminalreason/userpatch
-// @version      0.3.0
+// @version      0.3.1
 // @description  Reworks HDHub4u and HUBLinks with a shared responsive, system-themed interface and clearer release links.
 // @author       luminalreason
 // @match        *://*/*
@@ -1647,6 +1647,10 @@
     return `
     html.userpatch-maia, html[data-userpatch-theme] {
       color-scheme: light dark !important;
+      --maia-poster-border: rgb(255 255 255 / 15%);
+      --maia-card-depth-shadow: inset 0 1px 2px rgb(255 255 255 / 0.09),
+        0 2px 4px rgb(0 0 0 / 0.5), 0 4px 8px rgb(0 0 0 / 0.3);
+      --maia-poster-gloss: inset 0 1px 2px rgb(255 255 255 / 0.12);
     }
     @media (prefers-color-scheme: light) {
       html.userpatch-maia, html[data-userpatch-theme] {
@@ -1672,8 +1676,10 @@
           inset 0 0 0 1px rgb(0 0 0 / 0.12), 0 1px 2px rgb(0 0 0 / 0.06);
         --maia-glass-shadow: 0 1px 2px rgb(0 0 0 / 0.04),
           0 2px 6px rgb(0 0 0 / 0.02);
-        --maia-card-depth-shadow: inset 0 1px 0 rgb(255 255 255 / 0.8),
-          0 1px 3px rgb(0 0 0 / 0.08), 0 3px 8px rgb(0 0 0 / 0.04);
+        --maia-poster-border: rgb(0 0 0 / 15%);
+        --maia-card-depth-shadow: inset 0 1px 2px rgb(255 255 255 / 0.31),
+          0 2px 4px rgb(0 0 0 / 0.19), 0 4px 8px rgb(0 0 0 / 0.08);
+        --maia-poster-gloss: inset 0 1px 2px rgb(255 255 255 / 0.25);
       }
       html.userpatch-maia .userpatch-media-badge img,
       html.userpatch-maia .userpatch-quality-tab img,
@@ -2389,6 +2395,25 @@ html.userpatch-maia.userpatch-detail-page .userpatch-detail-tabs .userpatch-qual
   inline-size: 1rem !important;
   block-size: 1rem !important;
   flex: 0 0 1rem !important;
+}
+`
+
+  // src/shared/poster-frame.js
+  const POSTER_FRAME_CSS = `
+html.userpatch-maia :is(.movie-card-image, .content-sidebar .poster-image,
+  .userpatch-poster-frame, main#main-content.userpatch-listing-ready li.thumb figure > a) {
+  position: relative;
+}
+
+html.userpatch-maia :is(.movie-card-image, .content-sidebar .poster-image,
+  .userpatch-poster-frame, main#main-content.userpatch-listing-ready li.thumb figure > a)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  box-shadow: var(--maia-poster-gloss);
+  pointer-events: none;
 }
 `
 
@@ -3583,9 +3608,9 @@ html.userpatch-maia dialog.userpatch-search-dialog .search-input-container {
   align-items: center;
   gap: 0;
   padding: 0 0.25rem 0 0;
-  border: 1px solid rgb(255 255 255 / 20%);
+  border: 1px solid color-mix(in oklch, var(--maia-foreground) 24%, transparent);
   border-radius: 20px;
-  background: rgb(38 38 40 / 60%);
+  background: var(--maia-control-surface, rgb(38 38 40 / 60%));
   backdrop-filter: saturate(2.2) blur(16px);
   -webkit-backdrop-filter: saturate(2.2) blur(16px);
   transition: border-color 140ms ease-out;
@@ -3614,10 +3639,15 @@ html.userpatch-maia .userpatch-input-group-addon {
 }
 
 html.userpatch-maia dialog.userpatch-search-dialog .search-icon-overlay {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: static !important;
+  transform: none !important;
   flex: 0 0 1.25rem;
   inline-size: 1.25rem;
   block-size: 1.25rem;
-  color: #a1a1aa;
+  color: var(--maia-muted-foreground);
   pointer-events: none;
 }
 
@@ -3627,7 +3657,10 @@ html.userpatch-maia dialog.userpatch-search-dialog .search-input-overlay {
   flex: 1 1 auto;
   inline-size: auto;
   min-inline-size: 0;
-  block-size: 100%;
+  box-sizing: border-box;
+  align-self: stretch;
+  margin: 0 !important;
+  block-size: auto;
   min-block-size: 0;
   padding: 0 0.75rem;
   border: 0;
@@ -3643,7 +3676,7 @@ html.userpatch-maia dialog.userpatch-search-dialog .search-input-overlay {
 }
 
 html.userpatch-maia dialog.userpatch-search-dialog .search-input-overlay::placeholder {
-  color: #a1a1aa;
+  color: var(--maia-muted-foreground);
   font-size: inherit;
   opacity: 1;
 }
@@ -4094,7 +4127,7 @@ html.userpatch-maia main#main-content.userpatch-listing-ready li.thumb figure > 
   display: block;
   aspect-ratio: 2 / 3;
   overflow: hidden;
-  border: 1px solid color-mix(in oklch, var(--maia-foreground) 15%, transparent) !important;
+  border: 1px solid var(--maia-poster-border) !important;
   border-radius: 1rem !important;
   background: var(--maia-muted);
   box-shadow: var(--maia-card-depth-shadow);
@@ -4108,7 +4141,7 @@ html.userpatch-maia main#main-content.userpatch-listing-ready li.thumb figure > 
 
 /* Keep the poster border steady against the source theme's hover styling. */
 html.userpatch-maia main#main-content.userpatch-listing-ready li.thumb figure > a:hover {
-  border-color: color-mix(in oklch, var(--maia-foreground) 15%, transparent) !important;
+  border-color: var(--maia-poster-border) !important;
 }
 
 html.userpatch-maia main#main-content.userpatch-listing-ready li.thumb figure > a:focus,
@@ -4455,7 +4488,7 @@ html.userpatch-maia .userpatch-poster-frame {
   inline-size: min(100%, min(21rem, max(9rem, calc(66.667dvh - 7.333rem))));
   aspect-ratio: 2 / 3;
   overflow: hidden;
-  border: 1px solid color-mix(in oklch, var(--maia-foreground) 15%, transparent);
+  border: 1px solid var(--maia-poster-border);
   border-radius: 1rem;
   background: var(--maia-muted);
   box-shadow: var(--maia-card-depth-shadow);
@@ -5343,6 +5376,7 @@ ${SCREENSHOT_VIEWER_CSS}
 ${POSTER_RECOVERY_CSS}
 ${LANDING_CSS}
 ${TRAILER_CSS}
+${POSTER_FRAME_CSS}
 ${DETAIL_INFO_CSS}
 
 html.userpatch-maia .userpatch-series-progress {

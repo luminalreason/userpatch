@@ -93,6 +93,10 @@ export const systemThemeCss = (legacyHsl = false) => {
   return `
     html.userpatch-maia, html[data-userpatch-theme] {
       color-scheme: light dark !important;
+      --maia-poster-border: rgb(255 255 255 / 15%);
+      --maia-card-depth-shadow: inset 0 1px 2px rgb(255 255 255 / 0.09),
+        0 2px 4px rgb(0 0 0 / 0.5), 0 4px 8px rgb(0 0 0 / 0.3);
+      --maia-poster-gloss: inset 0 1px 2px rgb(255 255 255 / 0.12);
     }
     @media (prefers-color-scheme: light) {
       html.userpatch-maia, html[data-userpatch-theme] {
@@ -118,8 +122,10 @@ export const systemThemeCss = (legacyHsl = false) => {
           inset 0 0 0 1px rgb(0 0 0 / 0.12), 0 1px 2px rgb(0 0 0 / 0.06);
         --maia-glass-shadow: 0 1px 2px rgb(0 0 0 / 0.04),
           0 2px 6px rgb(0 0 0 / 0.02);
-        --maia-card-depth-shadow: inset 0 1px 0 rgb(255 255 255 / 0.8),
-          0 1px 3px rgb(0 0 0 / 0.08), 0 3px 8px rgb(0 0 0 / 0.04);
+        --maia-poster-border: rgb(0 0 0 / 15%);
+        --maia-card-depth-shadow: inset 0 1px 2px rgb(255 255 255 / 0.31),
+          0 2px 4px rgb(0 0 0 / 0.19), 0 4px 8px rgb(0 0 0 / 0.08);
+        --maia-poster-gloss: inset 0 1px 2px rgb(255 255 255 / 0.25);
       }
       html.userpatch-maia .userpatch-media-badge img,
       html.userpatch-maia .userpatch-quality-tab img,

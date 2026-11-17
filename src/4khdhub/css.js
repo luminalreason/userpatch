@@ -1,4 +1,5 @@
 import { DETAIL_INFO_CSS } from "../shared/detail-info.js"
+import { POSTER_FRAME_CSS } from "../shared/poster-frame.js"
 import { PROGRESSIVE_IMAGE_CSS } from "../shared/progressive-images.js"
 import { systemThemeCss } from "../shared/system-theme.js"
 import { TRAILER_CSS } from "../shared/trailer.js"
@@ -1040,9 +1041,9 @@ html.userpatch-maia dialog.userpatch-search-dialog .search-input-container {
   gap: 0;
   margin: 0 !important;
   padding: 0 0.25rem 0 0;
-  border: 1px solid rgb(255 255 255 / 20%) !important;
+  border: 1px solid color-mix(in oklch, var(--maia-foreground) 24%, transparent) !important;
   border-radius: 20px !important;
-  background: rgb(38 38 40 / 60%) !important;
+  background: var(--maia-control-surface, rgb(38 38 40 / 60%)) !important;
   box-shadow: none !important;
   backdrop-filter: saturate(2.2) blur(16px);
   transition: border-color 140ms ease-out;
@@ -1066,12 +1067,15 @@ html.userpatch-maia .userpatch-input-group-addon {
 }
 
 html.userpatch-maia dialog.userpatch-search-dialog .search-icon-overlay {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   position: static !important;
+  transform: none !important;
   flex: 0 0 1.25rem;
   inline-size: 1.25rem !important;
   block-size: 1.25rem !important;
-  transform: none !important;
-  color: #a1a1aa !important;
+  color: var(--maia-muted-foreground) !important;
   pointer-events: none;
 }
 
@@ -1081,7 +1085,10 @@ html.userpatch-maia dialog.userpatch-search-dialog .search-input-overlay {
   flex: 1 1 auto;
   inline-size: auto !important;
   min-inline-size: 0;
-  block-size: 100%;
+  box-sizing: border-box;
+  align-self: stretch;
+  margin: 0 !important;
+  block-size: auto;
   min-block-size: 0;
   padding: 0 0.75rem !important;
   border: 0 !important;
@@ -1101,7 +1108,7 @@ html.userpatch-maia[data-detail-theme] dialog.userpatch-search-dialog .search-in
 }
 
 html.userpatch-maia dialog.userpatch-search-dialog .search-input-overlay::placeholder {
-  color: #a1a1aa !important;
+  color: var(--maia-muted-foreground) !important;
   font-size: inherit;
   opacity: 1;
 }
@@ -1645,7 +1652,7 @@ html.userpatch-maia .movie-card-image {
   inline-size: 100%;
   aspect-ratio: 2 / 3;
   overflow: hidden;
-  border: 1px solid color-mix(in oklch, var(--maia-foreground) 15%, transparent) !important;
+  border: 1px solid var(--maia-poster-border) !important;
   border-radius: 1rem !important;
   background: var(--maia-muted) !important;
   box-shadow: var(--maia-card-depth-shadow) !important;
@@ -2813,7 +2820,7 @@ html.userpatch-maia.userpatch-detail-page .content-sidebar .poster-container {
   padding: 0 !important;
   overflow: hidden;
   aspect-ratio: 2 / 3;
-  border: 1px solid color-mix(in oklch, var(--maia-foreground) 15%, transparent) !important;
+  border: 1px solid var(--maia-poster-border) !important;
   border-radius: 1rem !important;
   background: var(--maia-muted) !important;
   box-shadow: var(--maia-card-depth-shadow) !important;
@@ -4145,7 +4152,7 @@ html.userpatch-maia .movie-card:hover .movie-card-image,
 html.userpatch-maia .movie-card:active .movie-card-image {
   transform: none !important;
   filter: none !important;
-  border-color: color-mix(in oklch, var(--maia-foreground) 15%, transparent) !important;
+  border-color: var(--maia-poster-border) !important;
   box-shadow: var(--maia-card-depth-shadow) !important;
 }
 
@@ -4738,6 +4745,7 @@ html.userpatch-maia.userpatch-detail-page .userpatch-series-main > .userpatch-se
 }
 
 ${TRAILER_CSS}
+${POSTER_FRAME_CSS}
 ${DETAIL_INFO_CSS}
 ${systemThemeCss(true)}
 `

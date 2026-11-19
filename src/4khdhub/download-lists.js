@@ -1405,12 +1405,12 @@ export const setupSeriesReleaseList = (siteRoot) => {
         return
       }
       closeSelectMenus()
+      storageSet(CONFIG.storageKeys.seriesTab, button.dataset.tab)
       window.requestAnimationFrame(() => {
         if (!toolbar.isConnected) {
           return
         }
         activeMode = button.dataset.tab
-        storageSet(CONFIG.storageKeys.seriesTab, activeMode)
         selectedSeasonKey = ""
         for (const modeButton of modeButtons) {
           const isActive = modeButton === button

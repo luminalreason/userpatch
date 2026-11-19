@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HDHub4u + HUBLinks Redesign
 // @namespace    https://github.com/luminalreason/userpatch
-// @version      0.4.0
+// @version      0.4.1
 // @description  Reworks HDHub4u and HUBLinks with a shared responsive, system-themed interface and clearer release links.
 // @author       luminalreason
 // @match        *://*/*
@@ -3035,7 +3035,6 @@ html.userpatch-maia .userpatch-season-chevron {
   }
   const ensureSettings = ({
     storageKeys,
-    ongoingPosterSessionKey,
     shortEpisodeNamesKey,
     fetchLinksKey,
   }) => {
@@ -3103,7 +3102,7 @@ html.userpatch-maia .userpatch-season-chevron {
     confirmation.innerHTML = `
     <div class="userpatch-cache-header">
       <h2 id="userpatch-cache-title">Clear cache?</h2>
-      <p id="userpatch-cache-description">Clears opened-link history and saved tab and filter selections on this site.</p>
+      <p id="userpatch-cache-description">Resets script settings and clears opened-link history and saved tabs and filters on this site.</p>
     </div>
     <form method="dialog" class="userpatch-settings-footer">
       <button class="userpatch-settings-button" type="submit" autofocus>Cancel</button>
@@ -3123,6 +3122,15 @@ html.userpatch-maia .userpatch-season-chevron {
             storageSet(key, null)
           }
         }
+        for (const key of [
+          themeSettingKey,
+          shortEpisodeNamesKey,
+          fetchLinksKey,
+        ]) {
+          if (key) {
+            storageSet(key, null)
+          }
+        }
         try {
           if (storageKeys.seriesSeasonPrefix) {
             for (const key of Object.keys(localStorage)) {
@@ -3130,9 +3138,6 @@ html.userpatch-maia .userpatch-season-chevron {
                 localStorage.removeItem(key)
               }
             }
-          }
-          if (ongoingPosterSessionKey) {
-            sessionStorage.removeItem(ongoingPosterSessionKey)
           }
         } catch {}
         location.reload()

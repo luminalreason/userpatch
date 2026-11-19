@@ -23,8 +23,8 @@ export const CONFIG = Object.freeze({
   mobileNavigationWidth: "320px",
   fetchLinksKey: "userpatch-4khdhub-fetch-links",
   shortEpisodeNamesKey: "userpatch-4khdhub-short-episode-names",
-  ongoingPosterSessionKey: "userpatch-4khdhub-ongoing-poster-path",
   storageKeys: Object.freeze({
+    ongoingPosters: "userpatch-4khdhub-ongoing-posters",
     detailTab: "userpatch-4khdhub-detail-tab",
     movieQualityTab: "userpatch-4khdhub-quality-tab",
     seriesArchiveQualityTab: "userpatch-4khdhub-series-archive-quality-tab",

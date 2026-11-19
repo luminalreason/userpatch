@@ -12,10 +12,6 @@ import {
 import { cleanupReleaseLists } from "./download-lists.js"
 import { headerNavigationCleanup, headerSearchCleanup } from "./header-nav.js"
 import { removeMobileNavigation } from "./mobile-nav.js"
-import {
-  clearOngoingCardNavigationCleanup,
-  ongoingCardNavigationCleanup,
-} from "./ongoing-cards.js"
 
 let originalTheme = null
 
@@ -38,8 +34,6 @@ export const removeStyles = () => {
     headerNavigationCleanup?.()
     headerSearchCleanup?.()
     cleanupReleaseLists()
-    ongoingCardNavigationCleanup?.()
-    clearOngoingCardNavigationCleanup()
     removeMobileNavigation()
     removeSettings()
     document

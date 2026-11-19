@@ -36,7 +36,6 @@ import { setupMobileNavigation } from "./mobile-nav.js"
 import {
   markOngoingDetailPoster,
   markOngoingSeriesPosters,
-  setupOngoingCardNavigationTracking,
 } from "./ongoing-cards.js"
 import { followSystemTheme, removeStyles } from "./style-lifecycle.js"
 
@@ -69,7 +68,6 @@ const processCurrentPage = () => {
   }
 
   markOngoingSeriesPosters(siteRoot)
-  setupOngoingCardNavigationTracking()
 
   for (const heading of siteRoot.querySelectorAll(".latest-releases-header")) {
     heading.remove()

@@ -1,8 +1,8 @@
 import { normalizePathname } from "../shared/dom.js"
+import { storageGet, storageSet } from "../shared/storage.js"
 import { CONFIG } from "./config.js"
 import { normalizeText } from "./dom.js"
 
-export let ongoingCardNavigationCleanup = null
 export const hasOngoingSeasonProgress = (metadata) => {
   const match = normalizeText(metadata).match(
     /\bS(\d{1,2})(?:\s*[-–—]\s*S(\d{1,2}))?\s+EP(\d{1,3})\b/i
@@ -14,51 +14,24 @@ export const hasOngoingSeasonProgress = (metadata) => {
   )
 }
 
-export const setupOngoingCardNavigationTracking = () => {
-  if (ongoingCardNavigationCleanup) {
-    return
+const getOngoingPaths = () => {
+  try {
+    const paths = JSON.parse(storageGet(CONFIG.storageKeys.ongoingPosters))
+    return new Set(Array.isArray(paths) ? paths : [])
+  } catch {
+    return new Set()
   }
-
-  const onCardClick = (event) => {
-    if (!(event.target instanceof Element)) {
-      return
-    }
-
-    const card = event.target.closest("a.movie-card[href]")
-    if (!(card instanceof HTMLAnchorElement)) {
-      return
-    }
-
-    try {
-      const target = new URL(card.href, location.href)
-      if (target.origin !== location.origin) {
-        return
-      }
-
-      if (
-        hasOngoingSeasonProgress(
-          card.querySelector(".movie-card-meta")?.textContent
-        )
-      ) {
-        sessionStorage.setItem(
-          CONFIG.ongoingPosterSessionKey,
-          normalizePathname(target.pathname)
-        )
-      } else {
-        sessionStorage.removeItem(CONFIG.ongoingPosterSessionKey)
-      }
-    } catch {
-      return
-    }
-  }
-
-  document.addEventListener("click", onCardClick, true)
-  ongoingCardNavigationCleanup = () =>
-    document.removeEventListener("click", onCardClick, true)
 }
 
 export const markOngoingSeriesPosters = (siteRoot) => {
-  for (const card of siteRoot.querySelectorAll(".movie-card")) {
+  const cards = siteRoot.querySelectorAll("a.movie-card[href]")
+  if (!cards.length) {
+    return
+  }
+
+  const ongoingPaths = getOngoingPaths()
+  let changed = false
+  for (const card of cards) {
     const poster = card.querySelector(".movie-card-image")
     if (!poster) {
       continue
@@ -70,6 +43,27 @@ export const markOngoingSeriesPosters = (siteRoot) => {
 
     poster.classList.toggle("userpatch-ongoing-poster", isOngoing)
     card.classList.toggle("userpatch-ongoing-series", isOngoing)
+
+    const target = URL.parse(card.href, location.href)
+    if (target?.origin !== location.origin) {
+      continue
+    }
+    const path = normalizePathname(target.pathname)
+    if (isOngoing !== ongoingPaths.has(path)) {
+      if (isOngoing) {
+        ongoingPaths.add(path)
+      } else {
+        ongoingPaths.delete(path)
+      }
+      changed = true
+    }
+  }
+  if (changed) {
+    // The detail page can report E00 even while the listing shows new episodes.
+    storageSet(
+      CONFIG.storageKeys.ongoingPosters,
+      JSON.stringify([...ongoingPaths].slice(-500))
+    )
   }
 }
 
@@ -79,19 +73,8 @@ export const markOngoingDetailPoster = (siteRoot) => {
     return
   }
 
-  let storedPath = ""
-  try {
-    storedPath = sessionStorage.getItem(CONFIG.ongoingPosterSessionKey) || ""
-  } catch {
-    storedPath = ""
-  }
-
-  const isOngoing =
-    storedPath !== "" &&
-    normalizePathname(location.pathname) === normalizePathname(storedPath)
-  poster.classList.toggle("userpatch-ongoing-poster", isOngoing)
-}
-
-export const clearOngoingCardNavigationCleanup = () => {
-  ongoingCardNavigationCleanup = null
+  poster.classList.toggle(
+    "userpatch-ongoing-poster",
+    getOngoingPaths().has(normalizePathname(location.pathname))
+  )
 }

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HubFamily Redesign
 // @namespace    https://github.com/luminalreason/userpatch
-// @version      0.4.0
+// @version      0.4.1
 // @description  A unified, responsive redesign for the Hub family, with consistent system-themed layouts, movie and series details, screenshot viewing, quality filters, and clearer download, share, and copy controls.
 // @author       luminalreason
 // @match        *://*/*
@@ -1343,7 +1343,6 @@ html.userpatch-maia .userpatch-season-chevron {
     }
     const ensureSettings = ({
       storageKeys,
-      ongoingPosterSessionKey,
       shortEpisodeNamesKey,
       fetchLinksKey,
     }) => {
@@ -1414,7 +1413,7 @@ html.userpatch-maia .userpatch-season-chevron {
       confirmation.innerHTML = `
     <div class="userpatch-cache-header">
       <h2 id="userpatch-cache-title">Clear cache?</h2>
-      <p id="userpatch-cache-description">Clears opened-link history and saved tab and filter selections on this site.</p>
+      <p id="userpatch-cache-description">Resets script settings and clears opened-link history and saved tabs and filters on this site.</p>
     </div>
     <form method="dialog" class="userpatch-settings-footer">
       <button class="userpatch-settings-button" type="submit" autofocus>Cancel</button>
@@ -1434,6 +1433,15 @@ html.userpatch-maia .userpatch-season-chevron {
               storageSet(key, null)
             }
           }
+          for (const key of [
+            themeSettingKey,
+            shortEpisodeNamesKey,
+            fetchLinksKey,
+          ]) {
+            if (key) {
+              storageSet(key, null)
+            }
+          }
           try {
             if (storageKeys.seriesSeasonPrefix) {
               for (const key of Object.keys(localStorage)) {
@@ -1441,9 +1449,6 @@ html.userpatch-maia .userpatch-season-chevron {
                   localStorage.removeItem(key)
                 }
               }
-            }
-            if (ongoingPosterSessionKey) {
-              sessionStorage.removeItem(ongoingPosterSessionKey)
             }
           } catch {}
           location.reload()
@@ -1792,8 +1797,8 @@ html.userpatch-maia .userpatch-settings-dialog :is(button:not(:where(.userpatch-
       mobileNavigationWidth: "320px",
       fetchLinksKey: "userpatch-4khdhub-fetch-links",
       shortEpisodeNamesKey: "userpatch-4khdhub-short-episode-names",
-      ongoingPosterSessionKey: "userpatch-4khdhub-ongoing-poster-path",
       storageKeys: Object.freeze({
+        ongoingPosters: "userpatch-4khdhub-ongoing-posters",
         detailTab: "userpatch-4khdhub-detail-tab",
         movieQualityTab: "userpatch-4khdhub-quality-tab",
         seriesArchiveQualityTab: "userpatch-4khdhub-series-archive-quality-tab",
@@ -4773,6 +4778,7 @@ html.userpatch-maia .userpatch-fetch-output svg[data-userpatch-lucide-icon="arro
 html.userpatch-maia[data-userpatch-fetch-links] :is(.userpatch-fetch-group, .userpatch-fetch-output) .userpatch-btn-label,
 html.userpatch-maia[data-userpatch-fetch-links] .userpatch-fetch-menu button > span {
   font-size: var(--userpatch-fetch-label-size) !important;
+  font-weight: 500;
   line-height: 1.25;
   text-box: trim-both cap alphabetic;
 }
@@ -4826,7 +4832,6 @@ html.userpatch-maia[data-userpatch-fetch-links] .userpatch-fetch-menu button {
   min-block-size: calc(var(--userpatch-fetch-control-inner-size) + 2px);
   padding: 0.375rem 0.75rem;
   font-size: var(--userpatch-fetch-label-size) !important;
-  font-weight: 400;
   line-height: 1.35;
   border: 0;
   border-radius: 0.5rem;
@@ -12184,12 +12189,12 @@ ${systemThemeCss(true)}
             return
           }
           closeSelectMenus()
+          storageSet(CONFIG$1.storageKeys.seriesTab, button.dataset.tab)
           window.requestAnimationFrame(() => {
             if (!toolbar.isConnected) {
               return
             }
             activeMode = button.dataset.tab
-            storageSet(CONFIG$1.storageKeys.seriesTab, activeMode)
             selectedSeasonKey = ""
             for (const modeButton of modeButtons) {
               const isActive = modeButton === button
@@ -13138,7 +13143,6 @@ ${systemThemeCss(true)}
     const openMobileMenu = () => ensureMobileMenu()?.showModal()
 
     // src/4khdhub/ongoing-cards.js
-    let ongoingCardNavigationCleanup = null
     const hasOngoingSeasonProgress = (metadata) => {
       const match = normalizeText(metadata).match(
         /\bS(\d{1,2})(?:\s*[-–—]\s*S(\d{1,2}))?\s+EP(\d{1,3})\b/i
@@ -13149,45 +13153,24 @@ ${systemThemeCss(true)}
         Number(match[3]) > 0
       )
     }
-    const setupOngoingCardNavigationTracking = () => {
-      if (ongoingCardNavigationCleanup) {
-        return
+    const getOngoingPaths = () => {
+      try {
+        const paths = JSON.parse(
+          storageGet(CONFIG$1.storageKeys.ongoingPosters)
+        )
+        return new Set(Array.isArray(paths) ? paths : [])
+      } catch {
+        return new Set()
       }
-      const onCardClick = (event) => {
-        if (!(event.target instanceof Element)) {
-          return
-        }
-        const card = event.target.closest("a.movie-card[href]")
-        if (!(card instanceof HTMLAnchorElement)) {
-          return
-        }
-        try {
-          const target = new URL(card.href, location.href)
-          if (target.origin !== location.origin) {
-            return
-          }
-          if (
-            hasOngoingSeasonProgress(
-              card.querySelector(".movie-card-meta")?.textContent
-            )
-          ) {
-            sessionStorage.setItem(
-              CONFIG$1.ongoingPosterSessionKey,
-              normalizePathname(target.pathname)
-            )
-          } else {
-            sessionStorage.removeItem(CONFIG$1.ongoingPosterSessionKey)
-          }
-        } catch {
-          return
-        }
-      }
-      document.addEventListener("click", onCardClick, true)
-      ongoingCardNavigationCleanup = () =>
-        document.removeEventListener("click", onCardClick, true)
     }
     const markOngoingSeriesPosters = (siteRoot) => {
-      for (const card of siteRoot.querySelectorAll(".movie-card")) {
+      const cards = siteRoot.querySelectorAll("a.movie-card[href]")
+      if (!cards.length) {
+        return
+      }
+      const ongoingPaths = getOngoingPaths()
+      let changed = false
+      for (const card of cards) {
         const poster = card.querySelector(".movie-card-image")
         if (!poster) {
           continue
@@ -13197,6 +13180,25 @@ ${systemThemeCss(true)}
         )
         poster.classList.toggle("userpatch-ongoing-poster", isOngoing)
         card.classList.toggle("userpatch-ongoing-series", isOngoing)
+        const target = URL.parse(card.href, location.href)
+        if (target?.origin !== location.origin) {
+          continue
+        }
+        const path = normalizePathname(target.pathname)
+        if (isOngoing !== ongoingPaths.has(path)) {
+          if (isOngoing) {
+            ongoingPaths.add(path)
+          } else {
+            ongoingPaths.delete(path)
+          }
+          changed = true
+        }
+      }
+      if (changed) {
+        storageSet(
+          CONFIG$1.storageKeys.ongoingPosters,
+          JSON.stringify([...ongoingPaths].slice(-500))
+        )
       }
     }
     const markOngoingDetailPoster = (siteRoot) => {
@@ -13206,20 +13208,10 @@ ${systemThemeCss(true)}
       if (!poster) {
         return
       }
-      let storedPath = ""
-      try {
-        storedPath =
-          sessionStorage.getItem(CONFIG$1.ongoingPosterSessionKey) || ""
-      } catch {
-        storedPath = ""
-      }
-      const isOngoing =
-        storedPath !== "" &&
-        normalizePathname(location.pathname) === normalizePathname(storedPath)
-      poster.classList.toggle("userpatch-ongoing-poster", isOngoing)
-    }
-    const clearOngoingCardNavigationCleanup = () => {
-      ongoingCardNavigationCleanup = null
+      poster.classList.toggle(
+        "userpatch-ongoing-poster",
+        getOngoingPaths().has(normalizePathname(location.pathname))
+      )
     }
 
     // src/shared/managed-meta.js
@@ -13271,8 +13263,6 @@ ${systemThemeCss(true)}
         headerNavigationCleanup?.()
         headerSearchCleanup?.()
         cleanupReleaseLists()
-        ongoingCardNavigationCleanup?.()
-        clearOngoingCardNavigationCleanup()
         removeMobileNavigation()
         removeSettings()
         document
@@ -13328,7 +13318,6 @@ ${systemThemeCss(true)}
         releaseContentRoot = contentRoot
       }
       markOngoingSeriesPosters(siteRoot)
-      setupOngoingCardNavigationTracking()
       for (const heading of siteRoot.querySelectorAll(
         ".latest-releases-header"
       )) {
@@ -21384,7 +21373,6 @@ html.userpatch-maia .userpatch-season-chevron {
     }
     const ensureSettings = ({
       storageKeys,
-      ongoingPosterSessionKey,
       shortEpisodeNamesKey,
       fetchLinksKey,
     }) => {
@@ -21455,7 +21443,7 @@ html.userpatch-maia .userpatch-season-chevron {
       confirmation.innerHTML = `
     <div class="userpatch-cache-header">
       <h2 id="userpatch-cache-title">Clear cache?</h2>
-      <p id="userpatch-cache-description">Clears opened-link history and saved tab and filter selections on this site.</p>
+      <p id="userpatch-cache-description">Resets script settings and clears opened-link history and saved tabs and filters on this site.</p>
     </div>
     <form method="dialog" class="userpatch-settings-footer">
       <button class="userpatch-settings-button" type="submit" autofocus>Cancel</button>
@@ -21475,6 +21463,15 @@ html.userpatch-maia .userpatch-season-chevron {
               storageSet(key, null)
             }
           }
+          for (const key of [
+            themeSettingKey,
+            shortEpisodeNamesKey,
+            fetchLinksKey,
+          ]) {
+            if (key) {
+              storageSet(key, null)
+            }
+          }
           try {
             if (storageKeys.seriesSeasonPrefix) {
               for (const key of Object.keys(localStorage)) {
@@ -21482,9 +21479,6 @@ html.userpatch-maia .userpatch-season-chevron {
                   localStorage.removeItem(key)
                 }
               }
-            }
-            if (ongoingPosterSessionKey) {
-              sessionStorage.removeItem(ongoingPosterSessionKey)
             }
           } catch {}
           location.reload()

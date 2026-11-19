@@ -6,8 +6,8 @@ HubFamily makes the Hub sites look and work like one interface that follows your
 
 | Script              | Version | Description                                                                                                                                                     |
 | ------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [4khdhub-redesign]  | 0.5.0   | Redesigns 4K-HDHub with movie and series pages, trailers, site search, and saved season and quality filters.                                                    |
-| [hdhub4u-redesign]  | 0.4.0   | Redesigns HDHub4u and HUBLinks with poster layouts, movie info and screenshots, trailers, quality filters, and consistent download links.                       |
+| [4khdhub-redesign]  | 0.5.1   | Redesigns 4K-HDHub with movie and series pages, trailers, site search, and saved season and quality filters.                                                    |
+| [hdhub4u-redesign]  | 0.4.1   | Redesigns HDHub4u and HUBLinks with poster layouts, movie info and screenshots, trailers, quality filters, and consistent download links.                       |
 | [hubcloud-redesign] | 0.4.0   | Redesigns HubCloud and HubCDN download pages with matching server buttons, copy and share buttons, loading progress, and a guide to comparing download mirrors. |
 
 [4khdhub-redesign]: https://github.com/luminalreason/userpatch/raw/main/scripts/4khdhub-redesign.user.js

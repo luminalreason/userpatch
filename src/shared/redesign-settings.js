@@ -171,7 +171,6 @@ const createThemeSelect = () => {
 
 export const ensureSettings = ({
   storageKeys,
-  ongoingPosterSessionKey,
   shortEpisodeNamesKey,
   fetchLinksKey,
 }) => {
@@ -242,7 +241,7 @@ export const ensureSettings = ({
   confirmation.innerHTML = `
     <div class="userpatch-cache-header">
       <h2 id="userpatch-cache-title">Clear cache?</h2>
-      <p id="userpatch-cache-description">Clears opened-link history and saved tab and filter selections on this site.</p>
+      <p id="userpatch-cache-description">Resets script settings and clears opened-link history and saved tabs and filters on this site.</p>
     </div>
     <form method="dialog" class="userpatch-settings-footer">
       <button class="userpatch-settings-button" type="submit" autofocus>Cancel</button>
@@ -262,6 +261,15 @@ export const ensureSettings = ({
           storageSet(key, null)
         }
       }
+      for (const key of [
+        themeSettingKey,
+        shortEpisodeNamesKey,
+        fetchLinksKey,
+      ]) {
+        if (key) {
+          storageSet(key, null)
+        }
+      }
       try {
         if (storageKeys.seriesSeasonPrefix) {
           for (const key of Object.keys(localStorage)) {
@@ -269,9 +277,6 @@ export const ensureSettings = ({
               localStorage.removeItem(key)
             }
           }
-        }
-        if (ongoingPosterSessionKey) {
-          sessionStorage.removeItem(ongoingPosterSessionKey)
         }
       } catch {}
       location.reload()

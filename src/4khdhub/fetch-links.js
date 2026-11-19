@@ -314,6 +314,7 @@ html.userpatch-maia .userpatch-fetch-output svg[data-userpatch-lucide-icon="arro
 html.userpatch-maia[data-userpatch-fetch-links] :is(.userpatch-fetch-group, .userpatch-fetch-output) .userpatch-btn-label,
 html.userpatch-maia[data-userpatch-fetch-links] .userpatch-fetch-menu button > span {
   font-size: var(--userpatch-fetch-label-size) !important;
+  font-weight: 500;
   line-height: 1.25;
   text-box: trim-both cap alphabetic;
 }
@@ -367,7 +368,6 @@ html.userpatch-maia[data-userpatch-fetch-links] .userpatch-fetch-menu button {
   min-block-size: calc(var(--userpatch-fetch-control-inner-size) + 2px);
   padding: 0.375rem 0.75rem;
   font-size: var(--userpatch-fetch-label-size) !important;
-  font-weight: 400;
   line-height: 1.35;
   border: 0;
   border-radius: 0.5rem;

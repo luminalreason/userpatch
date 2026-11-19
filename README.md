@@ -6,7 +6,7 @@ A collection of browser userscripts by **luminalreason** that make link-shortene
 
 | Script               | Version | Description                                                                                                                                                                 |
 | -------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [hubfamily-redesign] | 0.4.0   | Redesigns 4K-HDHub, HDHub4u, HUBLinks, HubCloud, and HubCDN with one consistent interface that follows your system’s light or dark theme for movies, series, and downloads. |
+| [hubfamily-redesign] | 0.4.1   | Redesigns 4K-HDHub, HDHub4u, HUBLinks, HubCloud, and HubCDN with one consistent interface that follows your system’s light or dark theme for movies, series, and downloads. |
 | [hub-helper]         | 0.3.3   | Skips link shortener wait pages, updates old HubCloud and HubDrive links, and returns a reloaded download tab to its share page.                                            |
 | [xd-helper]          | 0.1.0   | Clicks through XD wait pages for you, so you don't have to.                                                                                                                 |
 

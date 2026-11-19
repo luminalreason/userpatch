@@ -101,6 +101,23 @@ export const scrollListBelowStickyFilter = (filter, list, section) => {
   window.scrollTo({ top: Math.max(0, targetTop), behavior })
 }
 
+const getAudioBadgeText = (badges) => {
+  for (const badge of badges) {
+    const style = badge.getAttribute("style") || ""
+    if (
+      style.includes("#0d9488") ||
+      style.includes("13, 148, 136") ||
+      badge.classList.contains("badge-teal")
+    ) {
+      const text = normalizeText(badge.textContent)
+      if (text) {
+        return text
+      }
+    }
+  }
+  return ""
+}
+
 export const setupMovieReleaseList = (siteRoot) => {
   try {
     const main = siteRoot.querySelector(".content-grid .content-main")
@@ -179,6 +196,9 @@ export const setupMovieReleaseList = (siteRoot) => {
       if (isReleaseOpened(filename, actions, openedReleases)) {
         markReleaseOpened(row, item)
       }
+      item.dataset.userpatchAudio = getAudioBadgeText(
+        header.querySelectorAll(".badge")
+      )
       item.dataset.userpatchFilename = filename
       item.dataset.userpatchQuality = getReleaseQuality(filename)
       const cleanupFilenameMeasurement = setupExpandableFilename(
@@ -265,7 +285,13 @@ export const setupMovieReleaseList = (siteRoot) => {
       releaseProviderTooltipCleanup = setupReleaseProviderTooltip(siteRoot)
     }
     toolbar.userpatchRefresh?.()
-    updatePosterBadges(siteRoot)
+    const audio = sourceItems[0].dataset.userpatchAudio
+    const sharedAudio =
+      audio &&
+      sourceItems.every((item) => item.dataset.userpatchAudio === audio)
+        ? audio
+        : ""
+    updatePosterBadges(siteRoot, sharedAudio)
     return true
   } catch {
     return false
@@ -353,18 +379,9 @@ export const setupSeriesReleaseList = (siteRoot) => {
           ".download-header code .badge, .download-header .badge"
         )
       )
-      for (const badge of badgeElements) {
-        const style = badge.getAttribute("style") || ""
-        if (
-          style.includes("#0d9488") ||
-          style.includes("13, 148, 136") ||
-          badge.classList.contains("badge-teal")
-        ) {
-          const text = normalizeText(badge.textContent)
-          if (text) {
-            return text
-          }
-        }
+      const audio = getAudioBadgeText(badgeElements)
+      if (audio) {
+        return audio
       }
 
       for (const badge of badgeElements) {

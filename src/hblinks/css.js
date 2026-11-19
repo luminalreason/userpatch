@@ -245,7 +245,7 @@ html.userpatch-maia.userpatch-hblinks-page a.userpatch-hblinks-action:active {
   transform: scale(0.95);
 }
 
-html.userpatch-maia.userpatch-hblinks-page a.userpatch-hblinks-action img {
+html.userpatch-maia.userpatch-hblinks-page a.userpatch-hblinks-action :is(img, .userpatch-telegram-icon) {
   display: block !important;
   margin: 0 !important;
   inline-size: 36px !important;

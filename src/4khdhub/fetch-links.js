@@ -400,10 +400,13 @@ html.userpatch-maia[data-userpatch-fetch-links] .userpatch-release-row > .userpa
   margin-block-start: 0.5rem;
 }
 @media (max-width: ${CONFIG.mobileLayoutBreakpointRem}rem) {
+  html.userpatch-maia[data-userpatch-fetch-links] {
+    --userpatch-fetch-control-inner-size: 2.625rem;
+  }
   html.userpatch-maia[data-userpatch-fetch-links] .userpatch-release-row:has(> .userpatch-fetch-results) {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto;
-    row-gap: 0.5rem;
+    row-gap: 0.625rem;
   }
   html.userpatch-maia[data-userpatch-fetch-links] .userpatch-release-row > .userpatch-release-actions:has(.userpatch-fetch-group),
   html.userpatch-maia[data-userpatch-fetch-links] .userpatch-release-row > .userpatch-fetch-results {
@@ -419,6 +422,7 @@ html.userpatch-maia[data-userpatch-fetch-links] .userpatch-release-row > .userpa
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     align-items: stretch;
+    gap: 0.625rem;
   }
   html.userpatch-maia .userpatch-fetch-output .userpatch-btn-group > a {
     flex: 1 1 auto;

@@ -35,6 +35,62 @@ import { setupProgressiveImage } from "./images.js"
 import { openScreenshotViewer } from "./screenshot-viewer.js"
 import { createSeriesProgress, parseDisplayTitle } from "./titles.js"
 
+const findPlay4uPlayer = (body, title) => {
+  let candidate = null
+  let trailerSection = /\btrailer\b/i.test(title)
+  for (const element of body.querySelectorAll("h2, h3, h4, h5, iframe[src]")) {
+    if (!element.matches("iframe")) {
+      const heading = normalizeText(element.textContent)
+      if (/\btrailer\b/i.test(heading)) {
+        trailerSection = true
+      } else if (/\b(?:watch online|full movie)\b/i.test(heading)) {
+        trailerSection = false
+      }
+      continue
+    }
+    // Play4U also hosts full movies, sometimes with generic YouTube titles.
+    const url = URL.parse(element.getAttribute("src"), location.href)
+    if (
+      url?.origin === "https://play4u.org" &&
+      /^\/video\/[a-z0-9]+\/?$/i.test(url.pathname)
+    ) {
+      if (trailerSection) {
+        return { trailer: url.href, candidate: null }
+      }
+      candidate ??= url.href
+    }
+  }
+  return { trailer: null, candidate }
+}
+
+const verifyPlay4uTrailer = (url, onTrailer) => {
+  if (!url || typeof GM_xmlhttpRequest !== "function") {
+    return
+  }
+  GM_xmlhttpRequest({
+    method: "GET",
+    url,
+    anonymous: true,
+    timeout: 5000,
+    responseType: "text",
+    onload: (response) => {
+      const finalUrl = URL.parse(response.finalUrl || url)
+      if (
+        response.status !== 200 ||
+        finalUrl?.origin !== "https://play4u.org"
+      ) {
+        return
+      }
+      const title = response.responseText.match(
+        /<title\b[^>]*>([^<]*)<\/title>/i
+      )?.[1]
+      if (/\btrailer\b/i.test(title || "")) {
+        onTrailer(url)
+      }
+    },
+  })
+}
+
 export const extractDetail = () => {
   try {
     const main = document.querySelector("main#main-content.content-wrapper")
@@ -265,6 +321,7 @@ export const extractDetail = () => {
     const isSeries =
       episodes.length > 0 || /\b(?:season|series|episode)\b/i.test(title)
 
+    const play4u = findPlay4uPlayer(body, title)
     return {
       title,
       date,
@@ -282,7 +339,8 @@ export const extractDetail = () => {
       isSeries,
       screenshots,
       storyline,
-      trailer: findTrailerUrl(body),
+      trailer: findTrailerUrl(body) || play4u.trailer,
+      trailerCandidate: play4u.candidate,
     }
   } catch (error) {
     console.warn("userpatch extract failed:", error)
@@ -407,7 +465,7 @@ export const buildDetailPage = (data) => {
 
   // Grouped tab bar, mirroring the sibling 4K-HDHub redesign: movies get
   // Info and screenshots share the toolbar with the release sections.
-  const hasLinksTab = !data.isSeries
+  const hasLinksTab = !data.isSeries && data.releases.length > 0
   const hasArchiveTab =
     data.isSeries && data.releases.some((row) => !row.external)
   const hasEpisodesTab = data.isSeries && data.episodes.length > 0
@@ -432,7 +490,10 @@ export const buildDetailPage = (data) => {
   ]
   const savedTab = storageGet(CONFIG.storageKeys.detailTab)
   let activeTab = "info"
-  if (savedTab === "links") {
+  if (
+    savedTab === "links" &&
+    (hasLinksTab || hasArchiveTab || hasEpisodesTab)
+  ) {
     activeTab = hasLinksTab ? "links" : activeMode
   } else if (savedTab === "screenshot" && data.screenshots.length) {
     activeTab = "screenshot"
@@ -607,6 +668,15 @@ export const buildDetailPage = (data) => {
       tab === "info" || tab === "screenshot" ? tab : "links"
     )
     applyTab(tab)
+
+    // Desktop scrolls the detail column, while mobile scrolls the document.
+    mainColumn.scrollTo({ top: 0, behavior: "instant" })
+    const inset =
+      Number.parseFloat(getComputedStyle(toolbar).insetBlockStart) || 0
+    const offset = mainColumn.getBoundingClientRect().top - inset
+    if (offset < 0) {
+      window.scrollBy({ top: offset, behavior: "instant" })
+    }
   }
   const positionActiveTabIndicator = () => {
     requestAnimationFrame(() => {
@@ -651,6 +721,12 @@ export const buildDetailPage = (data) => {
   const trailer = createTrailer(data.trailer)
   if (trailer) {
     infoPane.append(trailer)
+  } else {
+    verifyPlay4uTrailer(data.trailerCandidate, (url) => {
+      if (infoPane.isConnected) {
+        infoPane.append(createTrailer(url))
+      }
+    })
   }
 
   root.append(panel, mainColumn)
@@ -679,7 +755,7 @@ export const ensureDetailPage = () => {
   if (!data) {
     return false
   }
-  if (!data.releases.length && !data.episodes.length) {
+  if (!data.releases.length && !data.episodes.length && !data.trailer) {
     return false
   }
   buildDetailPage(data)

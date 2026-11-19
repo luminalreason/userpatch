@@ -4,6 +4,7 @@ import {
   USERPATCH_BADGE_DATA,
 } from "../shared/badges.js"
 import { RELEASE_QUALITY_PATTERNS } from "../shared/quality.js"
+import { createLucideIcon } from "./icons.js"
 
 export const getFilenameBadgeNames = (siteRoot) => {
   const filenames = Array.from(siteRoot.querySelectorAll(".download-item"))
@@ -65,7 +66,7 @@ export const getFilenameBadgeNames = (siteRoot) => {
 
   if (hasAtmos) {
     badges.push("dolby-atmos")
-  } else if (hasDolby && !hasDts) {
+  } else if (hasDolby) {
     badges.push("dolby-audio")
   }
 
@@ -78,7 +79,7 @@ export const getFilenameBadgeNames = (siteRoot) => {
   return badges
 }
 
-export const updatePosterBadges = (siteRoot) => {
+export const updatePosterBadges = (siteRoot, sharedAudio) => {
   const stack = siteRoot.querySelector(".userpatch-detail-stack")
   if (!stack) {
     return
@@ -118,5 +119,35 @@ export const updatePosterBadges = (siteRoot) => {
     imdbScore.before(badgeList)
   } else {
     stack.append(badgeList)
+  }
+
+  if (sharedAudio !== undefined) {
+    const audioTerm = Array.from(
+      siteRoot.querySelectorAll(".userpatch-detail-info dt")
+    ).find((term) => term.textContent.trim().toLowerCase() === "audios:")
+    if (audioTerm?.nextElementSibling?.matches("dd")) {
+      audioTerm.hidden = Boolean(sharedAudio)
+      audioTerm.nextElementSibling.hidden = audioTerm.hidden
+    }
+  }
+
+  let audio = stack.querySelector(":scope > .userpatch-poster-audio")
+  if (sharedAudio === undefined && audio) {
+    badgeList.after(audio)
+  } else if (sharedAudio) {
+    if (!audio) {
+      audio = document.createElement("div")
+      audio.className = "userpatch-poster-audio"
+    }
+    const icon = createLucideIcon("audio-lines")
+    icon.classList.add("userpatch-series-language-icon")
+    icon.dataset.userpatchLucideIcon = "audio-lines"
+    const label = document.createElement("span")
+    label.className = "userpatch-series-language-text"
+    label.textContent = sharedAudio
+    audio.replaceChildren(icon, label)
+    badgeList.after(audio)
+  } else {
+    audio?.remove()
   }
 }

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HubFamily Redesign
 // @namespace    https://github.com/luminalreason/userpatch
-// @version      0.4.1
+// @version      0.4.2
 // @description  A unified, responsive redesign for the Hub family, with consistent system-themed layouts, movie and series details, screenshot viewing, quality filters, and clearer download, share, and copy controls.
 // @author       luminalreason
 // @match        *://*/*
@@ -2205,6 +2205,12 @@ html.userpatch-maia .userpatch-trailer-frame > iframe {
     const HUBDRIVE_LOGO_DATA_URI = makeSvgDataUri(HUBDRIVE_LOGO_SVG)
     const HUBCDN_LOGO_SVG = String.raw`<svg width="216" height="260" viewBox="0 0 216 260" xmlns="http://www.w3.org/2000/svg"><title>undraw_handcrafts_heart</title><g fill="none"><path d="M94.612 259.442c-52.87-27.61-89.83-83.546-94.497-143.008-2.677-34.116 42-57.722 73.18-43.618s45.416 52.377 42.057 86.433c-3.36 34.055-20.522 64.984-20.74 100.193" fill="#b9fff4"/><path d="m180.8 59.136-.002-.002.022.057.002.002z" fill="#000"/><path d="M210.18 49.32c-9.959-27.16-41.17-31.961-64.158-17.966a102 102 0 0 0-10.83 7.159C126.986 22.216 114.311 6.342 96.626.665c-18.734-3.47-38.053 7.13-50.715 20.369C34.808 33.217 29.554 49.242 23.814 64.39c-7.425 19.42-5.637 40.524-.681 60.308 5.518 24.51 19.25 46.018 34.14 65.883 17.341 23.568 36.811 45.456 55.79 67.695-16.404-27.606-34.051-54.514-48.789-83.074-9.574-18.305-15.647-32.086-19.093-55.445a155 155 0 0 1-1.548-21.374c.179-8.247.613-8.191.746-9.59 2.97-15.129 15.054-38.773 20.212-45.34a39 39 0 0 1 4.92-4.745 27 27 0 0 1 3.381-2.086c4.253-2.02 2.698-2 12.054-4.589h.004c.699-.03 1.345-.032 1.868-.023.23.134.461.265.686.407 8.802 8.28 6.196 6.106 10.328 11.3l1.05 1.484a87.4 87.4 0 0 1 6.546 11.272c1.768 2.63 7.162 26.82 29.194 21.615a28.8 28.8 0 0 0 10.114-5.904 574 574 0 0 0 7.158-5.542c2.509-1.853 7.729-5.67 9.68-6.699a48 48 0 0 1 5.05-2.73 40 40 0 0 1 6.261-1.897c.41-.025.818-.085 1.228-.079.167.002.332.031.498.037.793.196 1.903.478 3.011.821.21.12.422.236.627.365a34 34 0 0 1 1.71 1.71q.766 1.148 1.387 2.381c1.5 4.087 2.738 8.265 3.704 12.51 3.598 14.583 2.86 25.085.322 37.42-10.04 46.747-36.895 82.132-64.628 125.968a621 621 0 0 1-9.546 13.878c10.995-10.373 21.466-21.286 31.577-32.52 21.612-23.877 43.757-47.96 57.517-77.437 7.013-14.537 13.001-29.855 14.723-46.011a112.4 112.4 0 0 0-4.835-45.038" fill="#6366f1"/></g></svg>`
     const HUBCDN_LOGO_DATA_URI = makeSvgDataUri(HUBCDN_LOGO_SVG)
+    const GDFLIX_LOGO_DATA_URI = makeSvgDataUri(
+      String.raw`<svg xmlns="http://www.w3.org/2000/svg" viewBox="14 13.5 100 100"><defs><clipPath id="a"><rect x="14" y="13.5" width="100" height="100" rx="22" ry="22"/></clipPath></defs><g clip-path="url(#a)"><path fill="#377ef0" d="M14 13.5h100v100H14z"/><path fill="#52b529" d="M14 13.5v100l12-3.5 19-32 19-32-17-32.5z"/><path fill="#f8c63d" d="M47 13.5h67V78H83L64 46z"/><path fill="#439422" d="M47 13.5 64 46h-7z"/><path fill="#2d67c5" d="m26 110 19-32h8z"/><path fill="#d5a425" d="M114 78H83v-6z"/><path fill="#fff" d="m64 46 19 32H45z"/></g></svg>`
+    )
+    const GOFILE_LOGO_DATA_URI = makeSvgDataUri(
+      String.raw`<svg xmlns="http://www.w3.org/2000/svg" viewBox="1 55 294.5 189"><g fill="#e7af1e"><path d="M139 118h9v36h-12v-19.5l3-12z"/><path d="m40 128 99-5.5-3 12z"/></g><path fill="#e6e7e8" d="m74 62 83-5.5-2 11.5zm49 21 30-4-1 8zm35-28h98c0 13-2.5 27-5.5 35.5 14.5.5 27.5 2 37.5 3.5l-2 56H145z"/><path d="m256 55 32 39c-10-1.5-23-3-37.5-3.5C253.5 82 256 68 256 55" fill="#bdbfc1"/><g fill="#e7af1e"><path d="m77 167 38-4 1 8zM1 203l117-4 2 8z"/><path d="M114.5 154H168l20-17h107.5l-28 107h-144z"/></g></svg>`
+    )
 
     // src/hubcloud/icons.js
     const LUCIDE_ICON_SHAPES$1 = Object.freeze({
@@ -2592,6 +2598,17 @@ html.userpatch-maia .userpatch-trailer-frame > iframe {
           document.querySelector("main > header")?.textContent || ""
         )
       )
+    const getHubCdnUnavailableMessage = () => {
+      if (!/(?:^|\.)hubcdn\.[a-z]+$/i.test(location.hostname)) {
+        return null
+      }
+      return (
+        Array.from(document.body?.querySelectorAll("h4") || []).find(
+          (heading) =>
+            /file is deleted or unavailable/i.test(heading.textContent)
+        ) || null
+      )
+    }
 
     // src/hubcloud/generated-page.js
     const isHubCloudGeneratedPage = () =>
@@ -3202,7 +3219,7 @@ html.userpatch-maia .userpatch-trailer-frame > iframe {
       if (isHubCloudGeneratedPage()) {
         return "HubCloud"
       }
-      if (isHubCdnGeneratedPage()) {
+      if (isHubCdnGeneratedPage() || getHubCdnUnavailableMessage()) {
         return "HubCDN"
       }
       return null
@@ -3239,6 +3256,29 @@ html.userpatch-maia .userpatch-trailer-frame > iframe {
     const normalizeGeneratedPage = () => {
       const root = document.documentElement
       root.classList.add("userpatch-generated-page")
+      const unavailable = getHubCdnUnavailableMessage()
+      if (unavailable) {
+        if (!unavailable.closest(".userpatch-generated-error")) {
+          const error = document.createElement("main")
+          error.className = "userpatch-generated-error"
+          error.setAttribute("role", "alert")
+          unavailable.before(error)
+          error.append(unavailable)
+          unavailable.textContent = "File is deleted or unavailable."
+          for (const node of document.body.childNodes) {
+            if (
+              node.nodeType === Node.TEXT_NODE &&
+              /no URL found|failed to get data from gserver/i.test(
+                node.textContent
+              )
+            ) {
+              node.remove()
+            }
+          }
+        }
+        document.querySelector(".userpatch-generated-status")?.remove()
+        return true
+      }
       const container =
         document.querySelector("#download_container") ||
         document.querySelector("body > main")
@@ -4864,10 +4904,13 @@ html.userpatch-maia[data-userpatch-fetch-links] .userpatch-release-row > .userpa
   margin-block-start: 0.5rem;
 }
 @media (max-width: ${CONFIG$1.mobileLayoutBreakpointRem}rem) {
+  html.userpatch-maia[data-userpatch-fetch-links] {
+    --userpatch-fetch-control-inner-size: 2.625rem;
+  }
   html.userpatch-maia[data-userpatch-fetch-links] .userpatch-release-row:has(> .userpatch-fetch-results) {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto;
-    row-gap: 0.5rem;
+    row-gap: 0.625rem;
   }
   html.userpatch-maia[data-userpatch-fetch-links] .userpatch-release-row > .userpatch-release-actions:has(.userpatch-fetch-group),
   html.userpatch-maia[data-userpatch-fetch-links] .userpatch-release-row > .userpatch-fetch-results {
@@ -4883,6 +4926,7 @@ html.userpatch-maia[data-userpatch-fetch-links] .userpatch-release-row > .userpa
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     align-items: stretch;
+    gap: 0.625rem;
   }
   html.userpatch-maia .userpatch-fetch-output .userpatch-btn-group > a {
     flex: 1 1 auto;
@@ -7735,6 +7779,17 @@ html.userpatch-maia.userpatch-detail-page .userpatch-poster-badges[hidden] {
   display: none !important;
 }
 
+html.userpatch-maia.userpatch-detail-page .userpatch-poster-audio {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  color: var(--maia-foreground);
+  font-size: 0.875rem;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
 html.userpatch-maia.userpatch-detail-page .userpatch-media-badge {
   display: inline-flex;
   min-inline-size: 2rem;
@@ -10075,7 +10130,7 @@ ${systemThemeCss(true)}
       }
       if (hasAtmos) {
         badges.push("dolby-atmos")
-      } else if (hasDolby && !hasDts) {
+      } else if (hasDolby) {
         badges.push("dolby-audio")
       }
       if (hasDtsX) {
@@ -10085,7 +10140,7 @@ ${systemThemeCss(true)}
       }
       return badges
     }
-    const updatePosterBadges = (siteRoot) => {
+    const updatePosterBadges = (siteRoot, sharedAudio) => {
       const stack = siteRoot.querySelector(".userpatch-detail-stack")
       if (!stack) {
         return
@@ -10122,6 +10177,34 @@ ${systemThemeCss(true)}
         imdbScore.before(badgeList)
       } else {
         stack.append(badgeList)
+      }
+      if (sharedAudio !== undefined) {
+        const audioTerm = Array.from(
+          siteRoot.querySelectorAll(".userpatch-detail-info dt")
+        ).find((term) => term.textContent.trim().toLowerCase() === "audios:")
+        if (audioTerm?.nextElementSibling?.matches("dd")) {
+          audioTerm.hidden = Boolean(sharedAudio)
+          audioTerm.nextElementSibling.hidden = audioTerm.hidden
+        }
+      }
+      let audio = stack.querySelector(":scope > .userpatch-poster-audio")
+      if (sharedAudio === undefined && audio) {
+        badgeList.after(audio)
+      } else if (sharedAudio) {
+        if (!audio) {
+          audio = document.createElement("div")
+          audio.className = "userpatch-poster-audio"
+        }
+        const icon = createLucideIcon("audio-lines")
+        icon.classList.add("userpatch-series-language-icon")
+        icon.dataset.userpatchLucideIcon = "audio-lines"
+        const label = document.createElement("span")
+        label.className = "userpatch-series-language-text"
+        label.textContent = sharedAudio
+        audio.replaceChildren(icon, label)
+        badgeList.after(audio)
+      } else {
+        audio?.remove()
       }
     }
 
@@ -10880,6 +10963,22 @@ ${systemThemeCss(true)}
         behavior,
       })
     }
+    const getAudioBadgeText = (badges) => {
+      for (const badge of badges) {
+        const style = badge.getAttribute("style") || ""
+        if (
+          style.includes("#0d9488") ||
+          style.includes("13, 148, 136") ||
+          badge.classList.contains("badge-teal")
+        ) {
+          const text = normalizeText(badge.textContent)
+          if (text) {
+            return text
+          }
+        }
+      }
+      return ""
+    }
     const setupMovieReleaseList = (siteRoot) => {
       try {
         const main = siteRoot.querySelector(".content-grid .content-main")
@@ -10956,6 +11055,9 @@ ${systemThemeCss(true)}
           if (isReleaseOpened(filename, actions, openedReleases)) {
             markReleaseOpened(row, item)
           }
+          item.dataset.userpatchAudio = getAudioBadgeText(
+            header.querySelectorAll(".badge")
+          )
           item.dataset.userpatchFilename = filename
           item.dataset.userpatchQuality = getReleaseQuality(filename)
           const cleanupFilenameMeasurement = setupExpandableFilename(
@@ -11034,7 +11136,13 @@ ${systemThemeCss(true)}
           releaseProviderTooltipCleanup = setupProviderTooltip(siteRoot)
         }
         toolbar.userpatchRefresh?.()
-        updatePosterBadges(siteRoot)
+        const audio = sourceItems[0].dataset.userpatchAudio
+        const sharedAudio =
+          audio &&
+          sourceItems.every((item) => item.dataset.userpatchAudio === audio)
+            ? audio
+            : ""
+        updatePosterBadges(siteRoot, sharedAudio)
         return true
       } catch {
         return false
@@ -11120,18 +11228,9 @@ ${systemThemeCss(true)}
               ".download-header code .badge, .download-header .badge"
             )
           )
-          for (const badge of badgeElements) {
-            const style = badge.getAttribute("style") || ""
-            if (
-              style.includes("#0d9488") ||
-              style.includes("13, 148, 136") ||
-              badge.classList.contains("badge-teal")
-            ) {
-              const text = normalizeText(badge.textContent)
-              if (text) {
-                return text
-              }
-            }
+          const audio = getAudioBadgeText(badgeElements)
+          if (audio) {
+            return audio
           }
           for (const badge of badgeElements) {
             const text = normalizeText(badge.textContent)
@@ -13607,6 +13706,17 @@ if (new RegExp("^.*://.*/.*$").test(location.href)) {
           document.querySelector("main > header")?.textContent || ""
         )
       )
+    const getHubCdnUnavailableMessage = () => {
+      if (!/(?:^|\.)hubcdn\.[a-z]+$/i.test(location.hostname)) {
+        return null
+      }
+      return (
+        Array.from(document.body?.querySelectorAll("h4") || []).find(
+          (heading) =>
+            /file is deleted or unavailable/i.test(heading.textContent)
+        ) || null
+      )
+    }
 
     // src/hubcloud/generated-page.js
     const isHubCloudGeneratedPage = () =>
@@ -13743,6 +13853,12 @@ if (new RegExp("^.*://.*/.*$").test(location.href)) {
     const HUBDRIVE_LOGO_DATA_URI = makeSvgDataUri(HUBDRIVE_LOGO_SVG)
     const HUBCDN_LOGO_SVG = String.raw`<svg width="216" height="260" viewBox="0 0 216 260" xmlns="http://www.w3.org/2000/svg"><title>undraw_handcrafts_heart</title><g fill="none"><path d="M94.612 259.442c-52.87-27.61-89.83-83.546-94.497-143.008-2.677-34.116 42-57.722 73.18-43.618s45.416 52.377 42.057 86.433c-3.36 34.055-20.522 64.984-20.74 100.193" fill="#b9fff4"/><path d="m180.8 59.136-.002-.002.022.057.002.002z" fill="#000"/><path d="M210.18 49.32c-9.959-27.16-41.17-31.961-64.158-17.966a102 102 0 0 0-10.83 7.159C126.986 22.216 114.311 6.342 96.626.665c-18.734-3.47-38.053 7.13-50.715 20.369C34.808 33.217 29.554 49.242 23.814 64.39c-7.425 19.42-5.637 40.524-.681 60.308 5.518 24.51 19.25 46.018 34.14 65.883 17.341 23.568 36.811 45.456 55.79 67.695-16.404-27.606-34.051-54.514-48.789-83.074-9.574-18.305-15.647-32.086-19.093-55.445a155 155 0 0 1-1.548-21.374c.179-8.247.613-8.191.746-9.59 2.97-15.129 15.054-38.773 20.212-45.34a39 39 0 0 1 4.92-4.745 27 27 0 0 1 3.381-2.086c4.253-2.02 2.698-2 12.054-4.589h.004c.699-.03 1.345-.032 1.868-.023.23.134.461.265.686.407 8.802 8.28 6.196 6.106 10.328 11.3l1.05 1.484a87.4 87.4 0 0 1 6.546 11.272c1.768 2.63 7.162 26.82 29.194 21.615a28.8 28.8 0 0 0 10.114-5.904 574 574 0 0 0 7.158-5.542c2.509-1.853 7.729-5.67 9.68-6.699a48 48 0 0 1 5.05-2.73 40 40 0 0 1 6.261-1.897c.41-.025.818-.085 1.228-.079.167.002.332.031.498.037.793.196 1.903.478 3.011.821.21.12.422.236.627.365a34 34 0 0 1 1.71 1.71q.766 1.148 1.387 2.381c1.5 4.087 2.738 8.265 3.704 12.51 3.598 14.583 2.86 25.085.322 37.42-10.04 46.747-36.895 82.132-64.628 125.968a621 621 0 0 1-9.546 13.878c10.995-10.373 21.466-21.286 31.577-32.52 21.612-23.877 43.757-47.96 57.517-77.437 7.013-14.537 13.001-29.855 14.723-46.011a112.4 112.4 0 0 0-4.835-45.038" fill="#6366f1"/></g></svg>`
     const HUBCDN_LOGO_DATA_URI = makeSvgDataUri(HUBCDN_LOGO_SVG)
+    const GDFLIX_LOGO_DATA_URI = makeSvgDataUri(
+      String.raw`<svg xmlns="http://www.w3.org/2000/svg" viewBox="14 13.5 100 100"><defs><clipPath id="a"><rect x="14" y="13.5" width="100" height="100" rx="22" ry="22"/></clipPath></defs><g clip-path="url(#a)"><path fill="#377ef0" d="M14 13.5h100v100H14z"/><path fill="#52b529" d="M14 13.5v100l12-3.5 19-32 19-32-17-32.5z"/><path fill="#f8c63d" d="M47 13.5h67V78H83L64 46z"/><path fill="#439422" d="M47 13.5 64 46h-7z"/><path fill="#2d67c5" d="m26 110 19-32h8z"/><path fill="#d5a425" d="M114 78H83v-6z"/><path fill="#fff" d="m64 46 19 32H45z"/></g></svg>`
+    )
+    const GOFILE_LOGO_DATA_URI = makeSvgDataUri(
+      String.raw`<svg xmlns="http://www.w3.org/2000/svg" viewBox="1 55 294.5 189"><g fill="#e7af1e"><path d="M139 118h9v36h-12v-19.5l3-12z"/><path d="m40 128 99-5.5-3 12z"/></g><path fill="#e6e7e8" d="m74 62 83-5.5-2 11.5zm49 21 30-4-1 8zm35-28h98c0 13-2.5 27-5.5 35.5 14.5.5 27.5 2 37.5 3.5l-2 56H145z"/><path d="m256 55 32 39c-10-1.5-23-3-37.5-3.5C253.5 82 256 68 256 55" fill="#bdbfc1"/><g fill="#e7af1e"><path d="m77 167 38-4 1 8zM1 203l117-4 2 8z"/><path d="M114.5 154H168l20-17h107.5l-28 107h-144z"/></g></svg>`
+    )
 
     // src/hubcloud/icons.js
     const LUCIDE_ICON_SHAPES = Object.freeze({
@@ -14668,7 +14784,7 @@ if (new RegExp("^.*://.*/.*$").test(location.href)) {
       if (isHubCloudGeneratedPage()) {
         return "HubCloud"
       }
-      if (isHubCdnGeneratedPage()) {
+      if (isHubCdnGeneratedPage() || getHubCdnUnavailableMessage()) {
         return "HubCDN"
       }
       return null
@@ -14705,6 +14821,29 @@ if (new RegExp("^.*://.*/.*$").test(location.href)) {
     const normalizeGeneratedPage = () => {
       const root = document.documentElement
       root.classList.add("userpatch-generated-page")
+      const unavailable = getHubCdnUnavailableMessage()
+      if (unavailable) {
+        if (!unavailable.closest(".userpatch-generated-error")) {
+          const error = document.createElement("main")
+          error.className = "userpatch-generated-error"
+          error.setAttribute("role", "alert")
+          unavailable.before(error)
+          error.append(unavailable)
+          unavailable.textContent = "File is deleted or unavailable."
+          for (const node of document.body.childNodes) {
+            if (
+              node.nodeType === Node.TEXT_NODE &&
+              /no URL found|failed to get data from gserver/i.test(
+                node.textContent
+              )
+            ) {
+              node.remove()
+            }
+          }
+        }
+        document.querySelector(".userpatch-generated-status")?.remove()
+        return true
+      }
       const container =
         document.querySelector("#download_container") ||
         document.querySelector("body > main")
@@ -18692,7 +18831,7 @@ if (new RegExp("^.*://.*/.*$").test(location.href)) {
 
     // src/shared/icons.js
     const LUCIDE_ICON_TEMPLATES = new Map()
-    const createLucideIcon$1 = (name, shapes, decorate) => {
+    const createLucideIcon$2 = (name, shapes, decorate) => {
       const cached = LUCIDE_ICON_TEMPLATES.get(name)
       if (cached) {
         return cached.cloneNode(true)
@@ -18726,7 +18865,7 @@ if (new RegExp("^.*://.*/.*$").test(location.href)) {
     }
 
     // src/hdhub4u/icons.js
-    const LUCIDE_ICON_SHAPES = {
+    const LUCIDE_ICON_SHAPES$1 = {
       info: [
         [
           "circle",
@@ -18861,8 +19000,8 @@ if (new RegExp("^.*://.*/.*$").test(location.href)) {
         ],
       ],
     }
-    const createLucideIcon = (name) =>
-      createLucideIcon$1(name, LUCIDE_ICON_SHAPES, (svg, iconName) => {
+    const createLucideIcon$1 = (name) =>
+      createLucideIcon$2(name, LUCIDE_ICON_SHAPES$1, (svg, iconName) => {
         svg.dataset.userpatchLucideIcon = iconName
       })
 
@@ -18980,7 +19119,7 @@ if (new RegExp("^.*://.*/.*$").test(location.href)) {
         const audioBadge = document.createElement("span")
         audioBadge.className = "userpatch-series-language-badge"
         audioBadge.setAttribute("aria-label", `Audio: ${row.audio}`)
-        const audioIcon = createLucideIcon("audio-lines")
+        const audioIcon = createLucideIcon$1("audio-lines")
         audioIcon.classList.add("userpatch-series-language-icon")
         const audioText = document.createElement("span")
         audioText.className = "userpatch-series-language-text"
@@ -19007,7 +19146,7 @@ if (new RegExp("^.*://.*/.*$").test(location.href)) {
         if (row.isWatch) {
           actionIcon = "play"
         }
-        action.append(createLucideIcon(actionIcon))
+        action.append(createLucideIcon$1(actionIcon))
       }
       rowLayout.append(copy, action)
       item.append(rowLayout)
@@ -19069,7 +19208,7 @@ if (new RegExp("^.*://.*/.*$").test(location.href)) {
           image.decoding = "async"
           anchor.append(image)
         } else {
-          anchor.append(createLucideIcon(link.icon))
+          anchor.append(createLucideIcon$1(link.icon))
         }
         if (isReleaseOpened(link.href, null, openedReleases)) {
           markReleaseOpened(null, anchor)
@@ -19160,6 +19299,12 @@ if (new RegExp("^.*://.*/.*$").test(location.href)) {
     const HUBDRIVE_LOGO_DATA_URI = makeSvgDataUri$1(HUBDRIVE_LOGO_SVG)
     const HUBCDN_LOGO_SVG = String.raw`<svg width="216" height="260" viewBox="0 0 216 260" xmlns="http://www.w3.org/2000/svg"><title>undraw_handcrafts_heart</title><g fill="none"><path d="M94.612 259.442c-52.87-27.61-89.83-83.546-94.497-143.008-2.677-34.116 42-57.722 73.18-43.618s45.416 52.377 42.057 86.433c-3.36 34.055-20.522 64.984-20.74 100.193" fill="#b9fff4"/><path d="m180.8 59.136-.002-.002.022.057.002.002z" fill="#000"/><path d="M210.18 49.32c-9.959-27.16-41.17-31.961-64.158-17.966a102 102 0 0 0-10.83 7.159C126.986 22.216 114.311 6.342 96.626.665c-18.734-3.47-38.053 7.13-50.715 20.369C34.808 33.217 29.554 49.242 23.814 64.39c-7.425 19.42-5.637 40.524-.681 60.308 5.518 24.51 19.25 46.018 34.14 65.883 17.341 23.568 36.811 45.456 55.79 67.695-16.404-27.606-34.051-54.514-48.789-83.074-9.574-18.305-15.647-32.086-19.093-55.445a155 155 0 0 1-1.548-21.374c.179-8.247.613-8.191.746-9.59 2.97-15.129 15.054-38.773 20.212-45.34a39 39 0 0 1 4.92-4.745 27 27 0 0 1 3.381-2.086c4.253-2.02 2.698-2 12.054-4.589h.004c.699-.03 1.345-.032 1.868-.023.23.134.461.265.686.407 8.802 8.28 6.196 6.106 10.328 11.3l1.05 1.484a87.4 87.4 0 0 1 6.546 11.272c1.768 2.63 7.162 26.82 29.194 21.615a28.8 28.8 0 0 0 10.114-5.904 574 574 0 0 0 7.158-5.542c2.509-1.853 7.729-5.67 9.68-6.699a48 48 0 0 1 5.05-2.73 40 40 0 0 1 6.261-1.897c.41-.025.818-.085 1.228-.079.167.002.332.031.498.037.793.196 1.903.478 3.011.821.21.12.422.236.627.365a34 34 0 0 1 1.71 1.71q.766 1.148 1.387 2.381c1.5 4.087 2.738 8.265 3.704 12.51 3.598 14.583 2.86 25.085.322 37.42-10.04 46.747-36.895 82.132-64.628 125.968a621 621 0 0 1-9.546 13.878c10.995-10.373 21.466-21.286 31.577-32.52 21.612-23.877 43.757-47.96 57.517-77.437 7.013-14.537 13.001-29.855 14.723-46.011a112.4 112.4 0 0 0-4.835-45.038" fill="#6366f1"/></g></svg>`
     const HUBCDN_LOGO_DATA_URI = makeSvgDataUri$1(HUBCDN_LOGO_SVG)
+    const GDFLIX_LOGO_DATA_URI = makeSvgDataUri$1(
+      String.raw`<svg xmlns="http://www.w3.org/2000/svg" viewBox="14 13.5 100 100"><defs><clipPath id="a"><rect x="14" y="13.5" width="100" height="100" rx="22" ry="22"/></clipPath></defs><g clip-path="url(#a)"><path fill="#377ef0" d="M14 13.5h100v100H14z"/><path fill="#52b529" d="M14 13.5v100l12-3.5 19-32 19-32-17-32.5z"/><path fill="#f8c63d" d="M47 13.5h67V78H83L64 46z"/><path fill="#439422" d="M47 13.5 64 46h-7z"/><path fill="#2d67c5" d="m26 110 19-32h8z"/><path fill="#d5a425" d="M114 78H83v-6z"/><path fill="#fff" d="m64 46 19 32H45z"/></g></svg>`
+    )
+    const GOFILE_LOGO_DATA_URI = makeSvgDataUri$1(
+      String.raw`<svg xmlns="http://www.w3.org/2000/svg" viewBox="1 55 294.5 189"><g fill="#e7af1e"><path d="M139 118h9v36h-12v-19.5l3-12z"/><path d="m40 128 99-5.5-3 12z"/></g><path fill="#e6e7e8" d="m74 62 83-5.5-2 11.5zm49 21 30-4-1 8zm35-28h98c0 13-2.5 27-5.5 35.5 14.5.5 27.5 2 37.5 3.5l-2 56H145z"/><path d="m256 55 32 39c-10-1.5-23-3-37.5-3.5C253.5 82 256 68 256 55" fill="#bdbfc1"/><g fill="#e7af1e"><path d="m77 167 38-4 1 8zM1 203l117-4 2 8z"/><path d="M114.5 154H168l20-17h107.5l-28 107h-144z"/></g></svg>`
+    )
 
     // src/hdhub4u/provider-marks.js
     const HUB_PROVIDERS = Object.freeze([
@@ -19203,6 +19348,270 @@ if (new RegExp("^.*://.*/.*$").test(location.href)) {
       }
       return null
     }
+
+    // src/hubcloud/icons.js
+    const LUCIDE_ICON_SHAPES = Object.freeze({
+      "refresh-cw": Object.freeze([
+        ["path", { d: "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" }],
+        ["path", { d: "M21 3v5h-5" }],
+        ["path", { d: "M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" }],
+        ["path", { d: "M8 16H3v5" }],
+      ]),
+      copy: Object.freeze([
+        [
+          "rect",
+          {
+            width: "14",
+            height: "14",
+            x: "8",
+            y: "8",
+            rx: "2",
+            ry: "2",
+          },
+        ],
+        [
+          "path",
+          { d: "M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" },
+        ],
+      ]),
+      check: Object.freeze([["path", { d: "m20 6-11 11-5-5" }]]),
+      download: Object.freeze([
+        ["path", { d: "M12 15V3" }],
+        ["path", { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" }],
+        ["path", { d: "m7 10 5 5 5-5" }],
+      ]),
+      "file-video": Object.freeze([
+        [
+          "path",
+          { d: "M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" },
+        ],
+        ["path", { d: "M14 2v4a2 2 0 0 0 2 2h4" }],
+        ["path", { d: "m10 11 5 3-5 3v-6Z" }],
+      ]),
+      "hard-drive": Object.freeze([
+        ["path", { d: "M10 16h.01" }],
+        [
+          "path",
+          {
+            d: "M2.212 11.577a2 2 0 0 0-.212.896V18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5.527a2 2 0 0 0-.212-.896L18.55 5.11A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z",
+          },
+        ],
+        ["path", { d: "M21.946 12.013H2.054" }],
+        ["path", { d: "M6 16h.01" }],
+      ]),
+      rss: Object.freeze([
+        ["path", { d: "M4 11a9 9 0 0 1 9 9" }],
+        ["path", { d: "M4 4a16 16 0 0 1 16 16" }],
+        [
+          "circle",
+          {
+            cx: "5",
+            cy: "19",
+            r: "1",
+          },
+        ],
+      ]),
+      info: Object.freeze([
+        [
+          "circle",
+          {
+            cx: "12",
+            cy: "12",
+            r: "10",
+          },
+        ],
+        ["path", { d: "M12 16v-4" }],
+        ["path", { d: "M12 8h.01" }],
+      ]),
+      "loader-2": Object.freeze([
+        ["path", { d: "M21 12a9 9 0 1 1-6.219-8.56" }],
+      ]),
+      smartphone: Object.freeze([
+        [
+          "rect",
+          {
+            width: "14",
+            height: "20",
+            x: "5",
+            y: "2",
+            rx: "2",
+            ry: "2",
+          },
+        ],
+        ["path", { d: "M12 18h.01" }],
+      ]),
+      sparkles: Object.freeze([
+        [
+          "path",
+          {
+            d: "M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z",
+          },
+        ],
+        ["path", { d: "M20 2v4" }],
+        ["path", { d: "M22 4h-4" }],
+        [
+          "circle",
+          {
+            cx: "4",
+            cy: "20",
+            r: "2",
+          },
+        ],
+      ]),
+      "external-link": Object.freeze([
+        ["path", { d: "M15 3h6v6" }],
+        ["path", { d: "M10 14 21 3" }],
+        [
+          "path",
+          { d: "M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" },
+        ],
+      ]),
+      "arrow-down-to-line": Object.freeze([
+        ["path", { d: "M12 17V3" }],
+        ["path", { d: "m6 11 6 6 6-6" }],
+        ["path", { d: "M19 21H5" }],
+      ]),
+      x: Object.freeze([
+        ["path", { d: "M18 6 6 18" }],
+        ["path", { d: "m6 6 12 12" }],
+      ]),
+      "share-2": Object.freeze([
+        [
+          "circle",
+          {
+            cx: "18",
+            cy: "5",
+            r: "3",
+          },
+        ],
+        [
+          "circle",
+          {
+            cx: "6",
+            cy: "12",
+            r: "3",
+          },
+        ],
+        [
+          "circle",
+          {
+            cx: "18",
+            cy: "19",
+            r: "3",
+          },
+        ],
+        [
+          "line",
+          {
+            x1: "8.59",
+            x2: "15.42",
+            y1: "13.51",
+            y2: "17.49",
+          },
+        ],
+        [
+          "line",
+          {
+            x1: "15.41",
+            x2: "8.59",
+            y1: "6.51",
+            y2: "10.49",
+          },
+        ],
+      ]),
+    })
+    const createSpinnerIcon = () => {
+      const spinner = createLucideIcon("loader-2")
+      spinner.classList.add("userpatch-spinner")
+      return spinner
+    }
+    let telegramIconTemplate = null
+    const createTelegramIcon = () => {
+      if (telegramIconTemplate) {
+        return telegramIconTemplate.cloneNode(true)
+      }
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg")
+      svg.setAttribute("viewBox", "0 0 256 256")
+      svg.setAttribute("width", "24")
+      svg.setAttribute("height", "24")
+      svg.setAttribute("preserveAspectRatio", "xMidYMid")
+      svg.setAttribute("aria-hidden", "true")
+      svg.setAttribute("focusable", "false")
+      svg.setAttribute("class", "preview-icon userpatch-telegram-icon")
+      svg.dataset.userpatchLucideIcon = "telegram"
+      const defs = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "defs"
+      )
+      const linearGradient = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "linearGradient"
+      )
+      linearGradient.setAttribute("id", "telegram__a")
+      linearGradient.setAttribute("x1", "50%")
+      linearGradient.setAttribute("x2", "50%")
+      linearGradient.setAttribute("y1", "0%")
+      linearGradient.setAttribute("y2", "100%")
+      const stop1 = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "stop"
+      )
+      stop1.setAttribute("offset", "0%")
+      stop1.setAttribute("stop-color", "#2AABEE")
+      const stop2 = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "stop"
+      )
+      stop2.setAttribute("offset", "100%")
+      stop2.setAttribute("stop-color", "#229ED9")
+      linearGradient.append(stop1, stop2)
+      defs.append(linearGradient)
+      const circlePath = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "path"
+      )
+      circlePath.setAttribute("fill", "url(#telegram__a)")
+      circlePath.setAttribute(
+        "d",
+        "M128 0C94.06 0 61.48 13.494 37.5 37.49A128.038 128.038 0 0 0 0 128c0 33.934 13.5 66.514 37.5 90.51C61.48 242.506 94.06 256 128 256s66.52-13.494 90.5-37.49c24-23.996 37.5-56.576 37.5-90.51 0-33.934-13.5-66.514-37.5-90.51C194.52 13.494 161.94 0 128 0Z"
+      )
+      const planePath = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "path"
+      )
+      planePath.setAttribute("fill", "#FFF")
+      planePath.setAttribute(
+        "d",
+        "M57.94 126.648c37.32-16.256 62.2-26.974 74.64-32.152 35.56-14.786 42.94-17.354 47.76-17.441 1.06-.017 3.42.245 4.96 1.49 1.28 1.05 1.64 2.47 1.82 3.467.16.996.38 3.266.2 5.038-1.92 20.24-10.26 69.356-14.5 92.026-1.78 9.592-5.32 12.808-8.74 13.122-7.44.684-13.08-4.912-20.28-9.63-11.26-7.386-17.62-11.982-28.56-19.188-12.64-8.328-4.44-12.906 2.76-20.386 1.88-1.958 34.64-31.748 35.26-34.45.08-.338.16-1.598-.6-2.262-.74-.666-1.84-.438-2.64-.258-1.14.256-19.12 12.152-54 35.686-5.1 3.508-9.72 5.218-13.88 5.128-4.56-.098-13.36-2.584-19.9-4.708-8-2.606-14.38-3.984-13.82-8.41.28-2.304 3.46-4.662 9.52-7.072Z"
+      )
+      svg.append(defs, circlePath, planePath)
+      telegramIconTemplate = svg
+      return telegramIconTemplate.cloneNode(true)
+    }
+    const normalizeLucideIcons = (root = document) => {
+      for (const icon of root.querySelectorAll(
+        "i.fa-file-download, i.fa-download"
+      )) {
+        icon.replaceWith(createLucideIcon("download"))
+      }
+      for (const icon of root.querySelectorAll("i.fa-copy, i.fa-clone")) {
+        icon.replaceWith(createLucideIcon("copy"))
+      }
+      for (const icon of root.querySelectorAll("i.fa-video")) {
+        icon.replaceWith(createLucideIcon("file-video"))
+      }
+      for (const icon of root.querySelectorAll("i.fa-android")) {
+        icon.replaceWith(createLucideIcon("smartphone"))
+      }
+      for (const icon of root.querySelectorAll("i.fa-telegram")) {
+        icon.replaceWith(createTelegramIcon())
+      }
+    }
+    const createLucideIcon = (name) =>
+      createLucideIcon$2(name, LUCIDE_ICON_SHAPES, (svg, iconName) => {
+        svg.setAttribute("class", `lucide lucide-${iconName} preview-icon`)
+        svg.dataset.userpatchLucideIcon = iconName
+      })
 
     // src/shared/provider-tooltip.js
     const setupProviderTooltip = (root) => {
@@ -19407,15 +19816,31 @@ if (new RegExp("^.*://.*/.*$").test(location.href)) {
       isHblinksHost() && /^\/archives\/\d+\/?$/.test(location.pathname)
     const getHblinksEntryContent = () =>
       document.querySelector("main#main.site-main article.post .entry-content")
-    const HUB_FAMILY_HOST_PATTERN = /(?:^|\.)hub[a-z]+\./
-    const isHubFamilyAnchor = (anchor) => {
-      try {
-        return HUB_FAMILY_HOST_PATTERN.test(
-          new URL(anchor.href).hostname.toLowerCase()
-        )
-      } catch {
-        return false
+    const getArchiveProvider = (href) => {
+      const hub = getHubProvider(href)
+      if (hub) {
+        return hub
       }
+      const host = URL.parse(href, location.href)?.hostname.toLowerCase()
+      if (/^(?:[^.]+\.)*gdflix\.[^.]+$/.test(host)) {
+        return {
+          name: "GDFlix",
+          logo: GDFLIX_LOGO_DATA_URI,
+        }
+      }
+      if (host === "gofile.io" || host?.endsWith(".gofile.io")) {
+        return {
+          name: "GoFile",
+          logo: GOFILE_LOGO_DATA_URI,
+        }
+      }
+      if (host === "t.me" || host === "telegram.me") {
+        return {
+          name: "Telegram",
+          icon: createTelegramIcon,
+        }
+      }
+      return null
     }
     const collectHblinksRows = (content) =>
       Array.from(content.querySelectorAll("h2, h3, h4, h5, h6, p")).filter(
@@ -19433,7 +19858,7 @@ if (new RegExp("^.*://.*/.*$").test(location.href)) {
             /\b(?:480p|720p|1080p|2160p|4k)\b/i.test(
               element.textContent || ""
             ) ||
-            (anchors.every(isHubFamilyAnchor) &&
+            (anchors.every((anchor) => getArchiveProvider(anchor.href)) &&
               (element.tagName !== "P" ||
                 anchors.every((anchor) => anchor.querySelector("img"))))
           )
@@ -19510,22 +19935,6 @@ if (new RegExp("^.*://.*/.*$").test(location.href)) {
       const options = document.createElement("div")
       options.className = "userpatch-hblinks-options"
       content.append(options)
-      const getProviderLabel = (anchor) => {
-        let hostname = ""
-        try {
-          hostname = new URL(anchor.href).hostname.toLowerCase()
-        } catch {}
-        if (hostname.endsWith("hubdrive.blog")) {
-          return "Drive"
-        }
-        if (hostname.endsWith("hubcdn.club")) {
-          return "Instant"
-        }
-        if (hostname.endsWith("hubcloud.pw")) {
-          return "Direct"
-        }
-        return "Open link"
-      }
       for (const row of rows) {
         const anchors = Array.from(row.querySelectorAll(":scope > a[href]"))
         const firstAnchor = anchors[0]
@@ -19545,21 +19954,21 @@ if (new RegExp("^.*://.*/.*$").test(location.href)) {
         optionTitle.className = "userpatch-hblinks-option-title"
         optionTitle.textContent =
           heading ||
+          getArchiveProvider(firstAnchor.href)?.name ||
           normalizeText(firstAnchor.textContent) ||
-          getHubProvider(firstAnchor.href, "")?.name ||
-          getProviderLabel(firstAnchor)
+          "Open link"
         const actions = document.createElement("span")
         actions.className = "userpatch-hblinks-actions"
         const providerOrder = (anchor) => {
-          const provider = getHubProvider(anchor.href, anchor.textContent)
+          const provider = getArchiveProvider(anchor.href)
           const index = HUB_PROVIDERS.indexOf(provider)
           return index < 0 ? HUB_PROVIDERS.length : index
         }
         anchors.sort((a, b) => providerOrder(a) - providerOrder(b))
         for (const anchor of anchors) {
           anchor.classList.add("userpatch-hblinks-action")
-          const hubProvider = getHubProvider(anchor.href, anchor.textContent)
-          if (hubProvider) {
+          const hubProvider = getArchiveProvider(anchor.href)
+          if (hubProvider?.logo) {
             const image = document.createElement("img")
             image.src = hubProvider.logo
             image.alt = ""
@@ -19569,8 +19978,12 @@ if (new RegExp("^.*://.*/.*$").test(location.href)) {
             anchor.replaceChildren(image)
             anchor.dataset.tooltip = hubProvider.name
             anchor.setAttribute("aria-label", hubProvider.name)
-          } else if (isStandaloneLink) {
-            anchor.textContent = getProviderLabel(anchor)
+          } else if (hubProvider?.icon) {
+            anchor.replaceChildren(hubProvider.icon())
+            anchor.dataset.tooltip = hubProvider.name
+            anchor.setAttribute("aria-label", hubProvider.name)
+          } else if (hubProvider || isStandaloneLink) {
+            anchor.textContent = hubProvider?.name || "Open link"
           }
           if (anchor.target === "_blank") {
             anchor.relList.add("noopener", "noreferrer")
@@ -20603,7 +21016,7 @@ html.userpatch-maia.userpatch-hblinks-page a.userpatch-hblinks-action:active {
   transform: scale(0.95);
 }
 
-html.userpatch-maia.userpatch-hblinks-page a.userpatch-hblinks-action img {
+html.userpatch-maia.userpatch-hblinks-page a.userpatch-hblinks-action :is(img, .userpatch-telegram-icon) {
   display: block !important;
   margin: 0 !important;
   inline-size: 36px !important;
@@ -21254,7 +21667,7 @@ html.userpatch-maia .userpatch-season-chevron {
       const { trigger, value } = createSelectTrigger(
         id,
         "Theme",
-        createLucideIcon$1("chevron-down", icons)
+        createLucideIcon$2("chevron-down", icons)
       )
       const picker = document.createElement("div")
       picker.id = id
@@ -21271,7 +21684,7 @@ html.userpatch-maia .userpatch-season-chevron {
         createSelectOption(
           label.toLowerCase(),
           label,
-          createLucideIcon$1("check", icons)
+          createLucideIcon$2("check", icons)
         )
       )
       list.append(...options)
@@ -21400,7 +21813,7 @@ html.userpatch-maia .userpatch-season-chevron {
   `
       dialog
         .querySelector(".userpatch-settings-close")
-        .append(createLucideIcon$1("x", icons))
+        .append(createLucideIcon$2("x", icons))
       const { trigger, picker } = createThemeSelect()
       dialog.querySelector(".userpatch-settings-theme").append(trigger, picker)
       const addSwitch = (labelText, key, apply) => {
@@ -21495,7 +21908,7 @@ html.userpatch-maia .userpatch-season-chevron {
       button.setAttribute("aria-label", "Settings")
       button.setAttribute("aria-haspopup", "dialog")
       button.setAttribute("aria-controls", dialogId)
-      const icon = createLucideIcon$1("settings", icons)
+      const icon = createLucideIcon$2("settings", icons)
       if (labelVisible) {
         const iconWrapper = document.createElement("span")
         iconWrapper.className = "userpatch-mobile-nav-icon"
@@ -21934,7 +22347,7 @@ html.userpatch-maia li.thumb .userpatch-poster-fallback {
         }
         const label = document.createElement("span")
         label.textContent = "View Full Site"
-        action.replaceChildren(createLucideIcon("external-link"), label)
+        action.replaceChildren(createLucideIcon$1("external-link"), label)
         action.classList.add("userpatch-landing-action")
         const header = document.createElement("header")
         header.append(brand)
@@ -24967,6 +25380,67 @@ ${systemThemeCss()}
     }
 
     // src/hdhub4u/detail.js
+    const findPlay4uPlayer = (body, title) => {
+      let candidate = null
+      let trailerSection = /\btrailer\b/i.test(title)
+      for (const element of body.querySelectorAll(
+        "h2, h3, h4, h5, iframe[src]"
+      )) {
+        if (!element.matches("iframe")) {
+          const heading = normalizeText(element.textContent)
+          if (/\btrailer\b/i.test(heading)) {
+            trailerSection = true
+          } else if (/\b(?:watch online|full movie)\b/i.test(heading)) {
+            trailerSection = false
+          }
+          continue
+        }
+        const url = URL.parse(element.getAttribute("src"), location.href)
+        if (
+          url?.origin === "https://play4u.org" &&
+          /^\/video\/[a-z0-9]+\/?$/i.test(url.pathname)
+        ) {
+          if (trailerSection) {
+            return {
+              trailer: url.href,
+              candidate: null,
+            }
+          }
+          candidate ??= url.href
+        }
+      }
+      return {
+        trailer: null,
+        candidate,
+      }
+    }
+    const verifyPlay4uTrailer = (url, onTrailer) => {
+      if (!url || typeof GM_xmlhttpRequest !== "function") {
+        return
+      }
+      GM_xmlhttpRequest({
+        method: "GET",
+        url,
+        anonymous: true,
+        timeout: 5e3,
+        responseType: "text",
+        onload: (response) => {
+          const finalUrl = URL.parse(response.finalUrl || url)
+          if (
+            response.status !== 200 ||
+            finalUrl?.origin !== "https://play4u.org"
+          ) {
+            return
+          }
+          const title = response.responseText.match(
+            /<title\b[^>]*>([^<]*)<\/title>/i
+          )?.[1]
+          if (/\btrailer\b/i.test(title || "")) {
+            onTrailer(url)
+          }
+        },
+      })
+    }
     const extractDetail = () => {
       try {
         const main = document.querySelector("main#main-content.content-wrapper")
@@ -25181,6 +25655,7 @@ ${systemThemeCss()}
         }
         const isSeries =
           episodes.length > 0 || /\b(?:season|series|episode)\b/i.test(title)
+        const play4u = findPlay4uPlayer(body, title)
         return {
           title,
           date,
@@ -25198,7 +25673,8 @@ ${systemThemeCss()}
           isSeries,
           screenshots,
           storyline,
-          trailer: findTrailerUrl(body),
+          trailer: findTrailerUrl(body) || play4u.trailer,
+          trailerCandidate: play4u.candidate,
         }
       } catch (error) {
         console.warn("userpatch extract failed:", error)
@@ -25308,7 +25784,7 @@ ${systemThemeCss()}
         }
         emptyNote.hidden = visible > 0
       }
-      const hasLinksTab = !data.isSeries
+      const hasLinksTab = !data.isSeries && data.releases.length > 0
       const hasArchiveTab =
         data.isSeries && data.releases.some((row) => !row.external)
       const hasEpisodesTab = data.isSeries && data.episodes.length > 0
@@ -25335,7 +25811,10 @@ ${systemThemeCss()}
       ]
       const savedTab = storageGet(CONFIG.storageKeys.detailTab)
       let activeTab = "info"
-      if (savedTab === "links") {
+      if (
+        savedTab === "links" &&
+        (hasLinksTab || hasArchiveTab || hasEpisodesTab)
+      ) {
         activeTab = hasLinksTab ? "links" : activeMode
       } else if (savedTab === "screenshot" && data.screenshots.length) {
         activeTab = "screenshot"
@@ -25364,7 +25843,7 @@ ${systemThemeCss()}
         )
         const text = document.createElement("span")
         text.textContent = label
-        button.append(text, createLucideIcon(iconName))
+        button.append(text, createLucideIcon$1(iconName))
         tabs.append(button)
         tabButtons.set(tab, button)
       }
@@ -25509,6 +25988,19 @@ ${systemThemeCss()}
           tab === "info" || tab === "screenshot" ? tab : "links"
         )
         applyTab(tab)
+        mainColumn.scrollTo({
+          top: 0,
+          behavior: "instant",
+        })
+        const inset =
+          Number.parseFloat(getComputedStyle(toolbar).insetBlockStart) || 0
+        const offset = mainColumn.getBoundingClientRect().top - inset
+        if (offset < 0) {
+          window.scrollBy({
+            top: offset,
+            behavior: "instant",
+          })
+        }
       }
       const positionActiveTabIndicator = () => {
         requestAnimationFrame(() => {
@@ -25548,6 +26040,12 @@ ${systemThemeCss()}
       const trailer = createTrailer(data.trailer)
       if (trailer) {
         infoPane.append(trailer)
+      } else {
+        verifyPlay4uTrailer(data.trailerCandidate, (url) => {
+          if (infoPane.isConnected) {
+            infoPane.append(createTrailer(url))
+          }
+        })
       }
       root.append(panel, mainColumn)
       document.body.append(root)
@@ -25573,7 +26071,7 @@ ${systemThemeCss()}
       if (!data) {
         return false
       }
-      if (!data.releases.length && !data.episodes.length) {
+      if (!data.releases.length && !data.episodes.length && !data.trailer) {
         return false
       }
       buildDetailPage(data)
@@ -25630,7 +26128,7 @@ ${systemThemeCss()}
       addon.setAttribute("aria-hidden", "true")
       const icon = document.createElement("span")
       icon.className = "search-icon-overlay"
-      icon.append(createLucideIcon("search"))
+      icon.append(createLucideIcon$1("search"))
       addon.append(icon)
       const input = document.createElement("input")
       input.className = "search-input-overlay"
@@ -25699,7 +26197,7 @@ ${systemThemeCss()}
         CONFIG.mobileMenuId,
         HEADER_WORDMARK_DATA_URI,
         "HDHub4u",
-        createLucideIcon("x")
+        createLucideIcon$1("x")
       )
       const nav = document.createElement("nav")
       nav.className = "userpatch-mobile-menu-nav"
@@ -25719,7 +26217,7 @@ ${systemThemeCss()}
           label.textContent = item.label
           const submenuId = `userpatch-mobile-menu-sublist-${groupIndex}`
           summary.setAttribute("aria-controls", submenuId)
-          summary.append(label, createLucideIcon("chevron-down"))
+          summary.append(label, createLucideIcon$1("chevron-down"))
           const submenu = document.createElement("ul")
           submenu.className = "userpatch-mobile-menu-sublist"
           submenu.id = submenuId
@@ -25802,7 +26300,7 @@ ${systemThemeCss()}
           icon.append(image)
         } else {
           icon.append(
-            createLucideIcon(destination === "menu" ? "menu" : "search")
+            createLucideIcon$1(destination === "menu" ? "menu" : "search")
           )
         }
         const text = document.createElement("span")
@@ -26103,7 +26601,7 @@ ${systemThemeCss()}
             trigger.setAttribute("aria-expanded", "false")
             const text = document.createElement("span")
             text.textContent = item.label
-            trigger.append(text, createLucideIcon("chevron-down"))
+            trigger.append(text, createLucideIcon$1("chevron-down"))
             const submenu = document.createElement("ul")
             submenu.className = "userpatch-dropdown-menu"
             for (const child of item.children) {
@@ -26153,7 +26651,7 @@ ${systemThemeCss()}
       searchToggle.className = "userpatch-header-action userpatch-search-toggle"
       searchToggle.setAttribute("aria-label", "Search")
       searchToggle.setAttribute("aria-haspopup", "dialog")
-      searchToggle.append(createLucideIcon("search"))
+      searchToggle.append(createLucideIcon$1("search"))
       searchToggle.addEventListener("click", () => {
         openSearchDialog()
       })
@@ -26162,7 +26660,7 @@ ${systemThemeCss()}
       menuToggle.className = "userpatch-header-action userpatch-menu-toggle"
       menuToggle.setAttribute("aria-label", "Menu")
       bindMobileMenuButton(menuToggle, CONFIG.mobileMenuId, openMobileMenu)
-      menuToggle.append(createLucideIcon("menu"))
+      menuToggle.append(createLucideIcon$1("menu"))
       const settings = createSettingsButton(CONFIG)
       settings.classList.add("userpatch-header-action")
       container.append(menuToggle, searchToggle, settings)
@@ -26230,7 +26728,7 @@ ${systemThemeCss()}
           arrow.dataset.userpatchNormalized = "true"
           arrow.textContent = ""
           arrow.setAttribute("aria-label", "Next page")
-          arrow.append(createLucideIcon("arrow-right"))
+          arrow.append(createLucideIcon$1("arrow-right"))
         }
       }
       for (const arrow of root.querySelectorAll(
@@ -26240,7 +26738,7 @@ ${systemThemeCss()}
           arrow.dataset.userpatchNormalized = "true"
           arrow.textContent = ""
           arrow.setAttribute("aria-label", "Previous page")
-          arrow.append(createLucideIcon("arrow-left"))
+          arrow.append(createLucideIcon$1("arrow-left"))
         }
       }
     }
@@ -26450,7 +26948,7 @@ ${systemThemeCss()}
         showInitialPageLoader(
           () => document.body || document.documentElement,
           () => {
-            const spinner = createLucideIcon("loader-2")
+            const spinner = createLucideIcon$1("loader-2")
             spinner.classList.add(PAGE_SPINNER_CLASS)
             return spinner
           },

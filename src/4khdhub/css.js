@@ -2840,6 +2840,17 @@ html.userpatch-maia.userpatch-detail-page .userpatch-poster-badges[hidden] {
   display: none !important;
 }
 
+html.userpatch-maia.userpatch-detail-page .userpatch-poster-audio {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  color: var(--maia-foreground);
+  font-size: 0.875rem;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
 html.userpatch-maia.userpatch-detail-page .userpatch-media-badge {
   display: inline-flex;
   min-inline-size: 2rem;

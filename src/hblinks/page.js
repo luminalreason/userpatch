@@ -1,6 +1,11 @@
 import { normalizeText } from "../hdhub4u/dom.js"
 import { setDetailTooltipCleanup } from "../hdhub4u/download-rows.js"
 import { HUB_PROVIDERS, getHubProvider } from "../hdhub4u/provider-marks.js"
+import { createTelegramIcon } from "../hubcloud/icons.js"
+import {
+  GDFLIX_LOGO_DATA_URI,
+  GOFILE_LOGO_DATA_URI,
+} from "../shared/provider-logos.js"
 import { setupProviderTooltip } from "../shared/provider-tooltip.js"
 import { ensureHblinksBranding } from "./branding.js"
 
@@ -13,19 +18,23 @@ export const isHblinksArchiveRoute = () =>
 export const getHblinksEntryContent = () =>
   document.querySelector("main#main.site-main article.post .entry-content")
 
-// Download rows are headings that carry quality labels or anchor into the
-// Hub* host family. Guides and announcements keep their links inside
-// paragraphs, never in headings, so this stays content-based.
-const HUB_FAMILY_HOST_PATTERN = /(?:^|\.)hub[a-z]+\./
-
-const isHubFamilyAnchor = (anchor) => {
-  try {
-    return HUB_FAMILY_HOST_PATTERN.test(
-      new URL(anchor.href).hostname.toLowerCase()
-    )
-  } catch {
-    return false
+// Recognize download headings by destination, including standalone mirrors.
+const getArchiveProvider = (href) => {
+  const hub = getHubProvider(href)
+  if (hub) {
+    return hub
   }
+  const host = URL.parse(href, location.href)?.hostname.toLowerCase()
+  if (/^(?:[^.]+\.)*gdflix\.[^.]+$/.test(host)) {
+    return { name: "GDFlix", logo: GDFLIX_LOGO_DATA_URI }
+  }
+  if (host === "gofile.io" || host?.endsWith(".gofile.io")) {
+    return { name: "GoFile", logo: GOFILE_LOGO_DATA_URI }
+  }
+  if (host === "t.me" || host === "telegram.me") {
+    return { name: "Telegram", icon: createTelegramIcon }
+  }
+  return null
 }
 
 const collectHblinksRows = (content) =>
@@ -40,7 +49,7 @@ const collectHblinksRows = (content) =>
       }
       return (
         /\b(?:480p|720p|1080p|2160p|4k)\b/i.test(element.textContent || "") ||
-        (anchors.every(isHubFamilyAnchor) &&
+        (anchors.every((anchor) => getArchiveProvider(anchor.href)) &&
           (element.tagName !== "P" ||
             anchors.every((anchor) => anchor.querySelector("img"))))
       )
@@ -133,23 +142,6 @@ export const ensureHblinksPage = () => {
   options.className = "userpatch-hblinks-options"
   content.append(options)
 
-  const getProviderLabel = (anchor) => {
-    let hostname = ""
-    try {
-      hostname = new URL(anchor.href).hostname.toLowerCase()
-    } catch {}
-    if (hostname.endsWith("hubdrive.blog")) {
-      return "Drive"
-    }
-    if (hostname.endsWith("hubcdn.club")) {
-      return "Instant"
-    }
-    if (hostname.endsWith("hubcloud.pw")) {
-      return "Direct"
-    }
-    return "Open link"
-  }
-
   for (const row of rows) {
     const anchors = Array.from(row.querySelectorAll(":scope > a[href]"))
     const firstAnchor = anchors[0]
@@ -170,22 +162,22 @@ export const ensureHblinksPage = () => {
     optionTitle.className = "userpatch-hblinks-option-title"
     optionTitle.textContent =
       heading ||
+      getArchiveProvider(firstAnchor.href)?.name ||
       normalizeText(firstAnchor.textContent) ||
-      getHubProvider(firstAnchor.href, "")?.name ||
-      getProviderLabel(firstAnchor)
+      "Open link"
 
     const actions = document.createElement("span")
     actions.className = "userpatch-hblinks-actions"
     const providerOrder = (anchor) => {
-      const provider = getHubProvider(anchor.href, anchor.textContent)
+      const provider = getArchiveProvider(anchor.href)
       const index = HUB_PROVIDERS.indexOf(provider)
       return index < 0 ? HUB_PROVIDERS.length : index
     }
     anchors.sort((a, b) => providerOrder(a) - providerOrder(b))
     for (const anchor of anchors) {
       anchor.classList.add("userpatch-hblinks-action")
-      const hubProvider = getHubProvider(anchor.href, anchor.textContent)
-      if (hubProvider) {
+      const hubProvider = getArchiveProvider(anchor.href)
+      if (hubProvider?.logo) {
         // Branded pills carry the provider mark, matching the detail rows;
         // the name feeds the shared hover tooltip and the accessible label.
         const image = document.createElement("img")
@@ -197,8 +189,12 @@ export const ensureHblinksPage = () => {
         anchor.replaceChildren(image)
         anchor.dataset.tooltip = hubProvider.name
         anchor.setAttribute("aria-label", hubProvider.name)
-      } else if (isStandaloneLink) {
-        anchor.textContent = getProviderLabel(anchor)
+      } else if (hubProvider?.icon) {
+        anchor.replaceChildren(hubProvider.icon())
+        anchor.dataset.tooltip = hubProvider.name
+        anchor.setAttribute("aria-label", hubProvider.name)
+      } else if (hubProvider || isStandaloneLink) {
+        anchor.textContent = hubProvider?.name || "Open link"
       }
       if (anchor.target === "_blank") {
         anchor.relList.add("noopener", "noreferrer")

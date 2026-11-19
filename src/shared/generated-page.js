@@ -1,4 +1,7 @@
-import { isHubCdnGeneratedPage } from "../hubcdn/detect.js"
+import {
+  getHubCdnUnavailableMessage,
+  isHubCdnGeneratedPage,
+} from "../hubcdn/detect.js"
 import { isHubCloudGeneratedPage } from "../hubcloud/generated-page.js"
 import { ensureMirrorGuide } from "../hubcloud/mirror-guide.js"
 import {
@@ -11,7 +14,7 @@ export const getGeneratedPage = () => {
   if (isHubCloudGeneratedPage()) {
     return "HubCloud"
   }
-  if (isHubCdnGeneratedPage()) {
+  if (isHubCdnGeneratedPage() || getHubCdnUnavailableMessage()) {
     return "HubCDN"
   }
   return null
@@ -44,6 +47,27 @@ export const getGeneratedMirrorDetails = (href) => {
 export const normalizeGeneratedPage = () => {
   const root = document.documentElement
   root.classList.add("userpatch-generated-page")
+  const unavailable = getHubCdnUnavailableMessage()
+  if (unavailable) {
+    if (!unavailable.closest(".userpatch-generated-error")) {
+      const error = document.createElement("main")
+      error.className = "userpatch-generated-error"
+      error.setAttribute("role", "alert")
+      unavailable.before(error)
+      error.append(unavailable)
+      unavailable.textContent = "File is deleted or unavailable."
+      for (const node of document.body.childNodes) {
+        if (
+          node.nodeType === Node.TEXT_NODE &&
+          /no URL found|failed to get data from gserver/i.test(node.textContent)
+        ) {
+          node.remove()
+        }
+      }
+    }
+    document.querySelector(".userpatch-generated-status")?.remove()
+    return true
+  }
   const container =
     document.querySelector("#download_container") ||
     document.querySelector("body > main")

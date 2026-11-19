@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HubCloud Redesign
 // @namespace    https://github.com/luminalreason/userpatch
-// @version      0.4.0
+// @version      0.4.1
 // @description  A system-themed interface with clearer download choices, link sharing, copy controls, and a guide to compare download mirrors.
 // @author       luminalreason
 // @match        *://*/*

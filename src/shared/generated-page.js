@@ -1,7 +1,11 @@
 import { isHubCdnGeneratedPage } from "../hubcdn/detect.js"
 import { isHubCloudGeneratedPage } from "../hubcloud/generated-page.js"
 import { ensureMirrorGuide } from "../hubcloud/mirror-guide.js"
-import { MIRROR_THEMES, wrapDownloadButtons } from "../hubcloud/mirror-rows.js"
+import {
+  isCloudflareMirror,
+  MIRROR_THEMES,
+  wrapDownloadButtons,
+} from "../hubcloud/mirror-rows.js"
 
 export const getGeneratedPage = () => {
   if (isHubCloudGeneratedPage()) {
@@ -30,8 +34,8 @@ export const getGeneratedMirrorDetails = (href) => {
     if (host === "video-downloads.googleusercontent.com") {
       return { label: "10Gbps Server", variant: "10gbps" }
     }
-    if (/(^|\.)(workers\.dev|r2\.dev)$/.test(host)) {
-      return { label: "Cloudflare Server", variant: "fsl" }
+    if (isCloudflareMirror(href)) {
+      return { label: "Cloudflare Server", variant: "cloudflare" }
     }
   } catch {}
   return { label: "Download here", variant: "default" }

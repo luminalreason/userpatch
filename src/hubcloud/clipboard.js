@@ -27,7 +27,14 @@ export const copyFeedbackTimers = new WeakMap()
 
 export const showCopiedFeedback = (
   button,
-  { label, copiedLabel, icon = "copy", text = "", copiedText = "" }
+  {
+    label,
+    copiedLabel,
+    icon = "copy",
+    text = "",
+    copiedText = "",
+    showTitle = true,
+  }
 ) => {
   const render = (copied) => {
     const currentLabel = copied ? copiedLabel : label
@@ -39,7 +46,9 @@ export const showCopiedFeedback = (
       button.append(span)
     }
     button.setAttribute("aria-label", currentLabel)
-    button.title = currentLabel
+    if (showTitle) {
+      button.title = currentLabel
+    }
     button.classList.toggle("userpatch-copied", copied)
   }
 

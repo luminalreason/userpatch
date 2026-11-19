@@ -5,6 +5,7 @@ import {
   positionSelectionIndicator,
 } from "../shared/quality-tabs.js"
 import { getReleaseQuality } from "../shared/quality.js"
+import { createSelectOption, createSelectTrigger } from "../shared/select.js"
 import {
   getOpenedReleases,
   isReleaseOpened,
@@ -14,11 +15,13 @@ import {
 } from "../shared/storage.js"
 import { CONFIG } from "./config.js"
 import { normalizeText } from "./dom.js"
+import { addFetchLinks } from "./fetch-links.js"
 import {
   clearReleaseFilenameMeasurements,
   pruneReleaseFilenameCleanups,
   releaseFilenameCleanups,
   setupExpandableFilename,
+  simplifyEpisodeFilename,
 } from "./filename.js"
 import { createLucideIcon } from "./icons.js"
 import { updatePosterBadges } from "./poster-badges.js"
@@ -170,6 +173,7 @@ export const setupMovieReleaseList = (siteRoot) => {
       const row = document.createElement("div")
       row.className = "userpatch-release-row"
       row.append(copy, actions)
+      addFetchLinks(row, actions)
       item.replaceChildren(row)
       item.classList.add("userpatch-release-item")
       if (isReleaseOpened(filename, actions, openedReleases)) {
@@ -777,23 +781,16 @@ export const setupSeriesReleaseList = (siteRoot) => {
     const createSeriesSelect = (id, label) => {
       const control = document.createElement("div")
       control.className = "userpatch-season-control"
-      const trigger = document.createElement("button")
-      trigger.type = "button"
-      trigger.className = "userpatch-season-trigger"
-      trigger.setAttribute("role", "combobox")
-      trigger.setAttribute("aria-haspopup", "listbox")
-      trigger.setAttribute("aria-expanded", "false")
-      trigger.setAttribute("aria-controls", `${id}-options`)
-      trigger.setAttribute("aria-label", label)
-      const value = document.createElement("span")
-      value.className = "userpatch-season-value"
+      const { trigger, value } = createSelectTrigger(
+        `${id}-options`,
+        label,
+        createLucideIcon("chevron-down")
+      )
       const versionMarker = document.createElement("span")
       versionMarker.className =
         "userpatch-version-marker userpatch-season-version-marker"
       versionMarker.hidden = true
-      const chevron = createLucideIcon("chevron-down")
-      chevron.classList.add("userpatch-season-chevron")
-      chevron.setAttribute("aria-hidden", "true")
+      value.after(versionMarker)
       const positioner = document.createElement("div")
       positioner.className = "userpatch-season-positioner"
       positioner.hidden = true
@@ -819,7 +816,6 @@ export const setupSeriesReleaseList = (siteRoot) => {
       menu.setAttribute("role", "listbox")
       menu.setAttribute("aria-label", label)
       const scrollDown = createScrollControl("down")
-      trigger.append(value, versionMarker, chevron)
       control.append(trigger)
       popup.append(scrollUp, menu, scrollDown)
       positioner.append(popup)
@@ -1018,15 +1014,29 @@ export const setupSeriesReleaseList = (siteRoot) => {
           archiveLanguageBadge.append(archiveLanguageIcon, archiveLanguageText)
           meta.append(archiveLanguageBadge)
         }
+        copy.append(title)
+        if (entry.mode === "episodes") {
+          const short = simplifyEpisodeFilename(filename)
+          if (short) {
+            title.classList.add("userpatch-full-episode-title")
+            const shortTitle = document.createElement("div")
+            shortTitle.className =
+              "userpatch-release-file-title userpatch-short-episode-title"
+            shortTitle.textContent = short
+            shortTitle.title = filename
+            copy.append(shortTitle)
+          }
+        }
         if (size || languages) {
-          copy.append(title, meta)
-        } else {
-          copy.append(title)
+          copy.append(meta)
         }
 
         const actions = createReleaseActions(file)
-
-        rowLayout.append(copy, actions)
+        rowLayout.append(copy)
+        if (actions) {
+          rowLayout.append(actions)
+          addFetchLinks(rowLayout, actions)
+        }
         row.append(rowLayout)
         rowFragment.append(row)
         filenameRows.push({ title, filename })
@@ -1132,25 +1142,18 @@ export const setupSeriesReleaseList = (siteRoot) => {
     const renderSelectOptions = (select, items, selectedKey) => {
       select.menu.replaceChildren(
         ...items.map((item) => {
-          const option = document.createElement("div")
-          option.className = "userpatch-season-option"
-          option.setAttribute("role", "option")
-          option.tabIndex = -1
-          option.dataset.selectKey = item.key
-          const label = document.createElement("span")
-          label.className = "userpatch-season-option-label"
-          label.textContent = item.label
-          option.append(label)
+          const option = createSelectOption(
+            item.key,
+            item.label,
+            createLucideIcon("check")
+          )
           if (item.version) {
             const marker = document.createElement("span")
             marker.className = "userpatch-version-marker"
             marker.textContent = `v${item.version}`
             marker.dataset.version = String(item.version)
-            option.append(marker)
+            option.lastElementChild.before(marker)
           }
-          const check = createLucideIcon("check")
-          check.classList.add("userpatch-season-option-check")
-          option.append(check)
           return option
         })
       )

@@ -188,7 +188,7 @@ html.userpatch-maia.userpatch-hblinks-page .userpatch-hblinks-option-row {
   background: transparent !important;
   color: var(--maia-foreground) !important;
   font-size: 1rem !important;
-  font-weight: 500 !important;
+  font-weight: 400 !important;
   /* The theme's display font stylizes digits ("480p" becomes glyph soup);
      the list reads like 4KHDHub's rows, so it uses the clean sans stack. */
   font-family: "Inter Variable", ui-sans-serif, system-ui, -apple-system,
@@ -200,7 +200,8 @@ html.userpatch-maia.userpatch-hblinks-page .userpatch-hblinks-option-row {
 html.userpatch-maia.userpatch-hblinks-page .userpatch-hblinks-option-title {
   min-inline-size: 0;
   overflow-wrap: anywhere;
-  font-family: ui-sans-serif, system-ui, sans-serif !important;
+  font-family: inherit !important;
+  font-weight: 400 !important;
 }
 
 html.userpatch-maia.userpatch-hblinks-page .userpatch-hblinks-actions {

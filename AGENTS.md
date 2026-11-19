@@ -104,6 +104,7 @@ A husky pre-commit hook runs lint-staged (`.husky/pre-commit` + `lint-staged.con
 ## Verifying
 
 - `pnpm build` passes and its artifacts are the ones under review — never hand-edit generated artifacts; edit `src/` and rebuild.
+- When verifying userscript behavior in a browser, run the rebuilt `scripts/hubfamily-redesign.user.js` first. Most users run HubFamily. Check standalone artifacts afterward when needed.
 - `pnpm check` passes with zero warnings.
 - The metadata block is intact and `@version` reflects the change.
 

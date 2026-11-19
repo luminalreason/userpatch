@@ -1,3 +1,7 @@
+import {
+  KUMO_BUTTON_PAINT,
+  KUMO_PRIMARY_BUTTON_TOKENS,
+} from "../shared/button-group.js"
 import { HEADER_WORDMARK_DATA_URI } from "./branding.js"
 import { createLucideIcon } from "./icons.js"
 
@@ -152,11 +156,8 @@ html.userpatch-landing-page #userpatch-landing .userpatch-landing-action {
   gap: 0.65rem;
   min-block-size: 56px;
   padding: 0.75rem 1rem !important;
-  border: 1px solid rgb(255 255 255 / 14%) !important;
-  border-radius: 0.625rem !important;
-  background: #0051c3 !important;
-  color: #fff !important;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 22%), 0 1px 2px rgb(0 0 0 / 24%) !important;
+  ${KUMO_PRIMARY_BUTTON_TOKENS}
+  ${KUMO_BUTTON_PAINT}
   font: 400 18px/1.45 "Inter Variable", ui-sans-serif, system-ui, sans-serif !important;
   text-decoration: none !important;
   transform: none !important;
@@ -199,7 +200,7 @@ html.userpatch-landing-page :is(.userpatch-landing-action, .userpatch-landing-re
 }
 @media (hover: hover) and (pointer: fine) {
   html.userpatch-landing-page .userpatch-landing-action:hover {
-    filter: brightness(1.06);
+    --userpatch-button-tint: 22%;
   }
 }
 `

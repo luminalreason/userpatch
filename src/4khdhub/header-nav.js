@@ -1,14 +1,15 @@
 import { isCloudflareChallenge } from "../shared/cloudflare.js"
-import { normalizePathname } from "../shared/dom.js"
 import { positionSelectionIndicator } from "../shared/quality-tabs.js"
+import { createSettingsButton } from "../shared/redesign-settings.js"
 import { ensureStyles } from "../shared/styles.js"
 import { applySiteBranding } from "./branding.js"
-import { NAV_INDICATOR_CLASS } from "./config.js"
+import { CONFIG, NAV_INDICATOR_CLASS } from "./config.js"
+import { getNavigationPath } from "./dom.js"
 import { normalizeLucideIcons } from "./icons.js"
 
 export const NAV_CONTAINER_SELECTOR = "header.sticky > .header > .container"
 export const NAV_ITEM_SELECTOR =
-  ".navbar-brand, #main-nav .nav-list > .nav-item > .nav-link, #menu-toggle, #search-toggle"
+  ".navbar-brand, #main-nav .nav-list > .nav-item > .nav-link, #menu-toggle, #search-toggle, .userpatch-settings-trigger"
 export let headerNavigationCleanup = null
 export let headerNavigationContainer = null
 export let refreshHeaderNavigation = () => {}
@@ -228,6 +229,13 @@ export const setupHeaderNavigation = () => {
 
     applySiteBranding()
     setupHeaderSearch()
+    const searchToggle = document.querySelector("header.sticky #search-toggle")
+    if (
+      searchToggle &&
+      !searchToggle.parentElement.querySelector(".userpatch-settings-trigger")
+    ) {
+      searchToggle.after(createSettingsButton(CONFIG))
+    }
     normalizeLucideIcons(document)
 
     const container = document.querySelector(NAV_CONTAINER_SELECTOR)
@@ -265,8 +273,8 @@ export const setupHeaderNavigation = () => {
           return false
         }
 
-        const targetPath = normalizePathname(url.pathname).toLowerCase()
-        const currentPath = normalizePathname(location.pathname).toLowerCase()
+        const targetPath = getNavigationPath(url.pathname)
+        const currentPath = getNavigationPath(location.pathname)
         return (
           targetPath === currentPath ||
           (targetPath !== "/" && currentPath.startsWith(`${targetPath}/`))

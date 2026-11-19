@@ -1,9 +1,12 @@
 import { DETAIL_INFO_CSS } from "../shared/detail-info.js"
+import { MOBILE_MENU_CSS } from "../shared/mobile-menu.js"
 import { POSTER_FRAME_CSS } from "../shared/poster-frame.js"
 import { PROGRESSIVE_IMAGE_CSS } from "../shared/progressive-images.js"
+import { SETTINGS_CSS } from "../shared/redesign-settings.js"
 import { systemThemeCss } from "../shared/system-theme.js"
 import { TRAILER_CSS } from "../shared/trailer.js"
 import { CONFIG } from "./config.js"
+import { FETCH_LINKS_CSS } from "./fetch-links.js"
 
 // Only 36 micro-blocks (~7 KB, ~5%) match across ~460 block positions.
 // Keep CSS per-site: regrouping those blocks could change cascade ties.
@@ -366,7 +369,7 @@ html.userpatch-maia header.sticky > .header > .container > .flex:last-child {
   padding-inline-end: 0 !important;
 }
 
-html.userpatch-maia header.sticky > .header > .container > .flex:last-child > :not(#search-toggle) {
+html.userpatch-maia header.sticky > .header > .container > .flex:last-child > :not(#search-toggle, .userpatch-settings-trigger) {
   display: none !important;
 }
 
@@ -396,7 +399,8 @@ html.userpatch-maia header.sticky .navbar-brand:focus-visible img {
 }
 
 html.userpatch-maia header.sticky .navbar-brand,
-html.userpatch-maia header.sticky #search-toggle {
+html.userpatch-maia header.sticky #search-toggle,
+html.userpatch-maia header.sticky .userpatch-settings-trigger {
   position: relative;
   z-index: 1;
   display: inline-flex;
@@ -419,7 +423,8 @@ html.userpatch-maia header.sticky .navbar-brand {
 }
 
 html.userpatch-maia header.sticky #menu-toggle,
-html.userpatch-maia header.sticky #search-toggle {
+html.userpatch-maia header.sticky #search-toggle,
+html.userpatch-maia header.sticky .userpatch-settings-trigger {
   inline-size: 3rem;
   min-inline-size: 3rem;
   block-size: 3rem;
@@ -427,6 +432,11 @@ html.userpatch-maia header.sticky #search-toggle {
   margin: 0 !important;
   padding: 0 !important;
   cursor: pointer;
+}
+
+html.userpatch-maia header.sticky :is(#search-toggle, .userpatch-settings-trigger) svg {
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
 }
 
 html.userpatch-maia header.sticky #menu-toggle {
@@ -528,7 +538,8 @@ html.userpatch-maia .breadcrumb a:hover {
 
 html.userpatch-maia header.sticky .nav-link:focus-visible,
 html.userpatch-maia header.sticky #menu-toggle:focus-visible,
-html.userpatch-maia header.sticky #search-toggle:focus-visible {
+html.userpatch-maia header.sticky #search-toggle:focus-visible,
+html.userpatch-maia header.sticky .userpatch-settings-trigger:focus-visible {
   outline: 2px solid var(--maia-ring) !important;
   outline-offset: -2px;
 }
@@ -645,7 +656,7 @@ html.userpatch-maia .dropdown-item:active {
 }
 
 html.userpatch-maia a:focus-visible,
-html.userpatch-maia button:focus-visible,
+html.userpatch-maia button:focus-visible:not(:where(.userpatch-season-trigger)),
 html.userpatch-maia summary:focus-visible,
 html.userpatch-maia [role="button"]:focus-visible {
   outline: 1px solid var(--maia-ring) !important;
@@ -2321,80 +2332,6 @@ html.userpatch-maia .userpatch-mobile-nav {
   display: none !important;
 }
 
-html.userpatch-maia .userpatch-mobile-menu:popover-open {
-  position: fixed;
-  inset-block: 0;
-  inset-inline-start: 0;
-  display: flex;
-  inline-size: min(${CONFIG.mobileMenuWidth}, calc(100dvw - 2rem));
-  block-size: 100dvh;
-  max-block-size: 100dvh;
-  max-inline-size: none;
-  flex-direction: column;
-  gap: 0;
-  box-sizing: border-box;
-  margin: 0 auto 0 0;
-  padding: max(0.75rem, env(safe-area-inset-top, 0px)) 0.75rem
-    max(0.75rem, env(safe-area-inset-bottom, 0px));
-  overflow: hidden;
-  overscroll-behavior-x: auto;
-  overscroll-behavior-y: contain;
-  border: 1px solid var(--maia-border);
-  border-inline-start: 0;
-  border-radius: 0 var(--maia-radius-2xl) var(--maia-radius-2xl) 0;
-  background: var(--maia-card);
-  color: var(--maia-foreground);
-  box-shadow: 0 24px 64px rgb(0 0 0 / 0.45);
-  transform: translateX(0);
-  transition: transform 220ms var(--ease-drawer);
-}
-
-@starting-style {
-  html.userpatch-maia .userpatch-mobile-menu:popover-open {
-    transform: translateX(-100%);
-  }
-}
-
-html.userpatch-maia .userpatch-mobile-menu:popover-open::backdrop {
-  background: rgb(0 0 0 / 80%);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
-  transition: opacity 220ms var(--ease-out);
-}
-
-html.userpatch-maia .userpatch-mobile-menu-header {
-  display: flex;
-  min-block-size: 3.5rem;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0 0.5rem 0.75rem;
-  border-bottom: 1px solid var(--maia-border);
-}
-
-html.userpatch-maia .userpatch-mobile-menu-title {
-  margin: 0;
-  color: var(--maia-foreground);
-  font-size: 1.125rem;
-  font-weight: 600;
-  line-height: 1.25;
-}
-
-html.userpatch-maia .userpatch-mobile-menu-close {
-  display: inline-flex;
-  inline-size: 2.5rem;
-  block-size: 2.5rem;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: 1px solid var(--maia-border);
-  border-radius: var(--maia-radius-xl);
-  background: var(--maia-muted);
-  color: var(--maia-foreground);
-  cursor: pointer;
-}
-
 html.userpatch-maia .userpatch-mobile-menu-close svg,
 html.userpatch-maia .userpatch-mobile-menu-summary svg {
   inline-size: 1.25rem;
@@ -2461,8 +2398,7 @@ html.userpatch-maia .userpatch-mobile-menu-summary::-webkit-details-marker {
 }
 
 html.userpatch-maia .userpatch-mobile-menu-link:focus-visible,
-html.userpatch-maia .userpatch-mobile-menu-summary:focus-visible,
-html.userpatch-maia .userpatch-mobile-menu-close:focus-visible {
+html.userpatch-maia .userpatch-mobile-menu-summary:focus-visible {
   background: var(--maia-selection-bg, color-mix(in oklch, var(--maia-foreground) 9%, transparent));
   color: var(--maia-foreground);
 }
@@ -2476,14 +2412,12 @@ html.userpatch-maia .userpatch-mobile-menu-close:focus-visible {
 }
 
 html.userpatch-maia .userpatch-mobile-menu-link:active,
-html.userpatch-maia .userpatch-mobile-menu-summary:active,
-html.userpatch-maia .userpatch-mobile-menu-close:active {
+html.userpatch-maia .userpatch-mobile-menu-summary:active {
   background: color-mix(in oklch, var(--maia-foreground) 14%, transparent);
 }
 
 html.userpatch-maia .userpatch-mobile-menu-link:focus-visible,
-html.userpatch-maia .userpatch-mobile-menu-summary:focus-visible,
-html.userpatch-maia .userpatch-mobile-menu-close:focus-visible {
+html.userpatch-maia .userpatch-mobile-menu-summary:focus-visible {
   outline: 2px solid var(--maia-ring);
   outline-offset: -2px;
 }
@@ -3368,6 +3302,16 @@ html.userpatch-maia.userpatch-detail-page .userpatch-release-copy {
   gap: 4px;
 }
 
+html.userpatch-maia {
+  --userpatch-release-filename-size: 0.875rem;
+}
+
+@media (min-width: 761px) {
+  html.userpatch-maia {
+    --userpatch-release-filename-size: 1.125rem;
+  }
+}
+
 html.userpatch-maia .userpatch-release-file-title,
 html.userpatch-maia .userpatch-release-file-text,
 html.userpatch-maia.userpatch-detail-page .userpatch-release-file-title,
@@ -3375,21 +3319,10 @@ html.userpatch-maia.userpatch-detail-page .userpatch-release-file-text,
 html.userpatch-maia[data-detail-theme] .userpatch-release-file-title,
 html.userpatch-maia[data-detail-theme] .userpatch-release-file-text {
   color: var(--maia-foreground);
-  font-size: 0.875rem !important;
+  font-size: var(--userpatch-release-filename-size) !important;
   font-weight: 400;
   line-height: ${CONFIG.filenameLineHeight};
   overflow-wrap: anywhere;
-}
-
-@media (min-width: 761px) {
-  html.userpatch-maia .userpatch-release-file-title,
-  html.userpatch-maia .userpatch-release-file-text,
-  html.userpatch-maia.userpatch-detail-page .userpatch-release-file-title,
-  html.userpatch-maia.userpatch-detail-page .userpatch-release-file-text,
-  html.userpatch-maia[data-detail-theme] .userpatch-release-file-title,
-  html.userpatch-maia[data-detail-theme] .userpatch-release-file-text {
-    font-size: 1.125rem !important;
-  }
 }
 
 html.userpatch-maia.userpatch-detail-page .userpatch-release-file-text {
@@ -3624,13 +3557,12 @@ html.userpatch-maia.userpatch-detail-page .userpatch-release-toolbar {
   display: contents;
 }
 
-/* Keep the movie filter centered on the logo in the 1rem-offset sidebar. */
+
 html.userpatch-maia.userpatch-detail-page .userpatch-release-main:not(.userpatch-series-main) > .userpatch-release-toolbar > .userpatch-quality-tabs {
   grid-row: 1;
   grid-column: 1 / -1;
   align-self: center;
   justify-self: end;
-  inset-block-start: 1.5rem;
   margin: 0;
 }
 
@@ -3689,63 +3621,6 @@ html.userpatch-maia.userpatch-detail-page .userpatch-season-control {
 
 html.userpatch-maia.userpatch-detail-page .userpatch-season-control[hidden] {
   display: none !important;
-}
-
-html.userpatch-maia.userpatch-detail-page .userpatch-season-trigger {
-  display: flex;
-  inline-size: 100%;
-  box-sizing: border-box;
-  min-inline-size: 0;
-  block-size: 2.125rem;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.375rem;
-  padding: 0.375rem 0.75rem;
-  border: 1px solid transparent;
-  border-radius: 0.75rem;
-  background: var(--maia-selection-bg, rgb(255 255 255 / 0.15));
-  box-shadow: var(--maia-selection-shadow, inset 0 1px 2px rgb(255 255 255 / 0.12));
-  color: var(--maia-foreground);
-  font: inherit;
-  font-size: 0.875rem !important;
-  font-weight: 400;
-  line-height: 1.25;
-  text-align: start;
-  white-space: nowrap;
-  cursor: pointer;
-  transition:
-    transform 140ms var(--ease-out),
-    border-color 140ms ease,
-    background-color 140ms ease;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  html.userpatch-maia.userpatch-detail-page .userpatch-season-trigger:hover:not(:disabled) {
-    background: var(--maia-select-hover-bg, rgb(255 255 255 / 0.2));
-  }
-}
-
-html.userpatch-maia.userpatch-detail-page .userpatch-season-trigger:active:not(:disabled) {
-  transform: scale(0.98);
-  background: var(--maia-select-hover-bg, rgb(255 255 255 / 0.25));
-}
-
-html.userpatch-maia.userpatch-detail-page .userpatch-season-trigger:focus-visible {
-  border-color: var(--maia-ring);
-  outline: none;
-  box-shadow: 0 0 0 3px color-mix(in oklch, var(--maia-ring) 50%, transparent);
-}
-
-html.userpatch-maia.userpatch-detail-page .userpatch-season-trigger:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
-
-html.userpatch-maia.userpatch-detail-page .userpatch-season-value {
-  min-inline-size: 0;
-  flex: 1 1 auto;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 html.userpatch-maia.userpatch-detail-page .userpatch-version-marker {
@@ -3876,63 +3751,6 @@ html.userpatch-maia.userpatch-detail-page .userpatch-season-positioner[hidden] {
   display: none !important;
 }
 
-html.userpatch-maia.userpatch-detail-page .userpatch-season-popup {
-  display: flex;
-  inline-size: var(--userpatch-anchor-width, 100%);
-  min-inline-size: min(max(var(--userpatch-anchor-width, 0px), 9rem), calc(100vw - 1rem));
-  max-inline-size: calc(100vw - 1rem);
-  max-block-size: var(--userpatch-popup-height, 22rem);
-  flex-direction: column;
-  box-sizing: border-box;
-  pointer-events: auto;
-  border: 1px solid
-    color-mix(in oklch, var(--maia-foreground) 8%, transparent);
-  border-radius: 1rem;
-  background: var(--maia-popover);
-  color: var(--maia-popover-foreground);
-  box-shadow: 0 16px 40px rgb(0 0 0 / 0.28);
-  overflow: hidden;
-  opacity: 1;
-  transform: scale(1);
-  transform-origin: top left;
-  transition:
-    opacity 140ms var(--ease-out),
-    transform 140ms var(--ease-out);
-}
-
-html.userpatch-maia.userpatch-detail-page .userpatch-season-popup[data-side="top"] {
-  transform-origin: bottom left;
-}
-
-@starting-style {
-  html.userpatch-maia.userpatch-detail-page .userpatch-season-popup {
-    opacity: 0;
-    transform: scale(0.96);
-  }
-}
-
-html.userpatch-maia.userpatch-detail-page .userpatch-season-menu {
-  position: relative;
-  display: block;
-  inline-size: 100%;
-  min-inline-size: 0;
-  min-block-size: 0;
-  max-block-size: var(--userpatch-menu-height, 22rem);
-  flex: 0 1 auto;
-  box-sizing: border-box;
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior-x: auto;
-  overscroll-behavior-y: contain;
-  padding: 0.25rem;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-}
-
-html.userpatch-maia.userpatch-detail-page .userpatch-season-menu::-webkit-scrollbar {
-  display: none;
-}
-
 html.userpatch-maia.userpatch-detail-page .userpatch-season-scroll-control {
   display: flex;
   min-block-size: 1.5rem;
@@ -3968,79 +3786,6 @@ html.userpatch-maia.userpatch-detail-page .userpatch-season-scroll-control:activ
 html.userpatch-maia.userpatch-detail-page .userpatch-season-scroll-control svg {
   inline-size: 1rem;
   block-size: 1rem;
-}
-
-html.userpatch-maia.userpatch-detail-page .userpatch-season-option {
-  position: relative;
-  display: flex;
-  inline-size: 100%;
-  min-block-size: 2.25rem;
-  block-size: auto;
-  box-sizing: border-box;
-  align-items: center;
-  gap: 0.625rem;
-  padding: 0.5rem 2.25rem 0.5rem 0.75rem;
-  border-radius: 0.75rem;
-  color: var(--maia-popover-foreground);
-  font-size: 0.875rem;
-  line-height: 1.35;
-  text-align: start;
-  white-space: normal;
-  overflow-wrap: anywhere;
-  cursor: default;
-  user-select: none;
-  outline: none;
-  transition:
-    background-color 140ms var(--ease-out),
-    color 140ms var(--ease-out);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  html.userpatch-maia.userpatch-detail-page .userpatch-season-option:hover {
-    background: var(--maia-accent);
-    color: var(--maia-accent-foreground);
-  }
-}
-
-html.userpatch-maia.userpatch-detail-page .userpatch-season-option:focus-visible,
-html.userpatch-maia.userpatch-detail-page .userpatch-season-option[data-highlighted] {
-  outline: none;
-  background: var(--maia-accent);
-  color: var(--maia-accent-foreground);
-}
-
-html.userpatch-maia.userpatch-detail-page .userpatch-season-option-label {
-  min-inline-size: 0;
-  flex: 1 1 auto;
-  white-space: normal;
-  overflow-wrap: anywhere;
-  word-break: normal;
-  line-height: 1.35;
-}
-
-html.userpatch-maia.userpatch-detail-page .userpatch-season-option-check {
-  position: absolute;
-  inset-inline-end: 0.5rem;
-  inset-block-start: 50%;
-  transform: translateY(-50%);
-  inline-size: 1rem;
-  block-size: 1rem;
-  opacity: 0;
-  transition: opacity 120ms var(--ease-out);
-  pointer-events: none;
-}
-
-html.userpatch-maia.userpatch-detail-page .userpatch-season-option[aria-selected="true"] .userpatch-season-option-check {
-  opacity: 1;
-}
-
-html.userpatch-maia.userpatch-detail-page .userpatch-season-chevron {
-  display: block;
-  flex: none;
-  inline-size: 1rem;
-  block-size: 1rem;
-  color: var(--maia-muted-foreground);
-  pointer-events: none;
 }
 
 html.userpatch-maia.userpatch-detail-page .userpatch-series-main > .userpatch-series-releases {
@@ -4466,7 +4211,7 @@ html.userpatch-maia.userpatch-detail-page .userpatch-mobile-nav {
   }
 
   html.userpatch-maia.userpatch-detail-page .userpatch-release-main:not(.userpatch-series-main) > .userpatch-release-toolbar > .userpatch-quality-tabs {
-    position: static;
+    position: relative;
   }
 
   html.userpatch-maia.userpatch-detail-page .content-main.userpatch-series-main {
@@ -4657,7 +4402,7 @@ html.userpatch-maia.userpatch-detail-page .userpatch-mobile-nav {
 ${PROGRESSIVE_IMAGE_CSS}
 html.userpatch-maia.userpatch-detail-page .userpatch-release-toolbar > .userpatch-detail-tabs {
   /* Confine the absolute glass backdrop even when mobile filters are static. */
-  position: relative !important;
+  position: relative;
   isolation: isolate;
   grid-row: 1;
   grid-column: 1 !important;
@@ -4696,9 +4441,45 @@ html.userpatch-maia.userpatch-detail-page .userpatch-release-toolbar > [hidden] 
   }
 }
 
+html.userpatch-maia.userpatch-detail-page .userpatch-movie-releases {
+  padding-block-end: calc(8rem + env(safe-area-inset-bottom, 0px));
+}
+
+html.userpatch-maia .userpatch-short-episode-title,
+html.userpatch-maia[data-userpatch-short-episodes] .userpatch-full-episode-title {
+  display: none;
+}
+html.userpatch-maia[data-userpatch-short-episodes] .userpatch-short-episode-title {
+  display: block;
+}
+
+html.userpatch-maia.userpatch-detail-page body .userpatch-release-meta .userpatch-release-language-badge,
+html.userpatch-maia.userpatch-detail-page body .userpatch-release-meta .userpatch-release-language-badge .userpatch-series-language-text {
+  font-size: inherit !important;
+}
+
 /* Reserve the header inset in layout so every series control shares a baseline,
    including the Info/Links group and rows that wrap at narrower widths. */
 @media (min-width: ${CONFIG.mobileLayoutBreakpointRem + 0.01}rem) {
+  /* Center the toolbar in the same band as the sidebar wordmark. */
+  html.userpatch-maia.userpatch-detail-page .content-main.userpatch-release-main:not(.userpatch-series-main) {
+    grid-template-rows: 6rem 0 auto;
+  }
+  html.userpatch-maia.userpatch-detail-page .userpatch-release-main:not(.userpatch-series-main) > .userpatch-release-toolbar {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 20;
+    grid-row: 1;
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0;
+  }
+  html.userpatch-maia.userpatch-detail-page .userpatch-release-main:not(.userpatch-series-main) > .userpatch-release-toolbar > .userpatch-quality-tabs {
+    position: relative;
+    inset-block-start: auto;
+  }
   html.userpatch-maia.userpatch-detail-page .content-main.userpatch-series-main {
     grid-template-rows: max-content 0.5rem auto;
   }
@@ -4747,5 +4528,8 @@ html.userpatch-maia.userpatch-detail-page .userpatch-series-main > .userpatch-se
 ${TRAILER_CSS}
 ${POSTER_FRAME_CSS}
 ${DETAIL_INFO_CSS}
+${MOBILE_MENU_CSS}
+${SETTINGS_CSS}
+${FETCH_LINKS_CSS}
 ${systemThemeCss(true)}
 `

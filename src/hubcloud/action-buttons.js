@@ -38,7 +38,10 @@ export const normalizeActionButtons = (root = document) => {
     `#download, a#download, button#download, #button1, a#button1, button#button1, .${DIRECT_DOWNLOAD_BUTTON_CLASS}`
   )
   for (const btn of actionBtns) {
-    if (btn.dataset.userpatchLoading === "true") {
+    if (
+      btn.dataset.userpatchInlineLinks ||
+      btn.dataset.userpatchLoading === "true"
+    ) {
       continue
     }
     if (!btn.querySelector('[data-userpatch-lucide-icon="sparkles"]')) {

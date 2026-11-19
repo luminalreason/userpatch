@@ -269,3 +269,25 @@ export const pruneReleaseFilenameCleanups = (filenameCleanups) => {
     (cleanup) => !filenameCleanups.includes(cleanup)
   )
 }
+
+// A resolution after a single episode code gives us a boundary between the
+// optional episode name and release metadata. A bare resolution needs a
+// nearby release tag to distinguish it from a number in the episode name.
+export const simplifyEpisodeFilename = (filename) => {
+  const match = filename.match(
+    /^(.+?)[. ]+(S\d{2,3})(E\d{2,3})[. ]+(?:(.+?)[. ]+)?(?:4320|2160|1440|1080|720|576|480|360)(?:p(?=[. _-]|$)|(?=[. ]+(?:LQ|HQ|WEB(?:-DL|RIP))[. _-]))/i
+  )
+  if (!match) {
+    return ""
+  }
+  const [, , , episode, name = ""] = match
+  if (/^(?:S\d+E\d+|E\d+|\d+\b|[-+&])/i.test(name)) {
+    return ""
+  }
+  const number = Number(episode.slice(1))
+  const episodeName = name.replaceAll(/[.\s]+/g, " ").trim()
+  const repeatedLabel = episodeName.match(/^episode\s+(\d+)$/i)
+  return !episodeName || Number(repeatedLabel?.[1]) === number
+    ? `Episode ${number}`
+    : `${number}. ${episodeName}`
+}

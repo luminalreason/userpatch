@@ -4,9 +4,8 @@ export const CONFIG = Object.freeze({
   pageLoaderTimeoutMs: 4000,
   mobileLayoutBreakpointRem: 52,
   searchPagePath: "/search.html",
-  mobileMenuWidth: "280px",
-  mobileMenuPopoverId: "userpatch-mobile-menu",
-  mobileNavigationWidth: "260px",
+  mobileMenuId: "userpatch-mobile-menu",
+  mobileNavigationWidth: "320px",
   storageKeys: Object.freeze({
     detailTab: "userpatch-hdhub4u-detail-tab",
     movieQualityTab: "userpatch-hdhub4u-quality-tab",

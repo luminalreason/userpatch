@@ -1,18 +1,17 @@
-import { normalizePathname } from "../shared/dom.js"
-import { SITE_ICON_DATA_URI } from "./branding.js"
+import {
+  bindMobileMenuButton,
+  createMobileMenu,
+} from "../shared/mobile-menu.js"
+import { createSettingsButton } from "../shared/redesign-settings.js"
+import { HEADER_WORDMARK_DATA_URI, SITE_ICON_DATA_URI } from "./branding.js"
 import { CONFIG } from "./config.js"
-import { normalizeText } from "./dom.js"
+import { getNavigationPath, normalizeText } from "./dom.js"
 import { openHeaderSearch } from "./header-nav.js"
 import { createLucideIcon } from "./icons.js"
 
 export let mobileNavigationCleanup = null
-export let mobileMenuPopover = null
-export let mobileMenuTrigger = null
-export const createMobileMenuPopover = () => {
-  if (!("popover" in HTMLElement.prototype)) {
-    return null
-  }
-
+let mobileMenu = null
+const ensureMobileMenu = () => {
   const sourceList = document.querySelector("#main-nav .nav-list")
   if (!sourceList) {
     return null
@@ -20,39 +19,21 @@ export const createMobileMenuPopover = () => {
 
   const sourceMarkup = sourceList.innerHTML
   if (
-    mobileMenuPopover?.isConnected &&
-    mobileMenuPopover.dataset.sourceMarkup === sourceMarkup
+    mobileMenu?.isConnected &&
+    mobileMenu.dataset.sourceMarkup === sourceMarkup
   ) {
-    return mobileMenuPopover
+    return mobileMenu
   }
 
-  mobileMenuTrigger = null
-  if (mobileMenuPopover?.matches(":popover-open")) {
-    mobileMenuPopover.hidePopover()
-  }
-  mobileMenuPopover?.remove()
+  mobileMenu?.remove()
 
-  const popover = document.createElement("div")
-  popover.className = "userpatch-mobile-menu"
-  popover.id = CONFIG.mobileMenuPopoverId
-  popover.setAttribute("popover", "auto")
-  popover.dataset.sourceMarkup = sourceMarkup
-
-  const header = document.createElement("header")
-  header.className = "userpatch-mobile-menu-header"
-  const title = document.createElement("h2")
-  title.className = "userpatch-mobile-menu-title"
-  title.id = "userpatch-mobile-menu-title"
-  title.textContent = "Menu"
-
-  const closeButton = document.createElement("button")
-  closeButton.type = "button"
-  closeButton.className = "userpatch-mobile-menu-close"
-  closeButton.setAttribute("aria-label", "Close menu")
-  closeButton.setAttribute("popovertarget", CONFIG.mobileMenuPopoverId)
-  closeButton.setAttribute("popovertargetaction", "hide")
-  closeButton.append(createLucideIcon("x"))
-  header.append(title, closeButton)
+  const menu = createMobileMenu(
+    CONFIG.mobileMenuId,
+    HEADER_WORDMARK_DATA_URI,
+    "4K-HDHub",
+    createLucideIcon("x")
+  )
+  menu.dataset.sourceMarkup = sourceMarkup
 
   const menuNavigation = document.createElement("nav")
   menuNavigation.className = "userpatch-mobile-menu-nav"
@@ -130,38 +111,17 @@ export const createMobileMenuPopover = () => {
   }
 
   menuNavigation.append(list)
-  popover.append(header, menuNavigation)
-  popover.addEventListener("click", (event) => {
-    if (event.target instanceof Element && event.target.closest("a[href]")) {
-      popover.hidePopover()
-    }
-  })
-  popover.addEventListener("toggle", (event) => {
-    if (event.newState === "open") {
-      popover.querySelector("a[href], summary")?.focus({
-        preventScroll: true,
-      })
-      return
-    }
-    const trigger = mobileMenuTrigger
-    mobileMenuTrigger = null
-    trigger?.focus({ preventScroll: true })
-  })
-
-  document.body.append(popover)
-  mobileMenuPopover = popover
-  return popover
+  menu.append(menuNavigation)
+  document.body.append(menu)
+  mobileMenu = menu
+  return menu
 }
 
 export const removeMobileNavigation = () => {
   mobileNavigationCleanup?.()
   mobileNavigationCleanup = null
-  mobileMenuTrigger = null
-  if (mobileMenuPopover?.matches(":popover-open")) {
-    mobileMenuPopover.hidePopover()
-  }
-  mobileMenuPopover?.remove()
-  mobileMenuPopover = null
+  mobileMenu?.remove()
+  mobileMenu = null
   document
     .querySelectorAll(".userpatch-mobile-nav")
     .forEach((navigation) => navigation.remove())
@@ -187,8 +147,7 @@ export const setupMobileNavigation = () => {
         item.type = "button"
         item.dataset.action = destination
         if (destination === "menu") {
-          item.setAttribute("popovertarget", CONFIG.mobileMenuPopoverId)
-          item.setAttribute("aria-controls", CONFIG.mobileMenuPopoverId)
+          bindMobileMenuButton(item, CONFIG.mobileMenuId, openMobileMenu)
         }
       } else {
         item.href = destination
@@ -218,14 +177,15 @@ export const setupMobileNavigation = () => {
       navigation.append(item)
     }
 
+    navigation.append(createSettingsButton(CONFIG, true))
     document.body.append(navigation)
   }
 
-  createMobileMenuPopover()
+  ensureMobileMenu()
 
-  const currentPath = normalizePathname(location.pathname)
+  const currentPath = getNavigationPath(location.pathname)
   for (const link of navigation.querySelectorAll("a[href]")) {
-    const targetPath = normalizePathname(link.href)
+    const targetPath = getNavigationPath(link.href)
     if (targetPath === currentPath) {
       link.setAttribute("aria-current", "page")
     } else {
@@ -240,17 +200,6 @@ export const setupMobileNavigation = () => {
       }
       const trigger = event.target.closest("[data-action]")
       const action = trigger?.dataset.action
-      if (action === "menu") {
-        if (!mobileMenuPopover?.isConnected) {
-          mobileMenuPopover = createMobileMenuPopover()
-        }
-        if (!mobileMenuPopover || !trigger) {
-          document.querySelector("#menu-toggle")?.click()
-          return
-        }
-        mobileMenuTrigger = trigger
-        return
-      }
       if (action === "search") {
         if (openHeaderSearch()) {
           return
@@ -265,3 +214,5 @@ export const setupMobileNavigation = () => {
 
   return true
 }
+
+export const openMobileMenu = () => ensureMobileMenu()?.showModal()

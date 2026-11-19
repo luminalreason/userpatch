@@ -57,6 +57,18 @@ export const cleanMirrorLabel = (text) => {
   return clean
 }
 
+export const isCloudflareMirror = (value) => {
+  try {
+    const url = new URL(value, location.href)
+    return (
+      /^https?:$/.test(url.protocol) &&
+      /(?:^|\.)(?:workers\.dev|r2\.dev)$/i.test(url.hostname)
+    )
+  } catch {
+    return false
+  }
+}
+
 export const getButtonVariant = (button) => {
   const text = (button.textContent || "").toLowerCase()
   const id = (button.dataset?.originalId || button.id || "").toLowerCase()
@@ -119,7 +131,7 @@ export const getButtonVariant = (button) => {
     return "10gbps"
   }
 
-  return "default"
+  return isCloudflareMirror(href) ? "cloudflare" : "default"
 }
 
 const RESUMABLE_THEME = Object.freeze({
@@ -130,6 +142,7 @@ const RESUMABLE_THEME = Object.freeze({
 export const MIRROR_THEMES = Object.freeze({
   fsl: RESUMABLE_THEME,
   t3: RESUMABLE_THEME,
+  cloudflare: RESUMABLE_THEME,
   "10gbps": Object.freeze({
     bg: "#c2410c",
     color: "#ffffff",
@@ -155,8 +168,8 @@ export const MIRROR_THEMES = Object.freeze({
 export const DIALOG_ID = "userpatch-mirror-guide-dialog"
 export const TRIGGER_ID = "userpatch-mirror-guide-trigger"
 
-export const orderDownloadButtons = () => {
-  const groups = Array.from(document.querySelectorAll(`.${BUTTON_GROUP_CLASS}`))
+export const orderDownloadButtons = (root = document) => {
+  const groups = Array.from(root.querySelectorAll(`.${BUTTON_GROUP_CLASS}`))
   if (groups.length <= 1) {
     return
   }
@@ -173,7 +186,13 @@ export const orderDownloadButtons = () => {
       return text.includes("2") || id === "fsl2" || id === "s3" ? 11 : 10
     }
     return (
-      { "10gbps": 20, gofile: 25, pixeldrain: 30, telegram: 50 }[variant] || 40
+      {
+        cloudflare: 13,
+        "10gbps": 20,
+        gofile: 25,
+        pixeldrain: 30,
+        telegram: 50,
+      }[variant] || 40
     )
   }
 
@@ -183,7 +202,7 @@ export const orderDownloadButtons = () => {
   }
 
   const sorted = groups.toSorted((a, b) => getPriority(a) - getPriority(b))
-  const guideRow = document.getElementById(GUIDE_ROW_ID)
+  const guideRow = parent.querySelector(`:scope > #${GUIDE_ROW_ID}`)
   const isAlreadySorted = groups.every((group, i) => group === sorted[i])
   const isGuideRowAtStart =
     !guideRow || guideRow.nextElementSibling === sorted[0]
@@ -275,16 +294,20 @@ export const wrapDownloadButtons = (
       icon.remove()
     }
 
-    const cleanLabel = cleanMirrorLabel(button.textContent || "")
+    const cleanLabel =
+      variant === "cloudflare"
+        ? "Cloudflare Server"
+        : cleanMirrorLabel(button.textContent || "")
     button.textContent = ""
 
+    const externalMirror =
+      ["10gbps", "pixeldrain", "buzz"].includes(variant) &&
+      button.dataset.userpatchDirectMirror !== "true"
     const mirrorIcon =
       variant === "telegram"
         ? createTelegramIcon()
         : createLucideIcon(
-            ["10gbps", "pixeldrain", "buzz"].includes(variant)
-              ? "external-link"
-              : "arrow-down-to-line"
+            externalMirror ? "external-link" : "arrow-down-to-line"
           )
 
     const labelSpan = document.createElement("span")
@@ -320,6 +343,7 @@ export const wrapDownloadButtons = (
     group.dataset.orientation = "horizontal"
     group.dataset.mirrorType = variant
     group.className = `${BUTTON_GROUP_CLASS} userpatch-group-${variant}`
+    group.setAttribute("aria-label", cleanLabel)
     group.style.setProperty("--userpatch-btn-bg", theme.bg)
     group.style.setProperty("--userpatch-btn-color", theme.color)
 
@@ -354,7 +378,7 @@ export const wrapDownloadButtons = (
     group.append(button, copyBtn)
   }
 
-  orderDownloadButtons()
+  orderDownloadButtons(root)
   if (guide) {
     ensureMirrorGuide()
   }

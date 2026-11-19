@@ -1,5 +1,6 @@
 import { restoreManagedMeta } from "../shared/managed-meta.js"
 import { dismissPageLoader } from "../shared/page-loader.js"
+import { removeSettings } from "../shared/redesign-settings.js"
 import { MAIA_CLASS } from "../shared/styles.js"
 import { ensureSystemTheme } from "../shared/system-theme.js"
 import {
@@ -40,6 +41,10 @@ export const removeStyles = () => {
     ongoingCardNavigationCleanup?.()
     clearOngoingCardNavigationCleanup()
     removeMobileNavigation()
+    removeSettings()
+    document
+      .querySelector("header.sticky .userpatch-settings-trigger")
+      ?.remove()
     restoreManagedMeta([COLOR_SCHEME_META_ID, THEME_COLOR_META_ID])
     document.getElementById(STYLE_ID)?.remove()
     document.getElementById(FONT_STYLE_ID)?.remove()

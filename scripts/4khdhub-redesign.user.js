@@ -1,13 +1,14 @@
 // ==UserScript==
 // @name         4K-HDHub Redesign
 // @namespace    https://github.com/luminalreason/userpatch
-// @version      0.4.2
+// @version      0.5.0
 // @description  Reworks 4K-HDHub with a responsive, system-themed interface, site search, saved season and quality filters, and readable video and audio badges.
 // @author       luminalreason
 // @match        *://4khdhub.one/*
 // @run-at       document-start
 // @inject-into  content
-// @grant        none
+// @grant        GM_xmlhttpRequest
+// @grant        GM_setClipboard
 // @noframes
 // ==/UserScript==
 
@@ -168,7 +169,7 @@
 
 ;(function () {
   // src/shared/cloudflare.js
-  const isCloudflareChallenge = () => {
+  const isCloudflareChallenge$1 = () => {
     try {
       return (
         /just a moment|attention required|checking your browser/i.test(
@@ -398,7 +399,7 @@
       if (pageLoop.processPage()) {
         dismissPageLoader()
       }
-      if (isCloudflareChallenge()) {
+      if (isCloudflareChallenge$1()) {
         stopWaiting()
       }
     } catch {
@@ -557,6 +558,258 @@ html.userpatch-maia img.userpatch-progressive-image.userpatch-image-loaded {
     }
   })
 
+  // src/shared/icons.js
+  const LUCIDE_ICON_TEMPLATES = new Map()
+  const createLucideIcon$2 = (name, shapes, decorate) => {
+    const cached = LUCIDE_ICON_TEMPLATES.get(name)
+    if (cached) {
+      return cached.cloneNode(true)
+    }
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg")
+    svg.setAttribute("width", "24")
+    svg.setAttribute("height", "24")
+    svg.setAttribute("viewBox", "0 0 24 24")
+    svg.setAttribute("fill", "none")
+    svg.setAttribute("stroke", "currentColor")
+    svg.setAttribute("stroke-width", "2")
+    svg.setAttribute("stroke-linecap", "round")
+    svg.setAttribute("stroke-linejoin", "round")
+    svg.setAttribute("aria-hidden", "true")
+    svg.setAttribute("focusable", "false")
+    if (decorate) {
+      decorate(svg, name)
+    }
+    for (const [tagName, attributes] of shapes[name] || []) {
+      const shape = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        tagName
+      )
+      for (const [attribute, value] of Object.entries(attributes)) {
+        shape.setAttribute(attribute, value)
+      }
+      svg.append(shape)
+    }
+    LUCIDE_ICON_TEMPLATES.set(name, svg)
+    return svg.cloneNode(true)
+  }
+
+  // src/shared/select.js
+  const createSelectTrigger = (id, label, icon) => {
+    const trigger = document.createElement("button")
+    trigger.type = "button"
+    trigger.className = "userpatch-season-trigger"
+    trigger.setAttribute("role", "combobox")
+    trigger.setAttribute("aria-haspopup", "listbox")
+    trigger.setAttribute("aria-expanded", "false")
+    trigger.setAttribute("aria-controls", id)
+    trigger.setAttribute("aria-label", label)
+    const value = document.createElement("span")
+    value.className = "userpatch-season-value"
+    icon.classList.add("userpatch-season-chevron")
+    trigger.append(value, icon)
+    return {
+      trigger,
+      value,
+    }
+  }
+  const createSelectOption = (key, text, icon) => {
+    const option = document.createElement("div")
+    option.className = "userpatch-season-option"
+    option.setAttribute("role", "option")
+    option.tabIndex = -1
+    option.dataset.selectKey = key
+    const label = document.createElement("span")
+    label.className = "userpatch-season-option-label"
+    label.textContent = text
+    icon.classList.add("userpatch-season-option-check")
+    option.append(label, icon)
+    return option
+  }
+  const SELECT_CSS = `
+html.userpatch-maia .userpatch-season-trigger {
+  display: flex;
+  inline-size: 100%;
+  box-sizing: border-box;
+  min-inline-size: 0;
+  block-size: 2.125rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.375rem;
+  padding: calc(0.375rem + 1px) calc(0.75rem + 1px);
+  border: 0;
+  border-radius: 0.75rem;
+  background: var(--maia-selection-bg, rgb(255 255 255 / 0.15));
+  box-shadow: var(--maia-selection-shadow, inset 0 1px 2px rgb(255 255 255 / 0.12));
+  color: var(--maia-foreground);
+  font: inherit;
+  font-size: 0.875rem !important;
+  font-weight: 400;
+  line-height: 1.25;
+  text-align: start;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 140ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  html.userpatch-maia .userpatch-season-trigger:hover:not(:disabled) {
+    background: var(--maia-select-hover-bg, rgb(255 255 255 / 0.2));
+  }
+}
+
+html.userpatch-maia .userpatch-season-trigger:active:not(:disabled) {
+  background: var(--maia-select-hover-bg, rgb(255 255 255 / 0.25));
+}
+
+html.userpatch-maia .userpatch-season-trigger:focus-visible {
+  outline: 2px solid var(--maia-ring);
+  outline-offset: -2px;
+}
+
+html.userpatch-maia .userpatch-season-trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+html.userpatch-maia .userpatch-season-value {
+  min-inline-size: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+html.userpatch-maia .userpatch-season-popup {
+  display: flex;
+  inline-size: var(--userpatch-anchor-width, 100%);
+  min-inline-size: min(max(var(--userpatch-anchor-width, 0px), 9rem), calc(100vw - 1rem));
+  max-inline-size: calc(100vw - 1rem);
+  max-block-size: var(--userpatch-popup-height, 22rem);
+  flex-direction: column;
+  box-sizing: border-box;
+  pointer-events: auto;
+  border: 1px solid
+    color-mix(in oklch, var(--maia-foreground) 8%, transparent);
+  border-radius: 1rem;
+  background: var(--maia-popover);
+  color: var(--maia-popover-foreground);
+  box-shadow: 0 16px 40px rgb(0 0 0 / 0.28);
+  overflow: hidden;
+  opacity: 1;
+  transform: scale(1);
+  transform-origin: top left;
+  transition:
+    opacity 140ms var(--ease-out),
+    transform 140ms var(--ease-out);
+}
+
+html.userpatch-maia .userpatch-season-popup[data-side="top"] {
+  transform-origin: bottom left;
+}
+
+@starting-style {
+  html.userpatch-maia .userpatch-season-popup {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+html.userpatch-maia .userpatch-season-menu {
+  position: relative;
+  display: block;
+  inline-size: 100%;
+  min-inline-size: 0;
+  min-block-size: 0;
+  max-block-size: var(--userpatch-menu-height, 22rem);
+  flex: 0 1 auto;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-x: auto;
+  overscroll-behavior-y: contain;
+  padding: 0.25rem;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+html.userpatch-maia .userpatch-season-menu::-webkit-scrollbar {
+  display: none;
+}
+
+html.userpatch-maia .userpatch-season-option {
+  position: relative;
+  display: flex;
+  inline-size: 100%;
+  min-block-size: 2.25rem;
+  block-size: auto;
+  box-sizing: border-box;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 2.25rem 0.5rem 0.75rem;
+  border-radius: 0.75rem;
+  color: var(--maia-popover-foreground);
+  font-size: 0.875rem;
+  line-height: 1.35;
+  text-align: start;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  cursor: default;
+  user-select: none;
+  outline: none;
+  transition:
+    background-color 140ms var(--ease-out),
+    color 140ms var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  html.userpatch-maia .userpatch-season-option:hover {
+    background: var(--maia-accent);
+    color: var(--maia-accent-foreground);
+  }
+}
+
+html.userpatch-maia .userpatch-season-option:focus-visible,
+html.userpatch-maia .userpatch-season-option[data-highlighted] {
+  outline: none;
+  background: var(--maia-accent);
+  color: var(--maia-accent-foreground);
+}
+
+html.userpatch-maia .userpatch-season-option-label {
+  min-inline-size: 0;
+  flex: 1 1 auto;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  line-height: 1.35;
+}
+
+html.userpatch-maia .userpatch-season-option-check {
+  position: absolute;
+  inset-inline-end: 0.5rem;
+  inset-block-start: 50%;
+  transform: translateY(-50%);
+  inline-size: 1rem;
+  block-size: 1rem;
+  opacity: 0;
+  transition: opacity 120ms var(--ease-out);
+  pointer-events: none;
+}
+
+html.userpatch-maia .userpatch-season-option[aria-selected="true"] .userpatch-season-option-check {
+  opacity: 1;
+}
+
+html.userpatch-maia .userpatch-season-chevron {
+  display: block;
+  flex: none;
+  inline-size: 1rem;
+  block-size: 1rem;
+  color: var(--maia-muted-foreground);
+  pointer-events: none;
+}
+
+`
+
   // src/shared/storage.js
   const storageGet = (key) => {
     try {
@@ -627,13 +880,25 @@ html.userpatch-maia img.userpatch-progressive-image.userpatch-image-loaded {
   }
 
   // src/shared/system-theme.js
+  const themeSettingKey = "userpatch-theme-setting"
+  const getThemeSetting = () => {
+    const saved = storageGet(themeSettingKey)
+    return saved === "light" || saved === "dark" ? saved : "system"
+  }
+  const resolveTheme = () => {
+    const saved = getThemeSetting()
+    if (saved !== "system") {
+      return saved
+    }
+    return preference.matches ? "dark" : "light"
+  }
   let preference = null
   const updateSystemTheme = () => {
     const root = document.documentElement
     if (!root || !Object.hasOwn(root.dataset, "userpatchTheme")) {
       return
     }
-    const theme = preference.matches ? "dark" : "light"
+    const theme = resolveTheme()
     if (root.dataset.userpatchTheme !== theme) {
       root.dataset.userpatchTheme = theme
     }
@@ -662,7 +927,7 @@ html.userpatch-maia img.userpatch-progressive-image.userpatch-image-loaded {
         }
       })
     }
-    const theme = preference.matches ? "dark" : "light"
+    const theme = resolveTheme()
     document.documentElement.dataset.userpatchTheme = theme
     updateSystemTheme()
     return theme
@@ -722,8 +987,9 @@ html.userpatch-maia img.userpatch-progressive-image.userpatch-image-loaded {
         0 2px 4px rgb(0 0 0 / 0.5), 0 4px 8px rgb(0 0 0 / 0.3);
       --maia-poster-gloss: inset 0 1px 2px rgb(255 255 255 / 0.12);
     }
-    @media (prefers-color-scheme: light) {
-      html.userpatch-maia, html[data-userpatch-theme] {
+    html[data-userpatch-theme="dark"] { color-scheme: dark !important; }
+    html[data-userpatch-theme="light"] {
+        color-scheme: light !important;
         ${tokens}
         --maia-control-surface: oklch(0.98 0 0 / 90%);
         --maia-control-border-opacity: 0.14;
@@ -751,17 +1017,503 @@ html.userpatch-maia img.userpatch-progressive-image.userpatch-image-loaded {
           0 2px 4px rgb(0 0 0 / 0.19), 0 4px 8px rgb(0 0 0 / 0.08);
         --maia-poster-gloss: inset 0 1px 2px rgb(255 255 255 / 0.25);
       }
-      html.userpatch-maia .userpatch-media-badge img,
-      html.userpatch-maia .userpatch-quality-tab img,
-      html.userpatch-maia .userpatch-quality-filter img {
+      html.userpatch-maia[data-userpatch-theme="light"] .userpatch-media-badge img,
+      html.userpatch-maia[data-userpatch-theme="light"] .userpatch-quality-tab img,
+      html.userpatch-maia[data-userpatch-theme="light"] .userpatch-quality-filter img {
         filter: none !important;
       }
-      html.userpatch-maia .userpatch-quality-tab:disabled img {
+      html.userpatch-maia[data-userpatch-theme="light"] .userpatch-quality-tab:disabled img {
         filter: opacity(0.45) !important;
       }
-    }
   `
   }
+
+  // src/shared/redesign-settings.js
+  const dialogId = "userpatch-settings"
+  const icons = {
+    x: [["path", { d: "m18 6-12 12M6 6l12 12" }]],
+    "chevron-down": [["path", { d: "m6 9 6 6 6-6" }]],
+    check: [["path", { d: "M20 6 9 17l-5-5" }]],
+    settings: [
+      [
+        "path",
+        {
+          d: "M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915",
+        },
+      ],
+      [
+        "circle",
+        {
+          cx: 12,
+          cy: 12,
+          r: 3,
+        },
+      ],
+    ],
+  }
+  const syncShortNames = (enabled) => {
+    document.documentElement.toggleAttribute(
+      "data-userpatch-short-episodes",
+      enabled
+    )
+  }
+  const applyEpisodeNameSetting = (key) => {
+    syncShortNames(storageGet(key) === "true")
+  }
+  const applyFetchLinksSetting = (key) => {
+    document.documentElement.toggleAttribute(
+      "data-userpatch-fetch-links",
+      typeof GM_xmlhttpRequest === "function" && storageGet(key) === "true"
+    )
+  }
+  const createThemeSelect = () => {
+    const id = "userpatch-theme-options"
+    const { trigger, value } = createSelectTrigger(
+      id,
+      "Theme",
+      createLucideIcon$2("chevron-down", icons)
+    )
+    const picker = document.createElement("div")
+    picker.id = id
+    picker.className = "userpatch-season-popup userpatch-theme-picker"
+    picker.setAttribute("popover", "auto")
+    const list = document.createElement("div")
+    list.className = "userpatch-season-menu"
+    list.setAttribute("role", "listbox")
+    list.setAttribute("aria-label", "Theme")
+    list.id = `${id}-list`
+    trigger.setAttribute("aria-controls", list.id)
+    trigger.setAttribute("popovertarget", id)
+    const options = ["System", "Light", "Dark"].map((label) =>
+      createSelectOption(
+        label.toLowerCase(),
+        label,
+        createLucideIcon$2("check", icons)
+      )
+    )
+    list.append(...options)
+    picker.append(list)
+    const selectTheme = (theme) => {
+      for (const option of options) {
+        const selected = option.dataset.selectKey === theme
+        option.setAttribute("aria-selected", String(selected))
+        if (selected) {
+          value.textContent = option.firstElementChild.textContent
+          trigger.setAttribute("aria-valuetext", value.textContent)
+        }
+      }
+    }
+    const commitTheme = (option) => {
+      const theme = option.dataset.selectKey
+      selectTheme(theme)
+      storageSet(themeSettingKey, theme === "system" ? null : theme)
+      ensureSystemTheme()
+      picker.hidePopover()
+      trigger.focus()
+    }
+    selectTheme(getThemeSetting())
+    const positionPicker = () => {
+      if (CSS.supports("position-area: block-end span-inline-start")) {
+        return
+      }
+      const anchor = trigger.getBoundingClientRect()
+      const width = picker.offsetWidth
+      const height = picker.offsetHeight
+      picker.style.left = `${Math.max(8, anchor.right - width)}px`
+      picker.style.top = `${anchor.bottom + height + 12 <= innerHeight ? anchor.bottom + 4 : Math.max(8, anchor.top - height - 4)}px`
+    }
+    picker.addEventListener("beforetoggle", (event) => {
+      trigger.setAttribute("aria-expanded", String(event.newState === "open"))
+    })
+    picker.addEventListener("toggle", (event) => {
+      if (event.newState === "open") {
+        positionPicker()
+        list.querySelector('[aria-selected="true"]')?.focus()
+      }
+    })
+    trigger.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault()
+        picker.showPopover({ source: trigger })
+      }
+    })
+    list.addEventListener("click", (event) => {
+      const option = event.target.closest('[role="option"]')
+      if (option) {
+        commitTheme(option)
+      }
+    })
+    list.addEventListener("keydown", (event) => {
+      const index = options.indexOf(event.target)
+      switch (event.key) {
+        case "Enter":
+        case " ":
+          commitTheme(event.target)
+          break
+        case "ArrowUp":
+          options[Math.max(0, index - 1)].focus()
+          break
+        case "ArrowDown":
+          options[Math.min(options.length - 1, index + 1)].focus()
+          break
+        case "Home":
+          options[0].focus()
+          break
+        case "End":
+          options.at(-1).focus()
+          break
+        case "Tab":
+          picker.hidePopover()
+          trigger.focus()
+          return
+        default: {
+          if (
+            event.key.length !== 1 ||
+            event.ctrlKey ||
+            event.metaKey ||
+            event.altKey
+          ) {
+            return
+          }
+          const next = options.find((option) =>
+            option.dataset.selectKey.startsWith(event.key.toLowerCase())
+          )
+          next?.focus()
+        }
+      }
+      event.preventDefault()
+    })
+    return {
+      trigger,
+      picker,
+    }
+  }
+  const ensureSettings = ({
+    storageKeys,
+    ongoingPosterSessionKey,
+    shortEpisodeNamesKey,
+    fetchLinksKey,
+  }) => {
+    const existing = document.getElementById(dialogId)
+    if (existing) {
+      return existing
+    }
+    const dialog = document.createElement("dialog")
+    dialog.id = dialogId
+    dialog.className = "userpatch-settings-dialog"
+    dialog.setAttribute("aria-labelledby", "userpatch-settings-title")
+    dialog.innerHTML = `
+    <div class="userpatch-settings-header">
+      <h2 id="userpatch-settings-title">Settings</h2>
+      <form method="dialog">
+        <button type="submit" class="userpatch-settings-close" aria-label="Close settings" autofocus></button>
+      </form>
+    </div>
+    <div class="userpatch-settings-fields">
+      <div class="userpatch-settings-row userpatch-settings-theme"><span>Theme</span></div>
+    </div>
+    <div class="userpatch-settings-footer">
+      <button type="button" class="userpatch-settings-button userpatch-clear-cache" aria-haspopup="dialog">Clear cache</button>
+    </div>
+  `
+    dialog
+      .querySelector(".userpatch-settings-close")
+      .append(createLucideIcon$2("x", icons))
+    const { trigger, picker } = createThemeSelect()
+    dialog.querySelector(".userpatch-settings-theme").append(trigger, picker)
+    const addSwitch = (labelText, key, apply) => {
+      const label = document.createElement("label")
+      label.className = "userpatch-settings-row"
+      const text = document.createElement("span")
+      text.textContent = labelText
+      const toggle = document.createElement("input")
+      toggle.type = "checkbox"
+      toggle.className = "userpatch-settings-switch"
+      toggle.setAttribute("role", "switch")
+      toggle.checked = storageGet(key) === "true"
+      toggle.addEventListener("change", () => {
+        storageSet(key, toggle.checked ? "true" : null)
+        apply(key)
+      })
+      label.append(text, toggle)
+      dialog.querySelector(".userpatch-settings-fields").append(label)
+    }
+    if (shortEpisodeNamesKey) {
+      addSwitch(
+        "Simplify single-episode filenames",
+        shortEpisodeNamesKey,
+        applyEpisodeNameSetting
+      )
+    }
+    if (fetchLinksKey && typeof GM_xmlhttpRequest === "function") {
+      addSwitch("Fetch links", fetchLinksKey, applyFetchLinksSetting)
+    }
+    const confirmation = document.createElement("dialog")
+    confirmation.id = "userpatch-cache-confirmation"
+    confirmation.className =
+      "userpatch-settings-dialog userpatch-cache-confirmation"
+    confirmation.setAttribute("role", "alertdialog")
+    confirmation.setAttribute("aria-labelledby", "userpatch-cache-title")
+    confirmation.setAttribute("aria-describedby", "userpatch-cache-description")
+    confirmation.innerHTML = `
+    <div class="userpatch-cache-header">
+      <h2 id="userpatch-cache-title">Clear cache?</h2>
+      <p id="userpatch-cache-description">Clears opened-link history and saved tab and filter selections on this site.</p>
+    </div>
+    <form method="dialog" class="userpatch-settings-footer">
+      <button class="userpatch-settings-button" type="submit" autofocus>Cancel</button>
+      <button class="userpatch-settings-button userpatch-settings-destructive" type="button">Clear cache</button>
+    </form>
+  `
+    dialog
+      .querySelector(".userpatch-clear-cache")
+      .addEventListener("click", () => {
+        confirmation.showModal()
+      })
+    confirmation
+      .querySelector(".userpatch-settings-destructive")
+      .addEventListener("click", () => {
+        for (const [name, key] of Object.entries(storageKeys)) {
+          if (name !== "seriesSeasonPrefix") {
+            storageSet(key, null)
+          }
+        }
+        try {
+          if (storageKeys.seriesSeasonPrefix) {
+            for (const key of Object.keys(localStorage)) {
+              if (key.startsWith(storageKeys.seriesSeasonPrefix)) {
+                localStorage.removeItem(key)
+              }
+            }
+          }
+          if (ongoingPosterSessionKey) {
+            sessionStorage.removeItem(ongoingPosterSessionKey)
+          }
+        } catch {}
+        location.reload()
+      })
+    document.body.append(dialog, confirmation)
+    return dialog
+  }
+  const createSettingsButton = (config, labelVisible = false) => {
+    const button = document.createElement("button")
+    button.type = "button"
+    button.className = labelVisible
+      ? "userpatch-mobile-nav-item"
+      : "userpatch-settings-trigger"
+    button.setAttribute("aria-label", "Settings")
+    button.setAttribute("aria-haspopup", "dialog")
+    button.setAttribute("aria-controls", dialogId)
+    const icon = createLucideIcon$2("settings", icons)
+    if (labelVisible) {
+      const iconWrapper = document.createElement("span")
+      iconWrapper.className = "userpatch-mobile-nav-icon"
+      iconWrapper.append(icon)
+      const text = document.createElement("span")
+      text.textContent = "Settings"
+      button.append(iconWrapper, text)
+    } else {
+      button.append(icon)
+    }
+    button.addEventListener("click", () => ensureSettings(config).showModal())
+    return button
+  }
+  const removeSettings = () => {
+    document.getElementById(dialogId)?.remove()
+    document.getElementById("userpatch-cache-confirmation")?.remove()
+    delete document.documentElement.dataset.userpatchShortEpisodes
+    delete document.documentElement.dataset.userpatchFetchLinks
+  }
+  const SETTINGS_CSS = `
+${SELECT_CSS}
+html.userpatch-maia dialog.userpatch-settings-dialog {
+  position: fixed;
+  inset: 0;
+  box-sizing: border-box;
+  inline-size: min(28rem, calc(100% - 2rem));
+  max-block-size: calc(100dvh - 2rem);
+  margin: auto;
+  padding: 1.5rem;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 0;
+  border-radius: 1.625rem;
+  background: var(--maia-popover);
+  color: var(--maia-popover-foreground);
+  box-shadow: 0 0 0 1px color-mix(in oklch, var(--maia-foreground) 5%, transparent);
+  font-size: 0.875rem;
+}
+html.userpatch-maia .userpatch-settings-dialog[open] {
+  display: grid;
+  gap: 1.5rem;
+}
+html.userpatch-maia .userpatch-settings-dialog::backdrop {
+  overflow: hidden;
+  overscroll-behavior: contain;
+  background: rgb(0 0 0 / 80%);
+  backdrop-filter: blur(2px);
+}
+html.userpatch-maia .userpatch-settings-header,
+html.userpatch-maia .userpatch-settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+html.userpatch-maia .userpatch-settings-header form,
+html.userpatch-maia .userpatch-settings-dialog :is(h2, p) {
+  margin: 0;
+}
+html.userpatch-maia .userpatch-settings-header h2 {
+  color: inherit;
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1;
+}
+html.userpatch-maia .userpatch-settings-close,
+html.userpatch-maia .userpatch-settings-button {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  margin: 0;
+  border: 1px solid transparent;
+  border-radius: 1.625rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+html.userpatch-maia .userpatch-settings-close {
+  inline-size: 2rem;
+  block-size: 2rem;
+  margin-block: -0.25rem;
+  margin-inline-end: -0.25rem;
+  padding: 0;
+}
+html.userpatch-maia .userpatch-settings-close svg {
+  inline-size: 1rem;
+  block-size: 1rem;
+}
+html.userpatch-maia .userpatch-settings-close:hover {
+  background: var(--maia-muted);
+}
+html.userpatch-maia .userpatch-settings-fields {
+  display: grid;
+  gap: 0.75rem;
+}
+html.userpatch-maia .userpatch-settings-row {
+  min-block-size: 2.25rem;
+}
+html.userpatch-maia .userpatch-settings-theme .userpatch-season-trigger {
+  inline-size: 9rem;
+  block-size: 2.25rem;
+  margin: 0;
+  anchor-name: --userpatch-theme-trigger;
+}
+html.userpatch-maia .userpatch-theme-picker {
+  position: fixed;
+  inset: 0 auto auto 0;
+  inline-size: 9rem;
+  margin: 0;
+  padding: 0;
+}
+html.userpatch-maia .userpatch-theme-picker:not(:popover-open) {
+  display: none;
+}
+@supports (position-area: block-end span-inline-start) {
+  html.userpatch-maia .userpatch-theme-picker {
+    inset: auto;
+    position-anchor: --userpatch-theme-trigger;
+    position-area: block-end span-inline-start;
+    position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
+    margin-block: 0.25rem;
+  }
+}
+html.userpatch-maia .userpatch-settings-switch {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  inline-size: 2.75rem;
+  block-size: 1.5rem;
+  margin: 0 0.125rem 0 0;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--maia-input);
+  cursor: pointer;
+}
+html.userpatch-maia .userpatch-settings-switch::before {
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+  margin-inline: 1px;
+  border-radius: 50%;
+  background: light-dark(var(--maia-background), var(--maia-foreground));
+  content: "";
+}
+html.userpatch-maia .userpatch-settings-switch:checked {
+  background: var(--maia-primary);
+}
+html.userpatch-maia .userpatch-settings-switch:checked::before {
+  margin-inline-start: auto;
+  background: var(--maia-primary-foreground);
+}
+html.userpatch-maia .userpatch-settings-footer {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 0.5rem;
+  margin: 0;
+}
+html.userpatch-maia .userpatch-settings-button {
+  block-size: 2.25rem;
+  padding: 0 0.75rem;
+  line-height: 1;
+  border-color: var(--maia-border);
+  background: color-mix(in oklch, var(--maia-input) 30%, transparent);
+}
+html.userpatch-maia .userpatch-settings-button:hover {
+  background: color-mix(in oklch, var(--maia-input) 50%, transparent);
+}
+html.userpatch-maia .userpatch-settings-destructive {
+  border-color: transparent;
+  background: color-mix(in oklch, var(--maia-destructive) 15%, transparent);
+  color: var(--maia-destructive);
+}
+html.userpatch-maia .userpatch-settings-destructive:hover {
+  background: color-mix(in oklch, var(--maia-destructive) 25%, transparent);
+}
+html.userpatch-maia .userpatch-cache-header {
+  display: grid;
+  gap: 0.375rem;
+  text-align: center;
+}
+html.userpatch-maia .userpatch-cache-header h2 {
+  font-size: 1.125rem;
+  font-weight: 500;
+}
+html.userpatch-maia .userpatch-cache-header p {
+  color: var(--maia-muted-foreground);
+}
+@media (max-width: 39.99rem) {
+  html.userpatch-maia .userpatch-cache-confirmation {
+    max-inline-size: 20rem;
+  }
+}
+@media (min-width: 40rem) {
+  html.userpatch-maia .userpatch-settings-footer {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+  html.userpatch-maia .userpatch-cache-header {
+    text-align: start;
+  }
+}
+html.userpatch-maia .userpatch-settings-dialog :is(button:not(:where(.userpatch-season-trigger)), input):focus-visible {
+  outline: 2px solid var(--maia-ring);
+  outline-offset: 2px;
+}
+`
 
   // src/shared/styles.js
   let maiaStyles = null
@@ -773,7 +1525,7 @@ html.userpatch-maia img.userpatch-progressive-image.userpatch-image-loaded {
     "https://cdn.jsdelivr.net/npm/@fontsource-variable/inter@5.3.0/index.css"
   const ensureStyles = () => {
     try {
-      if (isCloudflareChallenge() || !maiaStyles.siteSignature()) {
+      if (isCloudflareChallenge$1() || !maiaStyles.siteSignature()) {
         return false
       }
       const styleTarget = document.head || document.documentElement
@@ -859,7 +1611,7 @@ html.userpatch-maia img.userpatch-progressive-image.userpatch-image-loaded {
   }
 
   // src/4khdhub/config.js
-  const CONFIG = Object.freeze({
+  const CONFIG$1 = Object.freeze({
     themeColor: "#0a0a0a",
     seriesSelectPopupMaxHeightPx: 352,
     seriesSelectViewportInsetPx: 8,
@@ -880,9 +1632,10 @@ html.userpatch-maia img.userpatch-progressive-image.userpatch-image-loaded {
     mobileDetailSectionGapRem: 0.75,
     mobileQualityVerticalGapRem: 0.75,
     mobileSearchDialogInsetPx: 12,
-    mobileMenuWidth: "280px",
-    mobileMenuPopoverId: "userpatch-mobile-menu",
-    mobileNavigationWidth: "260px",
+    mobileMenuId: "userpatch-mobile-menu",
+    mobileNavigationWidth: "320px",
+    fetchLinksKey: "userpatch-4khdhub-fetch-links",
+    shortEpisodeNamesKey: "userpatch-4khdhub-short-episode-names",
     ongoingPosterSessionKey: "userpatch-4khdhub-ongoing-poster-path",
     storageKeys: Object.freeze({
       detailTab: "userpatch-4khdhub-detail-tab",
@@ -899,10 +1652,10 @@ html.userpatch-maia img.userpatch-progressive-image.userpatch-image-loaded {
       Object.freeze(["search", "Search", "search"]),
     ]),
   })
-  const STYLE_ID = "userpatch-4khdhub-maia-style"
+  const STYLE_ID$1 = "userpatch-4khdhub-maia-style"
   const FONT_STYLE_ID = "userpatch-4khdhub-inter-font"
-  const COLOR_SCHEME_META_ID = "userpatch-4khdhub-color-scheme"
-  const THEME_COLOR_META_ID = "userpatch-4khdhub-theme-color"
+  const COLOR_SCHEME_META_ID$1 = "userpatch-4khdhub-color-scheme"
+  const THEME_COLOR_META_ID$1 = "userpatch-4khdhub-theme-color"
   const NAV_INDICATOR_CLASS = "userpatch-nav-indicator"
 
   // src/shared/detail-info.js
@@ -1005,6 +1758,109 @@ html.userpatch-maia.userpatch-detail-page .userpatch-detail-tabs .userpatch-qual
   block-size: 1rem !important;
   flex: 0 0 1rem !important;
 }
+`
+
+  // src/shared/mobile-menu.js
+  const createMobileMenu = (id, logo, siteName, closeIcon) => {
+    const menu = document.createElement("dialog")
+    menu.className = "userpatch-mobile-menu"
+    menu.id = id
+    menu.setAttribute("aria-label", "Site menu")
+    const header = document.createElement("header")
+    header.className = "userpatch-mobile-menu-header"
+    const brand = document.createElement("a")
+    brand.className = "userpatch-mobile-menu-brand"
+    brand.href = "/"
+    brand.dataset.noSwup = ""
+    const image = document.createElement("img")
+    image.src = logo
+    image.alt = siteName
+    brand.append(image)
+    const close = document.createElement("button")
+    close.type = "button"
+    close.className = "userpatch-mobile-menu-close"
+    close.autofocus = true
+    close.setAttribute("aria-label", "Close menu")
+    close.append(closeIcon)
+    close.addEventListener("click", () => menu.close())
+    header.append(brand, close)
+    menu.append(header)
+    menu.addEventListener("click", (event) => {
+      if (event.target.closest("a[href]")) {
+        menu.close()
+      }
+    })
+    return menu
+  }
+  const bindMobileMenuButton = (button, id, openMenu) => {
+    button.setAttribute("aria-haspopup", "dialog")
+    button.setAttribute("aria-controls", id)
+    button.addEventListener("click", openMenu)
+  }
+  const MOBILE_MENU_CSS = `
+html.userpatch-maia .userpatch-mobile-menu[open] {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  inline-size: 100%;
+  block-size: 100%;
+  max-inline-size: none;
+  max-block-size: none;
+  flex-direction: column;
+  box-sizing: border-box;
+  margin: 0;
+  padding: max(0.75rem, env(safe-area-inset-top, 0px))
+    max(0.75rem, env(safe-area-inset-right, 0px))
+    max(0.75rem, env(safe-area-inset-bottom, 0px))
+    max(0.75rem, env(safe-area-inset-left, 0px));
+  overflow: hidden;
+  overscroll-behavior: contain;
+  border: 0;
+  background: var(--maia-background);
+  color: var(--maia-foreground);
+}
+
+html.userpatch-maia .userpatch-mobile-menu-header {
+  display: flex;
+  min-block-size: 3.5rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--maia-border);
+}
+
+html.userpatch-maia .userpatch-mobile-menu-close {
+  display: inline-flex;
+  inline-size: 2.5rem;
+  block-size: 2.5rem;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--maia-foreground);
+  cursor: pointer;
+}
+html.userpatch-maia .userpatch-mobile-menu-close:focus-visible {
+  outline: 2px solid var(--maia-ring) !important;
+  outline-offset: -2px;
+  box-shadow: none !important;
+}
+html.userpatch-maia .userpatch-mobile-menu::backdrop {
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+html.userpatch-maia .userpatch-mobile-menu-brand img {
+  display: block;
+  inline-size: 7rem;
+  block-size: 2.5rem;
+  object-fit: contain;
+}
+
 `
 
   // src/shared/poster-frame.js
@@ -1115,6 +1971,2741 @@ html.userpatch-maia .userpatch-trailer-frame > iframe {
   margin: 0 !important;
   padding: 0 !important;
   border: 0 !important;
+}
+`
+
+  // src/shared/provider-logos.js
+  const makeSvgDataUri = (svg) =>
+    `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+  const HUBCLOUD_LOGO_SVG = String.raw`<svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.043 0.659 177.311 122.029" width="177" height="123">
+  <defs>
+    <linearGradient id="grad-left" gradientUnits="userSpaceOnUse" x1="31.00" y1="47.00" x2="11.00" y2="117.00">
+      <stop offset="0" stop-color="#00aaef"/>
+      <stop offset="1" stop-color="#0084e9"/>
+    </linearGradient>
+    <linearGradient id="grad-cyan" gradientUnits="userSpaceOnUse" x1="82.00" y1="-6.00" x2="59.60" y2="101.00">
+      <stop offset="0" stop-color="#00f1f2"/>
+      <stop offset="1" stop-color="#00a5ec"/>
+    </linearGradient>
+    <linearGradient id="grad-mid" gradientUnits="userSpaceOnUse" x1="138.00" y1="0.00" x2="65.30" y2="103.00">
+      <stop offset="0" stop-color="#00d5f2"/>
+      <stop offset="1" stop-color="#0064e3"/>
+    </linearGradient>
+    <linearGradient id="grad-white" gradientUnits="userSpaceOnUse" x1="123.00" y1="51.00" x2="123.00" y2="121.00" gradientTransform="matrix(1, 0, 0, 1.001083, 0, -0.055333)">
+      <stop offset="0" stop-color="#fcfafb"/>
+      <stop offset="1" stop-color="#f7f7f7"/>
+    </linearGradient>
+    <path id="left-blue-path" d="M 39.20 44.60 A 38.99 38.99 0 0 0 33.22 122.10 L 71.00 122.10 L 71.00 44.60 Z"/>
+    <path id="cyan-dome-path" d="M 128.40 27.85 C 118.50 11.20, 100.50 0.93, 82.50 1.05 C 53.60 0.02, 28.14 26.14, 27.57 54.50 C 26.56 70.83, 36.41 86.79, 51.31 93.50 C 58.00 96.40, 66.00 98.00, 78.00 98.60 L 113.00 69.00 Z"/>
+    <path id="mid-blue-path" d="M 131.80 27.73 L 128.40 27.85 C 99.62 27.66, 73.17 48.02, 63.30 74.50 C 57.02 89.28, 56.34 107.24, 64.40 122.10 L 145.00 122.10 L 169.17 98.00 A 45.07 45.07 0 0 0 131.80 27.73 Z"/>
+    <path id="white-cloud-path" d="M 96.00 122.05 C 83.84 120.65, 73.97 109.64, 73.33 96.30 A 24.98 24.98 0 0 1 96.06 71.41 A 28.49 28.49 0 0 1 150.56 71.19 A 25.30 25.30 0 0 1 168.43 102.55 A 28.55 28.55 0 0 1 143.00 122.05 Z"/>
+    <clipPath id="blue-silhouette">
+      <path d="M 39.20 44.60 A 38.99 38.99 0 0 0 33.22 122.10 L 71.00 122.10 L 71.00 44.60 Z"/>
+      <path d="M 128.40 27.85 C 118.50 11.20, 100.50 0.93, 82.50 1.05 C 53.60 0.02, 28.14 26.14, 27.57 54.50 C 26.56 70.83, 36.41 86.79, 51.31 93.50 C 58.00 96.40, 66.00 98.00, 78.00 98.60 L 113.00 69.00 Z"/>
+      <path d="M 131.80 27.73 L 128.40 27.85 C 99.62 27.66, 73.17 48.02, 63.30 74.50 C 57.02 89.28, 56.34 107.24, 64.40 122.10 L 145.00 122.10 L 169.17 98.00 A 45.07 45.07 0 0 0 131.80 27.73 Z"/>
+    </clipPath>
+    <filter id="white-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="1.1" result="blur"/>
+      <feOffset in="blur" dx="-0.6" dy="-0.2" result="offsetBlur"/>
+      <feFlood flood-color="#001950" flood-opacity="0.42" result="shadowColor"/>
+      <feComposite in="shadowColor" in2="offsetBlur" operator="in"/>
+    </filter>
+  </defs>
+  <path d="M 39.20 44.60 A 38.99 38.99 0 0 0 33.22 122.10 L 71.00 122.10 L 71.00 44.60 Z" fill="url(#grad-left)"/>
+  <path d="M 128.40 27.85 C 118.50 11.20, 100.50 0.93, 82.50 1.05 C 53.60 0.02, 28.14 26.14, 27.57 54.50 C 26.56 70.83, 36.41 86.79, 51.31 93.50 C 58.00 96.40, 66.00 98.00, 78.00 98.60 L 113.00 69.00 Z" fill="url(#grad-cyan)"/>
+  <path d="M 131.80 27.73 L 128.40 27.85 C 99.62 27.66, 73.17 48.02, 63.30 74.50 C 57.02 89.28, 56.34 107.24, 64.40 122.10 L 145.00 122.10 L 169.17 98.00 A 45.07 45.07 0 0 0 131.80 27.73 Z" fill="url(#grad-mid)"/>
+  <path d="M 58.52 95.50 C 64.00 97.40, 70.00 98.20, 79.00 98.80 L 90.00 122.10 L 64.40 122.10 C 59.92 113.83, 58.14 104.61, 58.52 95.50 Z" fill="#005fd8"/>
+  <g clip-path="url(#blue-silhouette)">
+    <path d="M 96.00 122.05 C 83.84 120.65, 73.97 109.64, 73.33 96.30 A 24.98 24.98 0 0 1 96.06 71.41 A 28.49 28.49 0 0 1 150.56 71.19 A 25.30 25.30 0 0 1 168.43 102.55 A 28.55 28.55 0 0 1 143.00 122.05 Z" fill="#000000" filter="url(#white-shadow)"/>
+  </g>
+  <path d="M 96 122.127 C 83.84 120.725 73.97 109.703 73.33 96.349 C 73.324 83.406 83.184 72.598 96.06 71.432 C 102.375 50.406 129.058 44.108 144.089 60.096 C 147.064 63.259 149.277 67.061 150.56 71.212 C 164.237 74.834 172.289 88.98 168.43 102.606 C 164.745 113.711 156.691 121.445 145.022 122.127 L 96 122.127 Z" fill="url(#grad-white)" style=""/>
+</svg>`
+  const HUBCLOUD_LOGO_DATA_URI = makeSvgDataUri(HUBCLOUD_LOGO_SVG)
+  const HUBDRIVE_LOGO_SVG = String.raw`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 249 249" width="249" height="249">
+  <defs>
+    <linearGradient id="bg-blue" gradientUnits="userSpaceOnUse" x1="35.36" y1="35.07" x2="165.36" y2="165.07">
+      <stop offset="0" stop-color="#5492f0"/>
+      <stop offset="1" stop-color="#468aef"/>
+    </linearGradient>
+    <linearGradient id="long-shadow" gradientUnits="userSpaceOnUse" x1="116.86" y1="162.07" x2="156.86" y2="231.37">
+      <stop offset="0" stop-color="#001450" stop-opacity="0.068"/>
+      <stop offset="1" stop-color="#001450" stop-opacity="0"/>
+    </linearGradient>
+    <clipPath id="circle-clip">
+      <circle cx="124.50" cy="124.50" r="123.88"/>
+    </clipPath>
+  </defs>
+  <circle cx="124.50" cy="124.50" r="123.88" fill="url(#bg-blue)"/>
+  <g clip-path="url(#circle-clip)">
+    <path d="M 310.50 227.06 L 160.50 77.06 A 50.95 50.95 0 0 1 175.12 107.56 A 33.99 33.99 0 1 1 175.18 175.54 L 79.38 175.54 A 39.62 39.62 0 0 1 51.36 163.94 L 201.36 313.94 Z" fill="url(#long-shadow)"/>
+  </g>
+  <path d="M 175.18 175.54 L 79.38 175.54 A 39.62 39.62 0 0 1 76.32 96.42 A 50.95 50.95 0 0 1 175.12 107.56 A 33.99 33.99 0 1 1 175.18 175.54 Z M 108.39 97.26 H 141.59 V 125.44 H 158.42 L 125.09 158.69 L 91.83 125.44 H 108.39 Z" fill="#ffffff" fill-rule="evenodd"/>
+</svg>`
+  const HUBDRIVE_LOGO_DATA_URI = makeSvgDataUri(HUBDRIVE_LOGO_SVG)
+  const HUBCDN_LOGO_SVG = String.raw`<svg width="216" height="260" viewBox="0 0 216 260" xmlns="http://www.w3.org/2000/svg"><title>undraw_handcrafts_heart</title><g fill="none"><path d="M94.612 259.442c-52.87-27.61-89.83-83.546-94.497-143.008-2.677-34.116 42-57.722 73.18-43.618s45.416 52.377 42.057 86.433c-3.36 34.055-20.522 64.984-20.74 100.193" fill="#b9fff4"/><path d="m180.8 59.136-.002-.002.022.057.002.002z" fill="#000"/><path d="M210.18 49.32c-9.959-27.16-41.17-31.961-64.158-17.966a102 102 0 0 0-10.83 7.159C126.986 22.216 114.311 6.342 96.626.665c-18.734-3.47-38.053 7.13-50.715 20.369C34.808 33.217 29.554 49.242 23.814 64.39c-7.425 19.42-5.637 40.524-.681 60.308 5.518 24.51 19.25 46.018 34.14 65.883 17.341 23.568 36.811 45.456 55.79 67.695-16.404-27.606-34.051-54.514-48.789-83.074-9.574-18.305-15.647-32.086-19.093-55.445a155 155 0 0 1-1.548-21.374c.179-8.247.613-8.191.746-9.59 2.97-15.129 15.054-38.773 20.212-45.34a39 39 0 0 1 4.92-4.745 27 27 0 0 1 3.381-2.086c4.253-2.02 2.698-2 12.054-4.589h.004c.699-.03 1.345-.032 1.868-.023.23.134.461.265.686.407 8.802 8.28 6.196 6.106 10.328 11.3l1.05 1.484a87.4 87.4 0 0 1 6.546 11.272c1.768 2.63 7.162 26.82 29.194 21.615a28.8 28.8 0 0 0 10.114-5.904 574 574 0 0 0 7.158-5.542c2.509-1.853 7.729-5.67 9.68-6.699a48 48 0 0 1 5.05-2.73 40 40 0 0 1 6.261-1.897c.41-.025.818-.085 1.228-.079.167.002.332.031.498.037.793.196 1.903.478 3.011.821.21.12.422.236.627.365a34 34 0 0 1 1.71 1.71q.766 1.148 1.387 2.381c1.5 4.087 2.738 8.265 3.704 12.51 3.598 14.583 2.86 25.085.322 37.42-10.04 46.747-36.895 82.132-64.628 125.968a621 621 0 0 1-9.546 13.878c10.995-10.373 21.466-21.286 31.577-32.52 21.612-23.877 43.757-47.96 57.517-77.437 7.013-14.537 13.001-29.855 14.723-46.011a112.4 112.4 0 0 0-4.835-45.038" fill="#6366f1"/></g></svg>`
+  const HUBCDN_LOGO_DATA_URI = makeSvgDataUri(HUBCDN_LOGO_SVG)
+
+  // src/hubcloud/icons.js
+  const LUCIDE_ICON_SHAPES$1 = Object.freeze({
+    "refresh-cw": Object.freeze([
+      ["path", { d: "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" }],
+      ["path", { d: "M21 3v5h-5" }],
+      ["path", { d: "M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" }],
+      ["path", { d: "M8 16H3v5" }],
+    ]),
+    copy: Object.freeze([
+      [
+        "rect",
+        {
+          width: "14",
+          height: "14",
+          x: "8",
+          y: "8",
+          rx: "2",
+          ry: "2",
+        },
+      ],
+      [
+        "path",
+        { d: "M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" },
+      ],
+    ]),
+    check: Object.freeze([["path", { d: "m20 6-11 11-5-5" }]]),
+    download: Object.freeze([
+      ["path", { d: "M12 15V3" }],
+      ["path", { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" }],
+      ["path", { d: "m7 10 5 5 5-5" }],
+    ]),
+    "file-video": Object.freeze([
+      [
+        "path",
+        { d: "M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" },
+      ],
+      ["path", { d: "M14 2v4a2 2 0 0 0 2 2h4" }],
+      ["path", { d: "m10 11 5 3-5 3v-6Z" }],
+    ]),
+    "hard-drive": Object.freeze([
+      ["path", { d: "M10 16h.01" }],
+      [
+        "path",
+        {
+          d: "M2.212 11.577a2 2 0 0 0-.212.896V18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5.527a2 2 0 0 0-.212-.896L18.55 5.11A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z",
+        },
+      ],
+      ["path", { d: "M21.946 12.013H2.054" }],
+      ["path", { d: "M6 16h.01" }],
+    ]),
+    rss: Object.freeze([
+      ["path", { d: "M4 11a9 9 0 0 1 9 9" }],
+      ["path", { d: "M4 4a16 16 0 0 1 16 16" }],
+      [
+        "circle",
+        {
+          cx: "5",
+          cy: "19",
+          r: "1",
+        },
+      ],
+    ]),
+    info: Object.freeze([
+      [
+        "circle",
+        {
+          cx: "12",
+          cy: "12",
+          r: "10",
+        },
+      ],
+      ["path", { d: "M12 16v-4" }],
+      ["path", { d: "M12 8h.01" }],
+    ]),
+    "loader-2": Object.freeze([["path", { d: "M21 12a9 9 0 1 1-6.219-8.56" }]]),
+    smartphone: Object.freeze([
+      [
+        "rect",
+        {
+          width: "14",
+          height: "20",
+          x: "5",
+          y: "2",
+          rx: "2",
+          ry: "2",
+        },
+      ],
+      ["path", { d: "M12 18h.01" }],
+    ]),
+    sparkles: Object.freeze([
+      [
+        "path",
+        {
+          d: "M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z",
+        },
+      ],
+      ["path", { d: "M20 2v4" }],
+      ["path", { d: "M22 4h-4" }],
+      [
+        "circle",
+        {
+          cx: "4",
+          cy: "20",
+          r: "2",
+        },
+      ],
+    ]),
+    "external-link": Object.freeze([
+      ["path", { d: "M15 3h6v6" }],
+      ["path", { d: "M10 14 21 3" }],
+      [
+        "path",
+        { d: "M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" },
+      ],
+    ]),
+    "arrow-down-to-line": Object.freeze([
+      ["path", { d: "M12 17V3" }],
+      ["path", { d: "m6 11 6 6 6-6" }],
+      ["path", { d: "M19 21H5" }],
+    ]),
+    x: Object.freeze([
+      ["path", { d: "M18 6 6 18" }],
+      ["path", { d: "m6 6 12 12" }],
+    ]),
+    "share-2": Object.freeze([
+      [
+        "circle",
+        {
+          cx: "18",
+          cy: "5",
+          r: "3",
+        },
+      ],
+      [
+        "circle",
+        {
+          cx: "6",
+          cy: "12",
+          r: "3",
+        },
+      ],
+      [
+        "circle",
+        {
+          cx: "18",
+          cy: "19",
+          r: "3",
+        },
+      ],
+      [
+        "line",
+        {
+          x1: "8.59",
+          x2: "15.42",
+          y1: "13.51",
+          y2: "17.49",
+        },
+      ],
+      [
+        "line",
+        {
+          x1: "15.41",
+          x2: "8.59",
+          y1: "6.51",
+          y2: "10.49",
+        },
+      ],
+    ]),
+  })
+  const createSpinnerIcon = () => {
+    const spinner = createLucideIcon$1("loader-2")
+    spinner.classList.add("userpatch-spinner")
+    return spinner
+  }
+  let telegramIconTemplate = null
+  const createTelegramIcon = () => {
+    if (telegramIconTemplate) {
+      return telegramIconTemplate.cloneNode(true)
+    }
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg")
+    svg.setAttribute("viewBox", "0 0 256 256")
+    svg.setAttribute("width", "24")
+    svg.setAttribute("height", "24")
+    svg.setAttribute("preserveAspectRatio", "xMidYMid")
+    svg.setAttribute("aria-hidden", "true")
+    svg.setAttribute("focusable", "false")
+    svg.setAttribute("class", "preview-icon userpatch-telegram-icon")
+    svg.dataset.userpatchLucideIcon = "telegram"
+    const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs")
+    const linearGradient = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "linearGradient"
+    )
+    linearGradient.setAttribute("id", "telegram__a")
+    linearGradient.setAttribute("x1", "50%")
+    linearGradient.setAttribute("x2", "50%")
+    linearGradient.setAttribute("y1", "0%")
+    linearGradient.setAttribute("y2", "100%")
+    const stop1 = document.createElementNS("http://www.w3.org/2000/svg", "stop")
+    stop1.setAttribute("offset", "0%")
+    stop1.setAttribute("stop-color", "#2AABEE")
+    const stop2 = document.createElementNS("http://www.w3.org/2000/svg", "stop")
+    stop2.setAttribute("offset", "100%")
+    stop2.setAttribute("stop-color", "#229ED9")
+    linearGradient.append(stop1, stop2)
+    defs.append(linearGradient)
+    const circlePath = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "path"
+    )
+    circlePath.setAttribute("fill", "url(#telegram__a)")
+    circlePath.setAttribute(
+      "d",
+      "M128 0C94.06 0 61.48 13.494 37.5 37.49A128.038 128.038 0 0 0 0 128c0 33.934 13.5 66.514 37.5 90.51C61.48 242.506 94.06 256 128 256s66.52-13.494 90.5-37.49c24-23.996 37.5-56.576 37.5-90.51 0-33.934-13.5-66.514-37.5-90.51C194.52 13.494 161.94 0 128 0Z"
+    )
+    const planePath = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "path"
+    )
+    planePath.setAttribute("fill", "#FFF")
+    planePath.setAttribute(
+      "d",
+      "M57.94 126.648c37.32-16.256 62.2-26.974 74.64-32.152 35.56-14.786 42.94-17.354 47.76-17.441 1.06-.017 3.42.245 4.96 1.49 1.28 1.05 1.64 2.47 1.82 3.467.16.996.38 3.266.2 5.038-1.92 20.24-10.26 69.356-14.5 92.026-1.78 9.592-5.32 12.808-8.74 13.122-7.44.684-13.08-4.912-20.28-9.63-11.26-7.386-17.62-11.982-28.56-19.188-12.64-8.328-4.44-12.906 2.76-20.386 1.88-1.958 34.64-31.748 35.26-34.45.08-.338.16-1.598-.6-2.262-.74-.666-1.84-.438-2.64-.258-1.14.256-19.12 12.152-54 35.686-5.1 3.508-9.72 5.218-13.88 5.128-4.56-.098-13.36-2.584-19.9-4.708-8-2.606-14.38-3.984-13.82-8.41.28-2.304 3.46-4.662 9.52-7.072Z"
+    )
+    svg.append(defs, circlePath, planePath)
+    telegramIconTemplate = svg
+    return telegramIconTemplate.cloneNode(true)
+  }
+  const normalizeLucideIcons$1 = (root = document) => {
+    for (const icon of root.querySelectorAll(
+      "i.fa-file-download, i.fa-download"
+    )) {
+      icon.replaceWith(createLucideIcon$1("download"))
+    }
+    for (const icon of root.querySelectorAll("i.fa-copy, i.fa-clone")) {
+      icon.replaceWith(createLucideIcon$1("copy"))
+    }
+    for (const icon of root.querySelectorAll("i.fa-video")) {
+      icon.replaceWith(createLucideIcon$1("file-video"))
+    }
+    for (const icon of root.querySelectorAll("i.fa-android")) {
+      icon.replaceWith(createLucideIcon$1("smartphone"))
+    }
+    for (const icon of root.querySelectorAll("i.fa-telegram")) {
+      icon.replaceWith(createTelegramIcon())
+    }
+  }
+  const createLucideIcon$1 = (name) =>
+    createLucideIcon$2(name, LUCIDE_ICON_SHAPES$1, (svg, iconName) => {
+      svg.setAttribute("class", `lucide lucide-${iconName} preview-icon`)
+      svg.dataset.userpatchLucideIcon = iconName
+    })
+
+  // src/hubcloud/clipboard.js
+  const copyToClipboard = async (text) => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text)
+        return true
+      }
+    } catch {}
+    const textarea = document.createElement("textarea")
+    try {
+      textarea.value = text
+      textarea.style.position = "fixed"
+      textarea.style.opacity = "0"
+      document.body?.append(textarea)
+      textarea.select()
+      return document.execCommand("copy")
+    } catch {
+      return false
+    } finally {
+      textarea.remove()
+    }
+  }
+  const copyFeedbackTimers = new WeakMap()
+  const showCopiedFeedback = (
+    button,
+    {
+      label,
+      copiedLabel,
+      icon = "copy",
+      text = "",
+      copiedText = "",
+      showTitle = true,
+    }
+  ) => {
+    const render = (copied) => {
+      const currentLabel = copied ? copiedLabel : label
+      button.replaceChildren(createLucideIcon$1(copied ? "check" : icon))
+      const currentText = copied ? copiedText : text
+      if (currentText) {
+        const span = document.createElement("span")
+        span.textContent = currentText
+        button.append(span)
+      }
+      button.setAttribute("aria-label", currentLabel)
+      if (showTitle) {
+        button.title = currentLabel
+      }
+      button.classList.toggle("userpatch-copied", copied)
+    }
+    window.clearTimeout(copyFeedbackTimers.get(button))
+    render(true)
+    copyFeedbackTimers.set(
+      button,
+      window.setTimeout(() => {
+        render(false)
+        copyFeedbackTimers.delete(button)
+      }, 1500)
+    )
+  }
+
+  // src/hubcloud/config.js
+  const CONFIG = Object.freeze({
+    themeColor: "#121212",
+    brandName: "HubCloud",
+    filenameLineHeight: 1.45,
+    logoWidth: 38,
+    logoHeight: 38,
+    googleFontUrl:
+      "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
+  })
+  const STYLE_ID = "userpatch-hubcloud-redesign-style"
+  const GOOGLE_FONT_STYLE_ID = "userpatch-hubcloud-google-font"
+  const COLOR_SCHEME_META_ID = "userpatch-hubcloud-color-scheme"
+  const THEME_COLOR_META_ID = "userpatch-hubcloud-theme-color"
+  const HEADER_ID = "userpatch-hubcloud-header"
+  const GUIDE_ROW_ID = "userpatch-guide-row"
+  const BUTTON_GROUP_CLASS = "userpatch-btn-group"
+  const BUTTON_MAIN_CLASS = "userpatch-btn-main"
+  const COPY_BUTTON_CLASS = "userpatch-copy-btn"
+  const DIRECT_DOWNLOAD_BUTTON_CLASS = "userpatch-direct-download-btn"
+
+  // src/shared/button-group.js
+  const KUMO_PRIMARY_BUTTON_TOKENS = `
+  --userpatch-btn-bg: light-dark(
+    oklch(0.5772 0.2324 260),
+    color-mix(in oklch, oklch(0.5772 0.2324 260), black 10%)
+  );
+  --userpatch-btn-color: #fff;
+`
+  const KUMO_MUTED_BUTTON_TOKENS = `
+  --userpatch-btn-bg: color-mix(in oklch, var(--maia-muted, var(--secondary)), var(--maia-foreground, var(--foreground)) 10%);
+  --userpatch-btn-color: var(--maia-foreground, var(--foreground));
+`
+  const KUMO_BUTTON_PAINT = `
+  --userpatch-button-base: var(--userpatch-btn-bg, light-dark(#fff, #27272a));
+  --userpatch-button-highlight: light-dark(rgb(255 255 255 / 75%), rgb(255 255 255 / 50%));
+  --userpatch-button-tint: 15%;
+  border: 1px solid color-mix(in oklch, var(--userpatch-button-base), black 10%) !important;
+  border-radius: 0.625rem !important;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in oklch, var(--userpatch-button-base), white var(--userpatch-button-tint)),
+    var(--userpatch-button-base)
+  ) !important;
+  color: var(--userpatch-btn-color, light-dark(#18181b, #f4f4f5)) !important;
+  box-shadow: inset 0 1px var(--userpatch-button-highlight),
+    0 1px 2px light-dark(rgb(0 0 0 / 9%), rgb(0 0 0 / 24%)) !important;
+`
+  const BUTTON_GROUP_CSS = `
+.userpatch-btn-group > :is(button, a) + :is(button, a) {
+  border-inline-start: 1px solid color-mix(in oklch, currentColor 22%, transparent) !important;
+}
+`
+
+  // src/hubcdn/detect.js
+  const isHubCdnGeneratedPage = () =>
+    Boolean(
+      document.querySelector("#download_container .loading") &&
+      /hubcdn/i.test(document.querySelector("main > header")?.textContent || "")
+    )
+
+  // src/hubcloud/generated-page.js
+  const isHubCloudGeneratedPage = () =>
+    Boolean(
+      document.querySelector("main #loadingState.state") &&
+      /hubcloud/i.test(
+        document.querySelector("header .logo-text")?.textContent || ""
+      )
+    )
+
+  // src/hubcloud/mirror-rows.js
+  const isWatchOnlineButton = (button) => {
+    if (!button) {
+      return false
+    }
+    const text = (button.textContent || "").toLowerCase()
+    const href = (button.getAttribute("href") || "").toLowerCase()
+    return (
+      text.includes("watch online") ||
+      text.includes("play online") ||
+      href.includes("hbplay.pages.dev") ||
+      href.includes("hbplay.")
+    )
+  }
+  const cleanMirrorLabel = (text) => {
+    const clean = text
+      .replace(/^\s*download\s*:?\s*/i, "")
+      .replaceAll("[", "")
+      .replaceAll("]", "")
+      .replaceAll(/\s+/g, " ")
+      .trim()
+    const lower = clean.toLowerCase()
+    if (lower.includes("gofile")) {
+      return "GoFile"
+    }
+    if (lower.includes("10gbps") || lower.includes("10 gbps")) {
+      return "10Gbps Server"
+    }
+    if (lower.includes("pixel")) {
+      return "PixelDrain"
+    }
+    if (lower.includes("telegram")) {
+      return "Get File in Telegram"
+    }
+    if (/\bt3\b/i.test(clean)) {
+      return "T3 Server"
+    }
+    if (
+      lower.includes("fsl") &&
+      (lower.includes("v2") || lower.includes("2"))
+    ) {
+      return "FSL Server v2"
+    }
+    if (lower.includes("fsl")) {
+      return "FSL Server"
+    }
+    return clean
+  }
+  const isCloudflareMirror = (value) => {
+    try {
+      const url = new URL(value, location.href)
+      return (
+        /^https?:$/.test(url.protocol) &&
+        /(?:^|\.)(?:workers\.dev|r2\.dev)$/i.test(url.hostname)
+      )
+    } catch {
+      return false
+    }
+  }
+  const getButtonVariant = (button) => {
+    const text = (button.textContent || "").toLowerCase()
+    const id = (button.dataset?.originalId || button.id || "").toLowerCase()
+    const href = (button.getAttribute("href") || "").toLowerCase()
+    if (
+      id === "tgbtn" ||
+      id.includes("telegram") ||
+      text.includes("telegram") ||
+      href.includes("t.me/") ||
+      href.includes("telegram.me/")
+    ) {
+      return "telegram"
+    }
+    if (
+      id.includes("gofile") ||
+      text.includes("gofile") ||
+      href.includes("gofile.io") ||
+      href.includes("gofile")
+    ) {
+      return "gofile"
+    }
+    if (id === "t3dl" || /\bt3\b/.test(text)) {
+      return "t3"
+    }
+    if (/\bbuzz\b/.test(text) || id.includes("buzz")) {
+      return "buzz"
+    }
+    if (
+      id.startsWith("fsl") ||
+      id.includes("fsl") ||
+      id === "s3" ||
+      text.includes("fsl") ||
+      text.includes("file server") ||
+      text.includes("fileserver")
+    ) {
+      return "fsl"
+    }
+    if (
+      id.startsWith("pxl") ||
+      id.includes("pixel") ||
+      text.includes("pixeldrain") ||
+      text.includes("pixel drain") ||
+      href.includes("pixeldrain")
+    ) {
+      return "pixeldrain"
+    }
+    if (
+      text.includes("10gbps") ||
+      text.includes("10 gbps") ||
+      text.includes("fast cloud")
+    ) {
+      return "10gbps"
+    }
+    return isCloudflareMirror(href) ? "cloudflare" : "default"
+  }
+  const RESUMABLE_THEME = Object.freeze({
+    bg: "#0051c3",
+    color: "#ffffff",
+  })
+  const MIRROR_THEMES = Object.freeze({
+    fsl: RESUMABLE_THEME,
+    t3: RESUMABLE_THEME,
+    cloudflare: RESUMABLE_THEME,
+    "10gbps": Object.freeze({
+      bg: "#c2410c",
+      color: "#ffffff",
+    }),
+    gofile: Object.freeze({
+      bg: "#7c3aed",
+      color: "#ffffff",
+    }),
+    pixeldrain: Object.freeze({
+      bg: "#047857",
+      color: "#ffffff",
+    }),
+    telegram: Object.freeze({
+      bg: "#1e293b",
+      color: "#ffffff",
+    }),
+    default: Object.freeze({
+      bg: "#27272a",
+      color: "#f4f4f5",
+    }),
+  })
+  const DIALOG_ID = "userpatch-mirror-guide-dialog"
+  const TRIGGER_ID = "userpatch-mirror-guide-trigger"
+  const orderDownloadButtons = (root = document) => {
+    const groups = Array.from(root.querySelectorAll(`.${BUTTON_GROUP_CLASS}`))
+    if (groups.length <= 1) {
+      return
+    }
+    const getPriority = (group) => {
+      const variant = group.dataset.mirrorType
+      if (variant === "t3") {
+        return 12
+      }
+      if (variant === "fsl") {
+        const button = group.querySelector(`.${BUTTON_MAIN_CLASS}`)
+        const text = (button?.textContent || "").toLowerCase()
+        const id = button?.dataset.originalId || ""
+        return text.includes("2") || id === "fsl2" || id === "s3" ? 11 : 10
+      }
+      return (
+        {
+          cloudflare: 13,
+          "10gbps": 20,
+          gofile: 25,
+          pixeldrain: 30,
+          telegram: 50,
+        }[variant] || 40
+      )
+    }
+    const parent = groups[0].parentElement
+    if (!parent) {
+      return
+    }
+    const sorted = groups.toSorted((a, b) => getPriority(a) - getPriority(b))
+    const guideRow = parent.querySelector(`:scope > #${GUIDE_ROW_ID}`)
+    const isAlreadySorted = groups.every((group, i) => group === sorted[i])
+    const isGuideRowAtStart =
+      !guideRow || guideRow.nextElementSibling === sorted[0]
+    if (isAlreadySorted && isGuideRowAtStart) {
+      return
+    }
+    if (guideRow) {
+      parent.append(guideRow)
+    }
+    for (const group of sorted) {
+      parent.append(group)
+    }
+  }
+  const wrapDownloadButtons = (
+    root = document,
+    { preserveIds = false, guide = true } = {}
+  ) => {
+    const buttons = root.querySelectorAll(
+      `a.btn:not(.${BUTTON_MAIN_CLASS}), button.btn:not(.${BUTTON_MAIN_CLASS}), a[class*="btn-"]:not(.${BUTTON_MAIN_CLASS}), a[id^="pxl"]:not(.${BUTTON_MAIN_CLASS}), a#s3:not(.${BUTTON_MAIN_CLASS}), a#fsl:not(.${BUTTON_MAIN_CLASS}), a#fsl2:not(.${BUTTON_MAIN_CLASS}), a#tgbtn:not(.${BUTTON_MAIN_CLASS})`
+    )
+    for (const button of buttons) {
+      const text = (button.textContent || "").toLowerCase()
+      const id = (button.id || "").toLowerCase()
+      if (
+        id === "download" ||
+        id === "button1" ||
+        id.includes("generate") ||
+        id.includes("copy") ||
+        text.includes("generate") ||
+        text.includes("copy link") ||
+        text.includes("copy share link") ||
+        button.classList.contains("nav-link") ||
+        button.classList.contains("userpatch-copy-btn") ||
+        button.classList.contains("userpatch-direct-download-btn") ||
+        button.classList.contains("userpatch-mirror-guide-trigger") ||
+        button.classList.contains("userpatch-share-btn") ||
+        button.classList.contains("userpatch-pack-copy-btn") ||
+        button.classList.contains("userpatch-dialog-close-btn") ||
+        button.classList.contains("userpatch-dialog-btn") ||
+        button.closest(
+          `[data-slot="button-group"], .${"userpatch-btn-group"}, .input-group`
+        )
+      ) {
+        continue
+      }
+      if (
+        id === "android_launch" ||
+        id.includes("android") ||
+        text.includes("android app")
+      ) {
+        button.remove()
+        continue
+      }
+      if (isWatchOnlineButton(button)) {
+        button.remove()
+        continue
+      }
+      const href = button.getAttribute("href")
+      if (!href || !/^https?:$/.test(button.protocol)) {
+        continue
+      }
+      const variant = getButtonVariant(button)
+      const theme = MIRROR_THEMES[variant] || MIRROR_THEMES.default
+      button.classList.remove(
+        "btn-danger",
+        "btn-primary",
+        "btn-secondary",
+        "btn-success",
+        "btn-warning",
+        "btn-info",
+        "btn-dark",
+        "btn-light"
+      )
+      button.style.removeProperty("background")
+      button.style.removeProperty("background-color")
+      const oldIcons = button.querySelectorAll("svg, i")
+      for (const icon of oldIcons) {
+        icon.remove()
+      }
+      const cleanLabel =
+        variant === "cloudflare"
+          ? "Cloudflare Server"
+          : cleanMirrorLabel(button.textContent || "")
+      button.textContent = ""
+      const externalMirror =
+        ["10gbps", "pixeldrain", "buzz"].includes(variant) &&
+        button.dataset.userpatchDirectMirror !== "true"
+      const mirrorIcon =
+        variant === "telegram"
+          ? createTelegramIcon()
+          : createLucideIcon$1(
+              externalMirror ? "external-link" : "arrow-down-to-line"
+            )
+      const labelSpan = document.createElement("span")
+      labelSpan.className = "userpatch-btn-label"
+      labelSpan.textContent = cleanLabel
+      button.append(mirrorIcon, labelSpan)
+      button.dataset.slot = "button"
+      button.dataset.mirrorType = variant
+      button.className = ""
+      button.classList.add(
+        BUTTON_MAIN_CLASS,
+        "btn",
+        `userpatch-mirror-${variant}`
+      )
+      if (button.id && !preserveIds) {
+        button.dataset.originalId = button.id
+        button.removeAttribute("id")
+      }
+      button.style.setProperty("background", "transparent", "important")
+      button.style.setProperty("background-color", "transparent", "important")
+      button.style.setProperty("background-image", "none", "important")
+      button.style.setProperty("border", "none", "important")
+      button.style.setProperty("box-shadow", "none", "important")
+      button.style.setProperty("color", "inherit", "important")
+      const group = document.createElement("div")
+      group.setAttribute("role", "group")
+      group.dataset.slot = "button-group"
+      group.dataset.orientation = "horizontal"
+      group.dataset.mirrorType = variant
+      group.className = `${BUTTON_GROUP_CLASS} userpatch-group-${variant}`
+      group.setAttribute("aria-label", cleanLabel)
+      group.style.setProperty("--userpatch-btn-bg", theme.bg)
+      group.style.setProperty("--userpatch-btn-color", theme.color)
+      const copyBtn = document.createElement("button")
+      copyBtn.type = "button"
+      copyBtn.dataset.slot = "button"
+      copyBtn.dataset.variant = "secondary"
+      copyBtn.dataset.size = "icon"
+      copyBtn.className = COPY_BUTTON_CLASS
+      copyBtn.setAttribute("aria-label", "Copy download link")
+      copyBtn.setAttribute("title", "Copy download link")
+      copyBtn.append(createLucideIcon$1("copy"))
+      copyBtn.addEventListener("click", async (event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        const currentHref = button.href || button.getAttribute("href")
+        if (!currentHref) {
+          return
+        }
+        const copied = await copyToClipboard(currentHref)
+        if (copied) {
+          showCopiedFeedback(copyBtn, {
+            label: "Copy download link",
+            copiedLabel: "Download link copied",
+          })
+        }
+      })
+      button.before(group)
+      group.append(button, copyBtn)
+    }
+    orderDownloadButtons(root)
+    if (guide) {
+      ensureMirrorGuide()
+    }
+  }
+
+  // src/hubcloud/mirror-guide.js
+  let supportsDisplayTransition
+  const canTransitionDisplay = () => {
+    if (supportsDisplayTransition !== undefined) {
+      return supportsDisplayTransition
+    }
+    if (
+      !document.body ||
+      !window.CSS?.supports?.("transition-behavior", "allow-discrete")
+    ) {
+      return false
+    }
+    const probe = document.createElement("div")
+    probe.style.cssText =
+      "position: fixed; visibility: hidden; transition: display 1s allow-discrete !important; display: block;"
+    document.body.append(probe)
+    try {
+      const displayBefore = getComputedStyle(probe).display
+      probe.style.display = "none"
+      const displayDuringTransition = getComputedStyle(probe).display
+      supportsDisplayTransition =
+        displayBefore === "block" && displayDuringTransition === "block"
+    } catch {
+      supportsDisplayTransition = false
+    } finally {
+      probe.remove()
+    }
+    return supportsDisplayTransition
+  }
+  const supportsDiscreteDialogExit = () => {
+    return window.CSS?.supports?.("overlay", "auto") && canTransitionDisplay()
+  }
+  const isDialogBackdropClick = (event, dialog) => {
+    if (event.target !== dialog) {
+      return false
+    }
+    const bounds = dialog.getBoundingClientRect()
+    return (
+      event.clientX < bounds.left ||
+      event.clientX > bounds.right ||
+      event.clientY < bounds.top ||
+      event.clientY > bounds.bottom
+    )
+  }
+  const openMirrorGuideDialog = () => {
+    const dialog = document.getElementById(DIALOG_ID)
+    if (dialog instanceof HTMLDialogElement) {
+      if (dialog.open) {
+        delete dialog.dataset.closing
+        return
+      }
+      try {
+        dialog.showModal()
+      } catch {
+        return
+      }
+    }
+  }
+  const closeMirrorGuideDialog = () => {
+    const dialog = document.getElementById(DIALOG_ID)
+    if (
+      !(dialog instanceof HTMLDialogElement) ||
+      !dialog.open ||
+      dialog.dataset.closing !== undefined
+    ) {
+      return
+    }
+    if (supportsDiscreteDialogExit()) {
+      dialog.close()
+      return
+    }
+    dialog.dataset.closing = "true"
+    let animations = []
+    try {
+      animations = dialog.getAnimations({ subtree: true })
+    } catch {
+      dialog.close()
+      return
+    }
+    let timeoutId = 0
+    const finishClose = () => {
+      window.clearTimeout(timeoutId)
+      if (dialog.open && dialog.dataset.closing !== undefined) {
+        dialog.close()
+      }
+    }
+    if (animations.length === 0) {
+      finishClose()
+      return
+    }
+    timeoutId = window.setTimeout(finishClose, 1e3)
+    Promise.allSettled(animations.map((animation) => animation.finished)).then(
+      finishClose
+    )
+  }
+  const ensureMirrorGuide = ({ hubCdn = false } = {}) => {
+    if (
+      !("HTMLDialogElement" in window) ||
+      typeof window.HTMLDialogElement.prototype.showModal !== "function"
+    ) {
+      return
+    }
+    const allGroups = Array.from(
+      document.querySelectorAll(`.${BUTTON_GROUP_CLASS}`)
+    ).filter(
+      (grp) =>
+        !grp.closest(".loading, .d-none") &&
+        grp.querySelector(`.${"userpatch-btn-main"}`)
+    )
+    const existingRow = document.getElementById(GUIDE_ROW_ID)
+    if (allGroups.length === 0) {
+      if (existingRow) {
+        existingRow.remove()
+      }
+      return
+    }
+    const firstGroup = allGroups[0]
+    let guideRow = existingRow
+    if (!guideRow) {
+      guideRow = document.createElement("div")
+      guideRow.id = GUIDE_ROW_ID
+      guideRow.className = "userpatch-guide-row"
+    }
+    let trigger = document.getElementById(TRIGGER_ID)
+    if (!trigger) {
+      trigger = document.createElement("button")
+      trigger.id = TRIGGER_ID
+      trigger.type = "button"
+      trigger.className = "userpatch-mirror-guide-trigger"
+      trigger.dataset.slot = "button"
+      trigger.dataset.variant = "ghost"
+      trigger.dataset.size = "icon"
+      trigger.setAttribute("aria-haspopup", "dialog")
+      trigger.setAttribute("aria-controls", DIALOG_ID)
+      trigger.setAttribute("aria-label", "Server and mirror guide")
+      trigger.setAttribute("title", "Server and mirror guide")
+      const infoIcon = createLucideIcon$1("info")
+      trigger.append(infoIcon)
+      trigger.addEventListener("click", (event) => {
+        event.preventDefault()
+        openMirrorGuideDialog()
+      })
+    }
+    if (trigger.parentElement !== guideRow) {
+      guideRow.append(trigger)
+    }
+    if (guideRow.nextElementSibling !== firstGroup) {
+      firstGroup.before(guideRow)
+    }
+    if (!document.getElementById("userpatch-mirror-guide-dialog")) {
+      const dialog = document.createElement("dialog")
+      dialog.id = DIALOG_ID
+      dialog.className = "userpatch-dialog"
+      dialog.dataset.slot = "dialog-content"
+      dialog.setAttribute("closedby", "any")
+      dialog.setAttribute("aria-labelledby", "userpatch-dialog-title")
+      dialog.setAttribute("aria-describedby", "userpatch-dialog-description")
+      const header = document.createElement("div")
+      header.className = "userpatch-dialog-header"
+      const title = document.createElement("h2")
+      title.id = "userpatch-dialog-title"
+      title.className = "userpatch-dialog-title"
+      title.tabIndex = -1
+      title.autofocus = true
+      title.textContent = "Server & Mirror Guide"
+      const desc = document.createElement("p")
+      desc.id = "userpatch-dialog-description"
+      desc.className = "userpatch-dialog-description"
+      desc.textContent = hubCdn
+        ? "Speed and resume support for each download server."
+        : "Speed, resume support, and bandwidth limits for each download mirror."
+      const closeBtn = document.createElement("button")
+      closeBtn.type = "button"
+      closeBtn.className = "userpatch-dialog-close-btn"
+      closeBtn.setAttribute("aria-label", "Close dialog")
+      closeBtn.append(createLucideIcon$1("x"))
+      closeBtn.addEventListener("click", closeMirrorGuideDialog)
+      header.append(title, desc, closeBtn)
+      const body = document.createElement("ul")
+      body.className = "userpatch-dialog-body"
+      const guides = [
+        {
+          badge: hubCdn ? "Cloudflare" : "FSL / FSL v2 / T3",
+          variant: "fsl",
+          icon: "arrow-down-to-line",
+          heading: "Supports Resume",
+          text: "Interrupted downloads can resume without restarting from the beginning.",
+        },
+        {
+          badge: "10Gbps Server",
+          variant: "10gbps",
+          icon: "external-link",
+          heading: "No Resume Support",
+          text: "Opens a high-speed download page. Interrupted downloads cannot resume and must restart from the beginning.",
+        },
+        {
+          badge: "PixelDrain",
+          variant: "pixeldrain",
+          icon: "external-link",
+          heading: "6 GB Daily Bandwidth Limit for Free and Guest Users",
+          text: "High-speed mirror, but download traffic is capped at 6 GB per day per IP address for free and guest users.",
+        },
+      ]
+      for (const item of guides) {
+        if (hubCdn && item.variant === "pixeldrain") {
+          continue
+        }
+        const row = document.createElement("li")
+        row.className = "userpatch-guide-item"
+        const badge = document.createElement("div")
+        const theme = MIRROR_THEMES[item.variant] || MIRROR_THEMES.default
+        badge.className = "userpatch-guide-button"
+        badge.dataset.mirrorType = item.variant
+        badge.style.setProperty("--userpatch-btn-bg", theme.bg)
+        badge.style.setProperty("--userpatch-btn-color", theme.color)
+        const badgeIcon =
+          item.icon === "telegram"
+            ? createTelegramIcon()
+            : createLucideIcon$1(item.icon)
+        const badgeText = document.createElement("span")
+        badgeText.textContent = item.badge
+        badge.append(badgeIcon, badgeText)
+        const heading = document.createElement("h3")
+        heading.className = "userpatch-guide-heading"
+        heading.textContent = item.heading
+        const text = document.createElement("p")
+        text.className = "userpatch-guide-text"
+        text.textContent = item.text
+        row.append(badge, heading, text)
+        body.append(row)
+      }
+      dialog.append(header, body)
+      if (!("closedBy" in window.HTMLDialogElement.prototype)) {
+        let pressedOutside = false
+        dialog.addEventListener("pointerdown", (event) => {
+          pressedOutside = isDialogBackdropClick(event, dialog)
+        })
+        dialog.addEventListener("pointerup", (event) => {
+          if (pressedOutside && isDialogBackdropClick(event, dialog)) {
+            closeMirrorGuideDialog()
+          }
+          pressedOutside = false
+        })
+        dialog.addEventListener("pointercancel", () => {
+          pressedOutside = false
+        })
+      }
+      dialog.addEventListener("cancel", (event) => {
+        if (supportsDiscreteDialogExit()) {
+          return
+        }
+        event.preventDefault()
+        closeMirrorGuideDialog()
+      })
+      dialog.addEventListener("close", () => {
+        delete dialog.dataset.closing
+      })
+      document.body?.append(dialog)
+    }
+  }
+
+  // src/shared/generated-page.js
+  const getGeneratedPage = () => {
+    if (isHubCloudGeneratedPage()) {
+      return "HubCloud"
+    }
+    if (isHubCdnGeneratedPage()) {
+      return "HubCDN"
+    }
+    return null
+  }
+  const isDownloadHref = (value) => {
+    try {
+      const url = new URL(value)
+      return /^https?:$/.test(url.protocol) && url.href !== location.href
+    } catch {
+      return false
+    }
+  }
+  const getGeneratedMirrorDetails = (href) => {
+    try {
+      const host = new URL(href).hostname.toLowerCase()
+      if (host === "video-downloads.googleusercontent.com") {
+        return {
+          label: "10Gbps Server",
+          variant: "10gbps",
+        }
+      }
+      if (isCloudflareMirror(href)) {
+        return {
+          label: "Cloudflare Server",
+          variant: "cloudflare",
+        }
+      }
+    } catch {}
+    return {
+      label: "Download here",
+      variant: "default",
+    }
+  }
+  const normalizeGeneratedPage = () => {
+    const root = document.documentElement
+    root.classList.add("userpatch-generated-page")
+    const container =
+      document.querySelector("#download_container") ||
+      document.querySelector("body > main")
+    if (!container) {
+      return false
+    }
+    let status = container.querySelector(".userpatch-generated-status")
+    if (!status) {
+      status = document.createElement("div")
+      status.className = "userpatch-generated-status"
+      const spinner = document.createElement("progress")
+      spinner.className = "userpatch-loading-spinner"
+      spinner.setAttribute("aria-label", "Preparing download link")
+      status.append(spinner)
+      container.prepend(status)
+    }
+    const button = container.querySelector("a#vd, a#downloadBtn")
+    const parameter = new URLSearchParams(location.search).get("link")
+    if (button && isDownloadHref(parameter)) {
+      button.href = parameter
+    }
+    const ready = Boolean(button && isDownloadHref(button.getAttribute("href")))
+    root.dataset.userpatchGeneratedReady = String(ready)
+    status.hidden = ready
+    if (!ready) {
+      return false
+    }
+    if (!button.classList.contains("userpatch-btn-main")) {
+      button.replaceChildren(document.createTextNode("Download here"))
+      button.className = "btn"
+      wrapDownloadButtons(container, {
+        preserveIds: true,
+        guide: false,
+      })
+    }
+    const { label, variant } = getGeneratedMirrorDetails(button.href)
+    const labelElement = button.querySelector(".userpatch-btn-label")
+    if (labelElement && labelElement.textContent !== label) {
+      labelElement.textContent = label
+    }
+    const group = button.closest(".userpatch-btn-group")
+    if (group && group.dataset.mirrorType !== variant) {
+      const theme = MIRROR_THEMES[variant]
+      group.classList.replace(
+        `userpatch-group-${group.dataset.mirrorType}`,
+        `userpatch-group-${variant}`
+      )
+      button.classList.replace(
+        `userpatch-mirror-${button.dataset.mirrorType}`,
+        `userpatch-mirror-${variant}`
+      )
+      group.dataset.mirrorType = variant
+      button.dataset.mirrorType = variant
+      group.style.setProperty("--userpatch-btn-bg", theme.bg)
+      group.style.setProperty("--userpatch-btn-color", theme.color)
+    }
+    ensureMirrorGuide({ hubCdn: getGeneratedPage() === "HubCDN" })
+    return true
+  }
+  const GENERATED_PAGE_CSS = `
+html.userpatch-generated-page body {
+  display: block !important;
+  min-block-size: 100dvh !important;
+  background: var(--background) !important;
+  color: var(--foreground) !important;
+}
+html.userpatch-generated-page body > main {
+  display: block !important;
+  min-block-size: 0 !important;
+  width: 100% !important;
+  max-width: 42rem !important;
+  inline-size: 100% !important;
+  max-inline-size: 42rem !important;
+  box-sizing: border-box !important;
+  margin: 0 auto !important;
+  padding: 1rem calc(clamp(0.75rem, 3vw, 1.25rem) + 0.25rem) !important;
+}
+html.userpatch-generated-page #download_container,
+html.userpatch-generated-page #download_container .container.main {
+  display: block !important;
+  min-block-size: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  inline-size: 100% !important;
+  max-inline-size: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+html.userpatch-generated-page :is(.state, .vd) {
+  /* A ready link can precede the source's hidden-class removal. Its absolute
+     positioning otherwise sizes the button against the wider padding box. */
+  position: static !important;
+  width: 100% !important;
+  inline-size: 100% !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  text-align: start !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 0 !important;
+  max-inline-size: 100% !important;
+}
+html.userpatch-generated-page :is(.state .title, .vd h2, #loadingState, .loading, .badge, .wave, footer, .vd > section, .state > center, br, .ads-core-ads) {
+  display: none !important;
+}
+html.userpatch-generated-page[data-userpatch-generated-ready="false"] :is(.vd, #successState) {
+  display: none !important;
+}
+html.userpatch-generated-page[data-userpatch-generated-ready="true"] :is(.vd, #successState) {
+  display: block !important;
+  /* The source's hidden state also uses opacity/visibility for its fake wait. */
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
+  animation: none !important;
+  transition: none !important;
+  pointer-events: auto !important;
+}
+html.userpatch-generated-page .userpatch-generated-status:not([hidden]) {
+  display: grid !important;
+  place-items: center;
+  min-block-size: 7rem;
+}
+html.userpatch-generated-page .userpatch-generated-status[hidden] {
+  display: none !important;
+}
+/* Generator templates animate every circle as a preloader. Keep our icon
+   geometry static without changing their actual loading indicator. */
+html.userpatch-generated-page svg[data-userpatch-lucide-icon] circle {
+  animation: none !important;
+  transform: none !important;
+  stroke-dasharray: none !important;
+  stroke-dashoffset: 0 !important;
+  stroke-width: inherit !important;
+  will-change: auto !important;
+}
+html.userpatch-generated-page .userpatch-btn-group {
+  margin-block: 0 !important;
+}
+html.userpatch-generated-page :is(.note, .note-text) {
+  display: none !important;
+}
+`
+
+  // src/hubcloud/action-buttons.js
+  const normalizeActionButtons = (root = document) => {
+    const loading = root.querySelector(".loading")
+    if (loading) {
+      loading.remove()
+    }
+    const vd = root.querySelector(".vd")
+    if (vd) {
+      vd.classList.remove("d-none")
+      vd.style.setProperty("display", "flex", "important")
+    }
+    for (const copyBtn of root.querySelectorAll(
+      `#button1 .${COPY_BUTTON_CLASS}, #download .${COPY_BUTTON_CLASS}, .userpatch-btn-group > #button1 ~ .${COPY_BUTTON_CLASS}, .userpatch-btn-group > #download ~ .${COPY_BUTTON_CLASS}`
+    )) {
+      copyBtn.remove()
+    }
+    for (const group of root.querySelectorAll(
+      `.${BUTTON_GROUP_CLASS}:has(#button1), .${BUTTON_GROUP_CLASS}:has(#download)`
+    )) {
+      const actionBtn = group.querySelector("#button1, #download")
+      if (actionBtn) {
+        group.before(actionBtn)
+      }
+      group.remove()
+    }
+    const actionBtns = root.querySelectorAll(
+      `#download, a#download, button#download, #button1, a#button1, button#button1, .${DIRECT_DOWNLOAD_BUTTON_CLASS}`
+    )
+    for (const btn of actionBtns) {
+      if (
+        btn.dataset.userpatchInlineLinks ||
+        btn.dataset.userpatchLoading === "true"
+      ) {
+        continue
+      }
+      if (!btn.querySelector('[data-userpatch-lucide-icon="sparkles"]')) {
+        const oldIcons = btn.querySelectorAll("i, svg")
+        for (const icon of oldIcons) {
+          icon.remove()
+        }
+        btn.prepend(createLucideIcon$1("sparkles"))
+      }
+      btn.dataset.slot = "button"
+      for (const node of btn.childNodes) {
+        if (
+          node.nodeType === Node.TEXT_NODE &&
+          /generate\s+(direct\s+)?download\s+link/i.test(node.textContent || "")
+        ) {
+          node.textContent = "Show links"
+        } else if (
+          node.nodeType === Node.ELEMENT_NODE &&
+          node.tagName !== "svg" &&
+          /generate\s+(direct\s+)?download\s+link/i.test(node.textContent || "")
+        ) {
+          node.textContent = "Show links"
+        }
+      }
+      if (!btn.dataset.userpatchLoadingBound) {
+        btn.dataset.userpatchLoadingBound = "true"
+        btn.addEventListener("click", () => {
+          btn.dataset.userpatchLoading = "true"
+          btn.setAttribute("aria-busy", "true")
+          btn.setAttribute("aria-disabled", "true")
+          const oldIcon = btn.querySelector("[data-userpatch-lucide-icon]")
+          const spinner = createSpinnerIcon()
+          if (oldIcon) {
+            oldIcon.replaceWith(spinner)
+          } else {
+            btn.prepend(spinner)
+          }
+        })
+      }
+    }
+  }
+  const isCopyLinkControl = (button) => {
+    const label = (button?.textContent || "").trim().toLowerCase()
+    const handler = button?.getAttribute("onclick") || ""
+    return (
+      /\bcopy(?:\s+share)?\s+link\b/.test(label) ||
+      /copy_link\s*\(/i.test(handler)
+    )
+  }
+  const getGeneratedDirectDownloadButton = (root) => {
+    for (const link of root.querySelectorAll("a[href]")) {
+      if (link.classList.contains("userpatch-direct-download-btn")) {
+        return link
+      }
+      const label = (link.textContent || "").replaceAll(/\s+/g, " ").trim()
+      if (!/generate\s+(direct\s+)?download\s+link/i.test(label)) {
+        continue
+      }
+      if (isHubCloudDownloadUrl(link.href)) {
+        return link
+      }
+    }
+    return null
+  }
+  const moveDownloadAction = (button, container) => {
+    const oldVd = button.closest(".vd")
+    const oldCenter = button.closest("center")
+    container.append(button)
+    if (oldCenter && oldCenter !== container && !oldCenter.textContent.trim()) {
+      oldCenter.remove()
+    }
+    if (oldVd && oldVd !== container && !oldVd.textContent.trim()) {
+      oldVd.remove()
+    }
+  }
+
+  // src/hubcloud/share.js
+  const createShareButton = (id = "userpatch-share-btn") => {
+    const shareBtn = document.createElement("button")
+    shareBtn.id = id
+    shareBtn.type = "button"
+    shareBtn.className = "userpatch-share-btn"
+    shareBtn.dataset.slot = "button"
+    shareBtn.dataset.variant = "ghost"
+    shareBtn.dataset.size = "sm"
+    shareBtn.setAttribute("aria-label", "Share link")
+    shareBtn.setAttribute("title", "Share link")
+    const icon = createLucideIcon$1("share-2")
+    const text = document.createElement("span")
+    text.textContent = "Share Link"
+    shareBtn.append(icon, text)
+    shareBtn.addEventListener("click", async (event) => {
+      event.preventDefault()
+      const input = document.getElementById("ilink")
+      const inputUrl =
+        shareBtn.id === "userpatch-pack-share-btn" ? "" : input?.value?.trim()
+      const shareUrl =
+        shareBtn.dataset.userpatchShareUrl || inputUrl || location.href
+      if (navigator.share) {
+        try {
+          await navigator.share({ url: shareUrl })
+          return
+        } catch (err) {
+          if (err && err.name === "AbortError") {
+            return
+          }
+        }
+      }
+      const copied = await copyToClipboard(shareUrl)
+      if (copied) {
+        showCopiedFeedback(shareBtn, {
+          label: "Share link",
+          copiedLabel: "Share link copied",
+          icon: "share-2",
+          text: "Share Link",
+          copiedText: "Share Link Copied",
+        })
+      }
+    })
+    return shareBtn
+  }
+
+  // src/hubcloud/file-details.js
+  const FILENAME_DELIMITER_PATTERN = /([._/-]+)/
+  const createFilenameFragment = (name = "") => {
+    const fragment = document.createDocumentFragment()
+    const parts = name.split(FILENAME_DELIMITER_PATTERN)
+    for (const part of parts) {
+      if (!part) {
+        continue
+      }
+      fragment.append(document.createTextNode(part))
+      if (/^[._/-]+$/.test(part)) {
+        fragment.append(document.createElement("wbr"))
+      }
+    }
+    return fragment
+  }
+  const applyFilenameBreaks = (element) => {
+    if (!element || element.dataset.userpatchWbr === "true") {
+      return
+    }
+    const name = element.textContent.trim()
+    if (!name) {
+      return
+    }
+    element.dataset.userpatchWbr = "true"
+    element.replaceChildren(createFilenameFragment(name))
+  }
+  const normalizeFileDetails = (root = document) => {
+    const card = root.querySelector("#section2 .card, .main > .card")
+    if (!card || card.dataset.userpatchNormalized === "true") {
+      const fileInfo = root.querySelector(".userpatch-file-info")
+      if (fileInfo) {
+        applyFilenameBreaks(fileInfo.querySelector(".userpatch-file-title"))
+      }
+      const generatedDownloadBtn = getGeneratedDirectDownloadButton(root)
+      if (
+        fileInfo &&
+        generatedDownloadBtn &&
+        !fileInfo.contains(generatedDownloadBtn)
+      ) {
+        generatedDownloadBtn.classList.add(DIRECT_DOWNLOAD_BUTTON_CLASS)
+        normalizeActionButtons(root)
+        moveDownloadAction(generatedDownloadBtn, fileInfo)
+      }
+      return
+    }
+    const header = card.querySelector(".card-header")
+    const filename = header?.textContent?.trim()
+    if (!filename) {
+      return
+    }
+    let fileSize = ""
+    let shareDate = ""
+    for (const item of card.querySelectorAll(".list-group-item")) {
+      const text = item.textContent.toLowerCase()
+      if (text.includes("size")) {
+        fileSize =
+          item.querySelector("i")?.textContent?.trim() ||
+          item.textContent.replace(/file\s*size/i, "").trim()
+      } else if (text.includes("date")) {
+        shareDate =
+          item.querySelector("i")?.textContent?.trim() ||
+          item.textContent.replace(/share\s*date/i, "").trim()
+      }
+    }
+    const container = document.createElement("div")
+    container.className = "userpatch-file-info"
+    container.dataset.userpatchNormalized = "true"
+    const titleEl = document.createElement("div")
+    titleEl.className = "userpatch-file-title"
+    titleEl.textContent = filename
+    applyFilenameBreaks(titleEl)
+    const metaContainer = document.createElement("div")
+    metaContainer.className = "userpatch-file-meta"
+    if (fileSize) {
+      const sizeItem = document.createElement("div")
+      sizeItem.className = "userpatch-meta-item"
+      const sizeValue = document.createElement("span")
+      sizeValue.id = "size"
+      sizeValue.textContent = fileSize
+      sizeItem.append(createLucideIcon$1("hard-drive"), sizeValue)
+      metaContainer.append(sizeItem)
+    }
+    if (shareDate) {
+      const dateItem = document.createElement("div")
+      dateItem.className = "userpatch-meta-item"
+      const dateValue = document.createElement("span")
+      dateValue.textContent = shareDate
+      dateItem.append(createLucideIcon$1("rss"), dateValue)
+      metaContainer.append(dateItem)
+    }
+    const shareBtn = createShareButton()
+    shareBtn.classList.add("userpatch-meta-item")
+    shareBtn.dataset.userpatchShareUrl =
+      root.querySelector("#ilink")?.value?.trim() || ""
+    metaContainer.append(shareBtn)
+    container.append(titleEl, metaContainer)
+    const generatedDownloadBtn = getGeneratedDirectDownloadButton(root)
+    const fallbackButton1 = Array.from(root.querySelectorAll("#button1")).find(
+      (button) =>
+        !button.closest(".nav-tabs, .tab-content") && !isCopyLinkControl(button)
+    )
+    const downloadBtn =
+      card.querySelector("#download") ||
+      card.parentElement?.querySelector("#download") ||
+      root.querySelector("#download") ||
+      generatedDownloadBtn ||
+      fallbackButton1
+    if (downloadBtn) {
+      if (downloadBtn === generatedDownloadBtn) {
+        downloadBtn.classList.add(DIRECT_DOWNLOAD_BUTTON_CLASS)
+      }
+      normalizeActionButtons(document)
+      moveDownloadAction(downloadBtn, container)
+    }
+    card.replaceWith(container)
+  }
+
+  // src/hubcloud/pack-page.js
+  const isHubCloudPackPage = (root = document) => {
+    const header = root.querySelector(".pack-header")
+    return Boolean(
+      header?.querySelector(".pack-name, #packName") &&
+      header.querySelector(".pack-meta #totalSize") &&
+      root.querySelector(".file-list, #fileList")
+    )
+  }
+  const normalizePackPage = (root = document) => {
+    const packHeader = root.querySelector(".pack-header")
+    const packMeta = packHeader?.querySelector(".pack-meta")
+    const packNameEl = packHeader?.querySelector(".pack-name, #packName")
+    const totalSizeEl = root.querySelector("#totalSize")
+    const fileList = root.querySelector(".file-list, #fileList")
+    if (packHeader) {
+      delete packHeader.dataset.slot
+    }
+    for (const divider of root.querySelectorAll("hr.userpatch-pack-divider")) {
+      divider.remove()
+    }
+    applyFilenameBreaks(packNameEl)
+    if (packMeta) {
+      for (const item of packMeta.querySelectorAll(".pack-meta-item")) {
+        if (item.querySelector("#fileCount")) {
+          item.style.setProperty("display", "none", "important")
+        }
+      }
+      if (totalSizeEl) {
+        const sizeItem = totalSizeEl.closest(".pack-meta-item")
+        if (sizeItem) {
+          const oldSvg = sizeItem.querySelector(
+            "svg:not([data-userpatch-lucide-icon])"
+          )
+          if (oldSvg) {
+            oldSvg.replaceWith(createLucideIcon$1("hard-drive"))
+          }
+        }
+      }
+      let shareBtn = packMeta.querySelector("#userpatch-pack-share-btn")
+      if (!shareBtn) {
+        shareBtn = createShareButton("userpatch-pack-share-btn")
+        shareBtn.dataset.userpatchShareUrl = ""
+        packMeta.append(shareBtn)
+      }
+    }
+    if (fileList) {
+      delete fileList.dataset.slot
+      const items = fileList.querySelectorAll(
+        ".file-item:not([data-userpatch-normalized='true'])"
+      )
+      for (const item of items) {
+        delete item.dataset.slot
+        const fileTitleCode = item.querySelector(".file-title code")
+        const fileTitleEl = item.querySelector(".file-title")
+        const targetTitle = fileTitleCode || fileTitleEl
+        applyFilenameBreaks(targetTitle)
+        const iconContainer = item.querySelector(".file-icon")
+        if (iconContainer) {
+          iconContainer.remove()
+        }
+        let videoUrl = item.dataset.userpatchVideoUrl
+        if (!videoUrl) {
+          const originalLink = item.querySelector("a.file-link, a")
+          const onclickAttr = item.getAttribute("onclick") || ""
+          const match = onclickAttr.match(/window\.open\('([^']+)'/i)
+          if (match && match[1]) {
+            videoUrl = match[1]
+          } else if (originalLink?.href) {
+            videoUrl = originalLink.href
+          }
+          if (videoUrl) {
+            item.dataset.userpatchVideoUrl = videoUrl
+          }
+        }
+        if (videoUrl) {
+          try {
+            const parsedUrl = new URL(videoUrl, location.href)
+            videoUrl = /^https?:$/.test(parsedUrl.protocol)
+              ? parsedUrl.href
+              : ""
+          } catch {
+            videoUrl = ""
+          }
+        }
+        if (videoUrl) {
+          item.dataset.userpatchVideoUrl = videoUrl
+        } else {
+          delete item.dataset.userpatchVideoUrl
+        }
+        const oldFileLink = item.querySelector("a.file-link")
+        if (oldFileLink) {
+          oldFileLink.style.setProperty("display", "none", "important")
+        }
+        const filename = item.querySelector(".file-title")?.textContent.trim()
+        const openLabel = filename ? `Open ${filename}` : "Open video link"
+        const copyLabel = filename
+          ? `Copy link for ${filename}`
+          : "Copy video link"
+        const copiedLabel = filename
+          ? `Link copied for ${filename}`
+          : "Video link copied"
+        let openLink = item.querySelector(".userpatch-pack-open-link")
+        if (videoUrl) {
+          if (!openLink) {
+            openLink = document.createElement("a")
+            openLink.className = "userpatch-pack-open-link"
+            openLink.target = "_blank"
+            openLink.rel = "noopener noreferrer"
+            const accessibleName = document.createElement("span")
+            accessibleName.className = "userpatch-sr-only"
+            openLink.append(accessibleName)
+            item.append(openLink)
+          }
+          let accessibleName = openLink.querySelector(".userpatch-sr-only")
+          if (!accessibleName) {
+            accessibleName = document.createElement("span")
+            accessibleName.className = "userpatch-sr-only"
+            openLink.append(accessibleName)
+          }
+          openLink.href = videoUrl
+          openLink.target = "_blank"
+          openLink.rel = "noopener noreferrer"
+          openLink.setAttribute("aria-label", openLabel)
+          accessibleName.textContent = openLabel
+          item.removeAttribute("onclick")
+        } else {
+          openLink?.remove()
+        }
+        let copyBtn = item.querySelector(".userpatch-pack-copy-btn")
+        if (!copyBtn) {
+          copyBtn = document.createElement("button")
+          copyBtn.type = "button"
+          copyBtn.className = "userpatch-pack-copy-btn"
+          copyBtn.setAttribute("aria-label", copyLabel)
+          copyBtn.setAttribute("title", copyLabel)
+          copyBtn.append(createLucideIcon$1("copy"))
+          copyBtn.addEventListener("click", async (event) => {
+            event.preventDefault()
+            event.stopPropagation()
+            const url = item.dataset.userpatchVideoUrl
+            if (!url) {
+              return
+            }
+            const success = await copyToClipboard(url)
+            if (success) {
+              showCopiedFeedback(copyBtn, {
+                label: copyBtn.dataset.userpatchCopyLabel,
+                copiedLabel: copyBtn.dataset.userpatchCopiedLabel,
+              })
+            }
+          })
+          item.append(copyBtn)
+        }
+        copyBtn.dataset.userpatchCopyLabel = copyLabel
+        copyBtn.dataset.userpatchCopiedLabel = copiedLabel
+        if (!copyBtn.classList.contains("userpatch-copied")) {
+          copyBtn.setAttribute("aria-label", copyLabel)
+          copyBtn.setAttribute("title", copyLabel)
+        }
+        if (videoUrl) {
+          item.dataset.userpatchNormalized = "true"
+        }
+      }
+    }
+  }
+
+  // src/hubcloud/detect.js
+  const isCloudflareChallenge = () => {
+    try {
+      return (
+        location.pathname.startsWith("/cdn-cgi/challenge-platform/") ||
+        /^(Just a moment|Attention Required|Checking your browser)/i.test(
+          document.title || ""
+        ) ||
+        Boolean(
+          document.querySelector(
+            "#challenge-form, #challenge-running, #cf-challenge-running"
+          )
+        )
+      )
+    } catch {
+      return true
+    }
+  }
+  const isDirectFileLink = (url) => {
+    try {
+      const parsed = new URL(url)
+      const host = parsed.hostname.toLowerCase()
+      if (
+        /(^|\.)r2\.dev$/.test(host) ||
+        /(^|\.)cloudflarestorage\.com$/.test(host)
+      ) {
+        return true
+      }
+      return /\.(mkv|mp4|avi|mov|webm|ts|m2ts|zip|rar|7z|iso|mp3|flac)(\?|#|$)/i.test(
+        parsed.pathname
+      )
+    } catch {
+      return false
+    }
+  }
+  const isHubCloudDownloadUrl = (value) => {
+    try {
+      const url = new URL(value, location.href)
+      return (
+        /^https?:$/.test(url.protocol) &&
+        url.pathname === "/hubcloud.php" &&
+        /^(hubcloud|hubvid)$/.test(url.searchParams.get("host")) &&
+        /^[a-z0-9_]+$/i.test(url.searchParams.get("id") || "") &&
+        Boolean(url.searchParams.get("token")?.trim())
+      )
+    } catch {
+      return false
+    }
+  }
+  const isDownloadPage = (() => {
+    try {
+      const url = new URL(
+        performance.getEntriesByType("navigation")[0]?.name || location.href
+      )
+      return url.origin === location.origin && isHubCloudDownloadUrl(url.href)
+    } catch {
+      return false
+    }
+  })()
+  const hasHubCloudDomSignatures = (root = document) => {
+    if (getGeneratedPage() || isHubCloudPackPage(root)) {
+      return true
+    }
+    const card = root.querySelector("#section2 .card, .main > .card")
+    const hasFileDetails = Boolean(
+      card?.querySelector(".card-header") &&
+      card.querySelector(".list-group-item")
+    )
+    return Boolean(
+      hasFileDetails &&
+      (isDownloadPage || getGeneratedDirectDownloadButton(root))
+    )
+  }
+
+  // src/shared/fetch-mirrors.js
+  const providerHosts = new Set([
+    "greenmotors.club",
+    "greenmotors.cc",
+    "hubcloud.mov",
+    "hubcloud.pw",
+    "hubdrive.blog",
+    "hubdrive.bar",
+    "gamerxyt.com",
+  ])
+  const httpsUrl = (value, base) => {
+    try {
+      const url = new URL(value, base)
+      return url.protocol === "https:" &&
+        !url.username &&
+        !url.password &&
+        !url.port
+        ? url
+        : null
+    } catch {
+      return null
+    }
+  }
+  const providerUrl = (value, base) => {
+    const url = httpsUrl(value, base)
+    if (
+      !url ||
+      !providerHosts.has(url.hostname) ||
+      isDirectFileLink(url.href)
+    ) {
+      return null
+    }
+    if (url.hostname === "gamerxyt.com" && !isHubCloudDownloadUrl(url.href)) {
+      return null
+    }
+    return url
+  }
+  const canonicalShareUrl = (value, base) => {
+    const share = httpsUrl(value, base)
+    if (!share) {
+      return null
+    }
+    if (
+      /^hubcloud\.[a-z]+$/.test(share.hostname) &&
+      /^\/drive\/[a-z0-9]{15}\/?$/i.test(share.pathname)
+    ) {
+      share.hostname = "hubcloud.pw"
+      return share
+    }
+    if (
+      /^hubdrive\.[a-z]+$/.test(share.hostname) &&
+      /^\/file\/\d+\/?$/.test(share.pathname)
+    ) {
+      share.hostname = "hubdrive.bar"
+      return share
+    }
+    return null
+  }
+  const getRelayShareUrl = ({ root, url }) => {
+    if (
+      !/^greenmotors\.(?:club|cc)$/.test(url.hostname) ||
+      !url.searchParams.has("id")
+    ) {
+      return null
+    }
+    for (const script of root.querySelectorAll("script:not([src])")) {
+      const payload = script.textContent.match(
+        /\bs\(\s*['"]o['"]\s*,\s*['"]([A-Za-z0-9+/=]+)['"]/
+      )?.[1]
+      if (!payload) {
+        continue
+      }
+      try {
+        const decoded = atob(atob(payload)).replaceAll(/[a-z]/gi, (char) => {
+          const start = char <= "Z" ? 65 : 97
+          return String.fromCharCode(
+            start + ((char.charCodeAt(0) - start + 13) % 26)
+          )
+        })
+        const share = canonicalShareUrl(atob(JSON.parse(atob(decoded)).o))
+        if (share) {
+          return share
+        }
+      } catch {}
+    }
+    return null
+  }
+  const readProviderPage = async (url, streamHandoff = false) => {
+    if (!url || typeof GM_xmlhttpRequest !== "function") {
+      return null
+    }
+    return await new Promise((resolve) => {
+      const maxBytes = 768 * 1024
+      const request = GM_xmlhttpRequest({
+        method: "GET",
+        url: url.href,
+        anonymous: true,
+        timeout: 6500,
+        responseType: "text",
+        headers: { Accept: "text/html" },
+        onprogress: ({ loaded }) => {
+          if (loaded > maxBytes) {
+            resolve(null)
+            request.abort()
+          }
+        },
+        onload: (response) => {
+          const finalUrl = streamHandoff
+            ? httpsUrl(response.finalUrl || url.href)
+            : providerUrl(response.finalUrl || url.href)
+          if (
+            !finalUrl ||
+            response.status !== 200 ||
+            !/^content-type:\s*(?:text\/html|application\/xhtml\+xml)\b/im.test(
+              response.responseHeaders || ""
+            ) ||
+            typeof response.responseText !== "string" ||
+            response.responseText.length > maxBytes
+          ) {
+            resolve(null)
+            return
+          }
+          const template = document.createElement("template")
+          template.innerHTML = response.responseText
+          const root = template.content
+          const title = root.querySelector("title")?.textContent || ""
+          if (
+            /just a moment|attention required|mediator page|checking your browser/i.test(
+              title
+            ) ||
+            root.querySelector(
+              "#challenge-form, #challenge-running, #cf-challenge-running"
+            )
+          ) {
+            resolve({ requiresBrowser: true })
+            return
+          }
+          resolve({
+            root,
+            url: finalUrl,
+          })
+        },
+        onerror: () => resolve(null),
+        onabort: () => resolve(null),
+        ontimeout: () => resolve(null),
+      })
+    }).catch(() => null)
+  }
+  const resolveProviderShare = async (href, provider) => {
+    const host = provider === "HubCloud" ? "hubcloud.pw" : "hubdrive.bar"
+    const direct = canonicalShareUrl(href)
+    if (direct?.hostname === host) {
+      return direct
+    }
+    const page = await readProviderPage(direct || providerUrl(href))
+    if (!page?.root) {
+      return null
+    }
+    const share = getRelayShareUrl(page) || canonicalShareUrl(page.url.href)
+    if (share?.hostname === host) {
+      return share
+    }
+    const targetPage =
+      share && share.href !== page.url.href
+        ? await readProviderPage(share)
+        : page
+    for (const anchor of targetPage?.root?.querySelectorAll("a[href]") || []) {
+      const linkedShare = canonicalShareUrl(
+        anchor.getAttribute("href"),
+        targetPage.url.href
+      )
+      if (linkedShare?.hostname === host) {
+        return linkedShare
+      }
+    }
+    return null
+  }
+  const resolvePlayableMirror = async (mirror) => {
+    if (mirror.variant !== "10gbps") {
+      return mirror
+    }
+    const wrapper = httpsUrl(mirror.url)
+    if (
+      !wrapper ||
+      !wrapper.searchParams.get("id") ||
+      isDirectFileLink(wrapper.href)
+    ) {
+      return mirror
+    }
+    const page = await readProviderPage(wrapper, true)
+    if (
+      !page?.root?.querySelector("main #loadingState.state") ||
+      !/hubcloud/i.test(
+        page.root.querySelector("header .logo-text")?.textContent || ""
+      ) ||
+      !page.root.querySelector("a#vd, a#downloadBtn")
+    ) {
+      return mirror
+    }
+    const playable = httpsUrl(page.url.searchParams.get("link"))
+    return playable &&
+      playable.href !== page.url.href &&
+      playable.href !== wrapper.href
+      ? {
+          ...mirror,
+          url: playable.href,
+          playable: true,
+        }
+      : mirror
+  }
+  const getMirrors = (page, requestedDownload = false) => {
+    const { root, url } = page
+    const card = root.querySelector("#section2 .card, .main > .card")
+    if (
+      !card?.querySelector(".card-header") ||
+      !card.querySelector(".list-group-item") ||
+      !(
+        requestedDownload ||
+        /^(?:hubcloud)\./i.test(url.hostname) ||
+        isHubCloudDownloadUrl(url.href)
+      )
+    ) {
+      return []
+    }
+    const mirrors = new Map()
+    for (const link of root.querySelectorAll(
+      "a.btn[href], a[id^=pxl][href], a:is(#fsl, #fsl2, #s3, #tgbtn)[href]"
+    )) {
+      const mirror = httpsUrl(link.getAttribute("href"), url.href)
+      const label = cleanMirrorLabel(link.textContent)
+      const variant = getButtonVariant(link)
+      if (
+        mirror &&
+        label &&
+        !isWatchOnlineButton(link) &&
+        (variant !== "default" || isDirectFileLink(mirror.href)) &&
+        !mirrors.has(mirror.href)
+      ) {
+        mirrors.set(mirror.href, {
+          url: mirror.href,
+          label,
+          id: link.id,
+          variant,
+        })
+      }
+    }
+    return [...mirrors.values()]
+  }
+  const fetchReleaseMirrors = async (providers) => {
+    const visited = new Set()
+    let requiresBrowser = false
+    const readChain = async (url, remaining) => {
+      if (!url || !remaining || visited.has(url.href)) {
+        return null
+      }
+      visited.add(url.href)
+      const page = await readProviderPage(url)
+      if (!page) {
+        return null
+      }
+      if (page.requiresBrowser) {
+        requiresBrowser = true
+        return null
+      }
+      const share = getRelayShareUrl(page)
+      if (share) {
+        return readChain(share, remaining - 1)
+      }
+      const mirrors = getMirrors(page)
+      if (mirrors.length) {
+        return mirrors
+      }
+      for (const link of page.root.querySelectorAll("a[href]")) {
+        const candidate = providerUrl(link.getAttribute("href"), page.url.href)
+        if (
+          candidate &&
+          ((isHubCloudDownloadUrl(candidate.href) &&
+            (candidate.hostname === page.url.hostname ||
+              candidate.hostname === "gamerxyt.com") &&
+            /generate\s+(?:direct\s+)?download\s+link/i.test(
+              link.textContent
+            )) ||
+            (candidate.hostname.startsWith("hubcloud.") &&
+              /hub\s*cloud/i.test(link.textContent))) &&
+          !visited.has(candidate.href)
+        ) {
+          return readChain(candidate, remaining - 1)
+        }
+      }
+      return null
+    }
+    const mirrors =
+      (await readChain(providerUrl(providers.get("HubCloud")?.href), 4)) ||
+      (await readChain(providerUrl(providers.get("HubDrive")?.href), 4)) ||
+      []
+    return {
+      mirrors,
+      requiresBrowser,
+    }
+  }
+  const fetchHubCloudMirrors = async (href) => {
+    const url = httpsUrl(href)
+    if (!url || !isHubCloudDownloadUrl(url.href)) {
+      return {
+        mirrors: [],
+        requiresBrowser: false,
+      }
+    }
+    const page = await readProviderPage(url, true)
+    return {
+      mirrors: page?.root ? getMirrors(page, true) : [],
+      requiresBrowser: Boolean(page?.requiresBrowser),
+    }
+  }
+  const renderFetchedMirrors = (output, mirrors, onOpen) => {
+    output.replaceChildren()
+    for (const { url, label, id, playable } of mirrors) {
+      const link = document.createElement("a")
+      link.href = url
+      link.target = "_blank"
+      link.rel = "noopener noreferrer"
+      link.dataset.noSwup = ""
+      link.dataset.originalId = id
+      if (playable) {
+        link.dataset.userpatchDirectMirror = "true"
+      }
+      link.className = "btn"
+      link.textContent = label
+      if (onOpen) {
+        link.addEventListener("click", () => onOpen(url))
+      }
+      output.append(link)
+    }
+    wrapDownloadButtons(output, { guide: false })
+    return output.querySelector(".userpatch-btn-group") !== null
+  }
+
+  // src/4khdhub/icons.js
+  const LUCIDE_ICON_SHAPES = {
+    "external-link": [
+      ["path", { d: "M15 3h6v6" }],
+      ["path", { d: "M10 14 21 3" }],
+      [
+        "path",
+        { d: "M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" },
+      ],
+    ],
+    film: [
+      [
+        "rect",
+        {
+          width: "18",
+          height: "18",
+          x: "3",
+          y: "3",
+          rx: "2",
+        },
+      ],
+      ["path", { d: "M7 3v18" }],
+      ["path", { d: "M3 7.5h4" }],
+      ["path", { d: "M3 12h18" }],
+      ["path", { d: "M3 16.5h4" }],
+      ["path", { d: "M17 3v18" }],
+      ["path", { d: "M17 7.5h4" }],
+      ["path", { d: "M17 16.5h4" }],
+    ],
+    "arrow-left": [
+      ["path", { d: "m12 19-7-7 7-7" }],
+      ["path", { d: "M19 12H5" }],
+    ],
+    "arrow-right": [
+      ["path", { d: "M5 12h14" }],
+      ["path", { d: "m12 5 7 7-7 7" }],
+    ],
+    "arrow-up": [
+      ["path", { d: "m5 12 7-7 7 7" }],
+      ["path", { d: "M12 19V5" }],
+    ],
+    "audio-lines": [
+      ["path", { d: "M2 10v3" }],
+      ["path", { d: "M6 6v11" }],
+      ["path", { d: "M10 3v18" }],
+      ["path", { d: "M14 8v7" }],
+      ["path", { d: "M18 5v13" }],
+      ["path", { d: "M22 10v3" }],
+    ],
+    "chevron-down": [["path", { d: "m6 9 6 6 6-6" }]],
+    "chevron-up": [["path", { d: "m18 15-6-6-6 6" }]],
+    check: [["path", { d: "m20 6-11 11-5-5" }]],
+    clapperboard: [
+      ["path", { d: "m12.296 3.464 3.02 3.956" }],
+      [
+        "path",
+        {
+          d: "M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1.1-.3 2.2.3 2.5 1.3z",
+        },
+      ],
+      ["path", { d: "M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" }],
+      ["path", { d: "m6.18 5.276 3.1 3.899" }],
+    ],
+    "file-archive": [
+      [
+        "path",
+        {
+          d: "M13.659 22H18a2 2 0 0 0 2-2V8a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 14 2H6a2 2 0 0 0-2 2v11.5",
+        },
+      ],
+      ["path", { d: "M14 2v5a1 1 0 0 0 1 1h5" }],
+      ["path", { d: "M8 12v-1" }],
+      ["path", { d: "M8 18v-2" }],
+      ["path", { d: "M8 7V6" }],
+      [
+        "circle",
+        {
+          cx: "8",
+          cy: "20",
+          r: "2",
+        },
+      ],
+    ],
+    "file-play": [
+      [
+        "path",
+        {
+          d: "M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z",
+        },
+      ],
+      ["path", { d: "M14 2v5a1 1 0 0 0 1 1h5" }],
+      [
+        "path",
+        {
+          d: "M15.033 13.44a.647.647 0 0 1 0 1.12l-4.065 2.352a.645.645 0 0 1-.968-.56v-4.704a.645.645 0 0 1 .967-.56z",
+        },
+      ],
+    ],
+    download: [
+      ["path", { d: "M12 15V3" }],
+      ["path", { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" }],
+      ["path", { d: "m7 10 5 5 5-5" }],
+    ],
+    house: [
+      ["path", { d: "M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" }],
+      [
+        "path",
+        {
+          d: "M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z",
+        },
+      ],
+    ],
+    info: [
+      [
+        "circle",
+        {
+          cx: "12",
+          cy: "12",
+          r: "10",
+        },
+      ],
+      ["path", { d: "M12 16v-4" }],
+      ["path", { d: "M12 8h.01" }],
+    ],
+    menu: [
+      ["path", { d: "M4 5h16" }],
+      ["path", { d: "M4 12h16" }],
+      ["path", { d: "M4 19h16" }],
+    ],
+    moon: [
+      [
+        "path",
+        {
+          d: "M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401",
+        },
+      ],
+    ],
+    play: [
+      [
+        "path",
+        {
+          d: "M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z",
+        },
+      ],
+    ],
+    search: [
+      ["path", { d: "m21 21-4.34-4.34" }],
+      [
+        "circle",
+        {
+          cx: "11",
+          cy: "11",
+          r: "8",
+        },
+      ],
+    ],
+    tv: [
+      ["path", { d: "m17 2-5 5-5-5" }],
+      [
+        "rect",
+        {
+          width: "20",
+          height: "15",
+          x: "2",
+          y: "7",
+          rx: "2",
+        },
+      ],
+    ],
+    x: [
+      ["path", { d: "M18 6 6 18" }],
+      ["path", { d: "m6 6 12 12" }],
+    ],
+  }
+  const LUCIDE_ICON_RULES = [
+    ["#menu-toggle svg", "menu"],
+    ["#search-toggle svg, .search-icon, .search-icon-overlay", "search"],
+    ["#theme-toggle .theme-icon", "moon"],
+    [
+      "#close-mobile-menu svg, #close-search svg, #close-trailer svg, #search-overlay .close-button svg",
+      "x",
+    ],
+    [".nav-link.dropdown-toggle svg, .dropdown-indicator", "chevron-down"],
+    [".breadcrumb svg", "arrow-left"],
+    ["#play-btn svg, #trailer-btn svg", "play"],
+    [
+      ".download-header .chevron-icon, .series-season-toggle .chevron-icon",
+      "chevron-down",
+    ],
+    [
+      ".download-item a.btn .responsive-icon, .episode-links a.btn .responsive-icon",
+      "download",
+    ],
+    ['#series-tabs .series-tab[data-tab="episodes"] svg', "clapperboard"],
+    [".content-main .info-box > div:first-child > svg", "info"],
+    [".pagination-next svg, a[rel='next'] svg", "arrow-right"],
+    [
+      ".pagination-prev svg, .pagination-previous svg, a[rel='prev'] svg",
+      "arrow-left",
+    ],
+    ["#back-to-top svg", "arrow-up"],
+  ]
+  const applyLucideIcon = (svg, name) => {
+    if (svg.dataset.userpatchLucideIcon === name) {
+      return
+    }
+    const replacement = createLucideIcon(name)
+    svg.replaceChildren(...replacement.childNodes)
+    for (const attribute of [
+      "width",
+      "height",
+      "viewBox",
+      "fill",
+      "stroke",
+      "stroke-width",
+      "stroke-linecap",
+      "stroke-linejoin",
+      "aria-hidden",
+      "focusable",
+    ]) {
+      svg.setAttribute(attribute, replacement.getAttribute(attribute))
+    }
+    svg.dataset.userpatchLucideIcon = name
+  }
+  const normalizeLucideIcons = (root = document) => {
+    const isSeriesDetail = Boolean(
+      root.querySelector("#series-tabs") &&
+      root.querySelector("#complete-pack, #episodes")
+    )
+    for (const [selector, name] of LUCIDE_ICON_RULES) {
+      if (isSeriesDetail && selector.includes(".download-item a.btn")) {
+        continue
+      }
+      for (const svg of root.querySelectorAll(selector)) {
+        applyLucideIcon(svg, name)
+      }
+    }
+  }
+  const createLucideIcon = (name) =>
+    createLucideIcon$2(name, LUCIDE_ICON_SHAPES)
+
+  // src/4khdhub/fetch-links.js
+  const copyResolvedShare = async (url) => {
+    try {
+      if (typeof GM_setClipboard === "function") {
+        await GM_setClipboard(url.href, "text")
+        return true
+      }
+    } catch {}
+    return copyToClipboard(url.href)
+  }
+  let menuId = 0
+  const createAction = (label, icon) => {
+    const button = document.createElement("button")
+    button.type = "button"
+    button.append(
+      icon === "copy" ? createLucideIcon$1(icon) : createLucideIcon(icon)
+    )
+    button.setAttribute("aria-label", label)
+    return button
+  }
+  const addFetchLinks = (row, actions) => {
+    if (!actions) {
+      return
+    }
+    const providers = new Map(
+      [
+        ...actions.querySelectorAll(
+          'a[aria-label="HubCloud"], a[aria-label="HubDrive"]'
+        ),
+      ].map((anchor) => [anchor.getAttribute("aria-label"), anchor])
+    )
+    const sources = [...providers]
+    if (!sources.length || typeof GM_xmlhttpRequest !== "function") {
+      return
+    }
+    const group = document.createElement("div")
+    group.className = `${BUTTON_GROUP_CLASS} userpatch-fetch-group`
+    group.setAttribute("role", "group")
+    group.setAttribute("aria-label", "Release links")
+    const show = createAction("Show links", "chevron-down")
+    show.className = BUTTON_MAIN_CLASS
+    const showLabel = document.createElement("span")
+    showLabel.className = "userpatch-btn-label"
+    let hasMirrors = false
+    const renderShowState = (loading = false) => {
+      const label = hasMirrors ? "Refresh" : "Show links"
+      group.classList.toggle("userpatch-fetch-loaded", hasMirrors)
+      show.disabled = loading
+      if (loading) {
+        show.setAttribute("aria-busy", "true")
+      } else {
+        show.removeAttribute("aria-busy")
+      }
+      show.setAttribute("aria-label", loading ? "Fetching links" : label)
+      showLabel.textContent = label
+      const readyIcon = hasMirrors
+        ? createLucideIcon$1("refresh-cw")
+        : createLucideIcon$1("sparkles")
+      show.replaceChildren(loading ? createSpinnerIcon() : readyIcon, showLabel)
+    }
+    renderShowState()
+    const more = createAction("More link options", "chevron-down")
+    more.className = COPY_BUTTON_CLASS
+    const menu = document.createElement("div")
+    menu.id = `userpatch-fetch-menu-${++menuId}`
+    menu.className = "userpatch-season-popup userpatch-fetch-menu"
+    menu.setAttribute("popover", "auto")
+    more.setAttribute("popovertarget", menu.id)
+    more.setAttribute("aria-controls", menu.id)
+    menu.addEventListener("beforetoggle", ({ newState }) => {
+      more.setAttribute("aria-expanded", String(newState === "open"))
+      if (newState === "open") {
+        const rect = more.getBoundingClientRect()
+        menu.style.insetInlineEnd = `${Math.max(8, innerWidth - rect.right)}px`
+        if (innerHeight - rect.bottom >= 104) {
+          menu.style.insetBlockStart = `${rect.bottom + 4}px`
+          menu.style.insetBlockEnd = "auto"
+        } else {
+          menu.style.insetBlockStart = "auto"
+          menu.style.insetBlockEnd = `${innerHeight - rect.top + 4}px`
+        }
+      }
+    })
+    const results = document.createElement("div")
+    results.className = "userpatch-fetch-results"
+    const status = document.createElement("div")
+    status.setAttribute("role", "status")
+    const output = document.createElement("div")
+    output.className = "userpatch-fetch-output"
+    results.append(status, output)
+    for (const [provider, anchor] of sources) {
+      const label = `Copy ${provider}`
+      const button = createAction(label, "copy")
+      button.classList.add("userpatch-season-option")
+      button.append(label)
+      button.addEventListener("click", async () => {
+        button.disabled = true
+        button.setAttribute("aria-busy", "true")
+        status.textContent = ""
+        try {
+          const share = await resolveProviderShare(anchor.href, provider)
+          if (!share) {
+            status.textContent = `Could not resolve the ${provider} share link.`
+            return
+          }
+          if (await copyResolvedShare(share)) {
+            showCopiedFeedback(button, {
+              label,
+              text: label,
+              copiedLabel: `${provider} copied`,
+              copiedText: "Copied",
+              showTitle: false,
+            })
+          } else {
+            status.textContent = "Could not copy the link."
+          }
+        } finally {
+          button.disabled = false
+          button.removeAttribute("aria-busy")
+        }
+      })
+      menu.append(button)
+      anchor.classList.add("userpatch-fetch-original")
+    }
+    const recordOpened = (url) => {
+      const item = row.closest(".userpatch-release-item")
+      markReleaseOpened(row, item)
+      saveOpenedRelease(item?.dataset.userpatchFilename, url)
+    }
+    show.addEventListener("click", async () => {
+      recordOpened()
+      renderShowState(true)
+      status.textContent = ""
+      try {
+        const { mirrors, requiresBrowser } =
+          await fetchReleaseMirrors(providers)
+        if (!results.isConnected) {
+          return
+        }
+        if (!mirrors.length) {
+          status.textContent = requiresBrowser
+            ? "Provider verification is required."
+            : "No mirrors found."
+          return
+        }
+        const resolved = await Promise.all(mirrors.map(resolvePlayableMirror))
+        if (!results.isConnected) {
+          return
+        }
+        hasMirrors = renderFetchedMirrors(output, resolved, recordOpened)
+      } finally {
+        renderShowState()
+      }
+    })
+    group.append(show, more)
+    actions.append(group, menu)
+    row.append(results)
+  }
+  const FETCH_LINKS_CSS = `
+${BUTTON_GROUP_CSS}
+html.userpatch-maia[data-userpatch-fetch-links] {
+  --userpatch-fetch-label-size: 0.875rem;
+  --userpatch-fetch-control-inner-size: calc(var(--userpatch-fetch-label-size) + 1.25rem);
+}
+@media (min-width: ${CONFIG$1.mobileLayoutBreakpointRem + 0.01}rem) {
+  html.userpatch-maia[data-userpatch-fetch-links] {
+    --userpatch-fetch-label-size: 1rem;
+  }
+}
+html.userpatch-maia :is(.userpatch-fetch-group, .userpatch-fetch-results) {
+  display: none;
+}
+html.userpatch-maia[data-userpatch-fetch-links] .userpatch-fetch-original {
+  display: none;
+}
+html.userpatch-maia[data-userpatch-fetch-links] .userpatch-fetch-results {
+  display: grid;
+  min-inline-size: 0;
+  gap: 0.375rem;
+}
+html.userpatch-maia .userpatch-fetch-results > :is([role="status"], .userpatch-fetch-output):empty {
+  display: none;
+}
+html.userpatch-maia .userpatch-fetch-results:has([role="status"]:empty):has(.userpatch-fetch-output:empty) {
+  display: none;
+}
+html.userpatch-maia .userpatch-fetch-output .userpatch-btn-group,
+html.userpatch-maia[data-userpatch-fetch-links] .userpatch-fetch-group {
+  ${KUMO_BUTTON_PAINT}
+  display: inline-flex;
+  align-items: stretch;
+  max-inline-size: 100%;
+  box-sizing: border-box;
+}
+html.userpatch-maia .userpatch-fetch-output .userpatch-btn-group {
+  overflow: hidden;
+}
+html.userpatch-maia .userpatch-fetch-output .userpatch-btn-group > :is(button, a) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: var(--userpatch-fetch-control-inner-size);
+  gap: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit !important;
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+html.userpatch-maia .userpatch-fetch-output .userpatch-btn-group > :is(button, a):hover {
+  background: color-mix(in oklch, currentColor 9%, transparent) !important;
+}
+html.userpatch-maia[data-userpatch-fetch-links] .userpatch-fetch-group {
+  ${KUMO_PRIMARY_BUTTON_TOKENS}
+  isolation: isolate;
+  white-space: nowrap;
+}
+html.userpatch-maia[data-userpatch-fetch-links] .userpatch-fetch-group > button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  gap: 0.375rem;
+  min-block-size: var(--userpatch-fetch-control-inner-size);
+  padding: 0.375rem 0.75rem;
+  margin: 0;
+  border: 0 !important;
+  border-radius: 0.5rem;
+  background: transparent !important;
+  color: inherit !important;
+  box-shadow: none !important;
+  font: inherit;
+  font-weight: 500;
+  line-height: 1.25rem;
+  cursor: pointer;
+}
+html.userpatch-maia[data-userpatch-fetch-links] .userpatch-fetch-group > button:first-child {
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
+}
+html.userpatch-maia[data-userpatch-fetch-links] .userpatch-fetch-group > button:last-child {
+  inline-size: var(--userpatch-fetch-control-inner-size);
+  padding: 0;
+  border-inline-start: 1px solid color-mix(in oklch, currentColor 22%, transparent) !important;
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+}
+html.userpatch-maia[data-userpatch-fetch-links] .userpatch-fetch-group:hover {
+  --userpatch-button-tint: 22%;
+}
+html.userpatch-maia[data-userpatch-fetch-links] .userpatch-fetch-group.userpatch-fetch-loaded {
+  ${KUMO_MUTED_BUTTON_TOKENS}
+}
+html.userpatch-maia[data-userpatch-fetch-links] .userpatch-fetch-group > button:focus-visible {
+  z-index: 1;
+  outline: 2px solid var(--maia-ring) !important;
+  outline-offset: 1px;
+}
+html.userpatch-maia[data-userpatch-fetch-links] .userpatch-fetch-group > button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+html.userpatch-maia :is(.userpatch-fetch-group, .userpatch-fetch-output) svg {
+  inline-size: var(--userpatch-fetch-label-size);
+  block-size: var(--userpatch-fetch-label-size);
+  flex: none;
+}
+/* The arrow path occupies less of its view box than the copy glyph. */
+html.userpatch-maia .userpatch-fetch-output svg[data-userpatch-lucide-icon="arrow-down-to-line"] {
+  inline-size: calc(var(--userpatch-fetch-label-size) + 0.125rem);
+  block-size: calc(var(--userpatch-fetch-label-size) + 0.125rem);
+}
+html.userpatch-maia[data-userpatch-fetch-links] :is(.userpatch-fetch-group, .userpatch-fetch-output) .userpatch-btn-label,
+html.userpatch-maia[data-userpatch-fetch-links] .userpatch-fetch-menu button > span {
+  font-size: var(--userpatch-fetch-label-size) !important;
+  line-height: 1.25;
+  text-box: trim-both cap alphabetic;
+}
+html.userpatch-maia .userpatch-fetch-output .userpatch-copy-btn {
+  inline-size: var(--userpatch-fetch-control-inner-size);
+  flex: none;
+}
+html.userpatch-maia :is(.userpatch-fetch-group, .userpatch-fetch-output) svg {
+  stroke: currentColor !important;
+  fill: none !important;
+}
+@keyframes userpatch-fetch-spin {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  html.userpatch-maia .userpatch-fetch-group .userpatch-spinner {
+    animation: userpatch-fetch-spin 1s linear infinite;
+  }
+}
+html.userpatch-maia .userpatch-fetch-output {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+html.userpatch-maia .userpatch-fetch-menu:not(:popover-open) {
+  display: none;
+}
+html.userpatch-maia .userpatch-fetch-menu {
+  position: fixed;
+  inset: auto;
+  inline-size: max-content;
+  min-inline-size: 9rem;
+  max-inline-size: calc(100vw - 1rem);
+  margin: 0;
+  padding: 0.25rem;
+  border: 1px solid var(--maia-border);
+  border-radius: 0.75rem;
+  background: var(--maia-popover);
+  color: var(--maia-popover-foreground);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
+}
+html.userpatch-maia[data-userpatch-fetch-links] .userpatch-fetch-menu button {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  inline-size: 100%;
+  text-align: start;
+  white-space: nowrap;
+  min-block-size: calc(var(--userpatch-fetch-control-inner-size) + 2px);
+  padding: 0.375rem 0.75rem;
+  font-size: var(--userpatch-fetch-label-size) !important;
+  font-weight: 400;
+  line-height: 1.35;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+html.userpatch-maia .userpatch-fetch-menu button:hover {
+  background: var(--maia-accent);
+}
+html.userpatch-maia .userpatch-fetch-menu svg {
+  flex: none;
+  inline-size: var(--userpatch-fetch-label-size);
+  block-size: var(--userpatch-fetch-label-size);
+}
+html.userpatch-maia[data-userpatch-fetch-links] .userpatch-release-row:has(> .userpatch-fetch-results) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  column-gap: 0.75rem;
+  row-gap: 0;
+}
+html.userpatch-maia[data-userpatch-fetch-links] .userpatch-release-row > .userpatch-release-actions:has(.userpatch-fetch-group) {
+  grid-column: 2;
+  grid-row: 1;
+}
+html.userpatch-maia[data-userpatch-fetch-links] .userpatch-release-row > .userpatch-fetch-results {
+  grid-column: 1;
+  grid-row: 2;
+  margin-block-start: 0.5rem;
+}
+@media (max-width: ${CONFIG$1.mobileLayoutBreakpointRem}rem) {
+  html.userpatch-maia[data-userpatch-fetch-links] .userpatch-release-row:has(> .userpatch-fetch-results) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+    row-gap: 0.5rem;
+  }
+  html.userpatch-maia[data-userpatch-fetch-links] .userpatch-release-row > .userpatch-release-actions:has(.userpatch-fetch-group),
+  html.userpatch-maia[data-userpatch-fetch-links] .userpatch-release-row > .userpatch-fetch-results {
+    grid-column: 1;
+    grid-row: auto;
+    margin: 0;
+  }
+  html.userpatch-maia[data-userpatch-fetch-links] .userpatch-fetch-group,
+  html.userpatch-maia[data-userpatch-fetch-links] .userpatch-fetch-group > button:first-child {
+    flex: 1 1 auto;
+  }
+  html.userpatch-maia .userpatch-fetch-output:not(:empty) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+  }
+  html.userpatch-maia .userpatch-fetch-output .userpatch-btn-group > a {
+    flex: 1 1 auto;
+    justify-content: flex-start !important;
+    gap: 0.375rem;
+    min-inline-size: 0;
+    padding-inline: 0.75rem;
+    text-align: start;
+  }
+  html.userpatch-maia[data-userpatch-fetch-links] .userpatch-fetch-group > button:first-child {
+    justify-content: flex-start;
+  }
+  html.userpatch-maia .userpatch-fetch-output .userpatch-btn-group > button {
+    padding-inline: 0;
+  }
+  html.userpatch-maia .userpatch-fetch-output .userpatch-btn-label {
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
 }
 `
 
@@ -1477,7 +5068,7 @@ html.userpatch-maia header.sticky > .header > .container > .flex:last-child {
   padding-inline-end: 0 !important;
 }
 
-html.userpatch-maia header.sticky > .header > .container > .flex:last-child > :not(#search-toggle) {
+html.userpatch-maia header.sticky > .header > .container > .flex:last-child > :not(#search-toggle, .userpatch-settings-trigger) {
   display: none !important;
 }
 
@@ -1507,7 +5098,8 @@ html.userpatch-maia header.sticky .navbar-brand:focus-visible img {
 }
 
 html.userpatch-maia header.sticky .navbar-brand,
-html.userpatch-maia header.sticky #search-toggle {
+html.userpatch-maia header.sticky #search-toggle,
+html.userpatch-maia header.sticky .userpatch-settings-trigger {
   position: relative;
   z-index: 1;
   display: inline-flex;
@@ -1530,7 +5122,8 @@ html.userpatch-maia header.sticky .navbar-brand {
 }
 
 html.userpatch-maia header.sticky #menu-toggle,
-html.userpatch-maia header.sticky #search-toggle {
+html.userpatch-maia header.sticky #search-toggle,
+html.userpatch-maia header.sticky .userpatch-settings-trigger {
   inline-size: 3rem;
   min-inline-size: 3rem;
   block-size: 3rem;
@@ -1538,6 +5131,11 @@ html.userpatch-maia header.sticky #search-toggle {
   margin: 0 !important;
   padding: 0 !important;
   cursor: pointer;
+}
+
+html.userpatch-maia header.sticky :is(#search-toggle, .userpatch-settings-trigger) svg {
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
 }
 
 html.userpatch-maia header.sticky #menu-toggle {
@@ -1639,7 +5237,8 @@ html.userpatch-maia .breadcrumb a:hover {
 
 html.userpatch-maia header.sticky .nav-link:focus-visible,
 html.userpatch-maia header.sticky #menu-toggle:focus-visible,
-html.userpatch-maia header.sticky #search-toggle:focus-visible {
+html.userpatch-maia header.sticky #search-toggle:focus-visible,
+html.userpatch-maia header.sticky .userpatch-settings-trigger:focus-visible {
   outline: 2px solid var(--maia-ring) !important;
   outline-offset: -2px;
 }
@@ -1756,7 +5355,7 @@ html.userpatch-maia .dropdown-item:active {
 }
 
 html.userpatch-maia a:focus-visible,
-html.userpatch-maia button:focus-visible,
+html.userpatch-maia button:focus-visible:not(:where(.userpatch-season-trigger)),
 html.userpatch-maia summary:focus-visible,
 html.userpatch-maia [role="button"]:focus-visible {
   outline: 1px solid var(--maia-ring) !important;
@@ -3432,80 +7031,6 @@ html.userpatch-maia .userpatch-mobile-nav {
   display: none !important;
 }
 
-html.userpatch-maia .userpatch-mobile-menu:popover-open {
-  position: fixed;
-  inset-block: 0;
-  inset-inline-start: 0;
-  display: flex;
-  inline-size: min(${CONFIG.mobileMenuWidth}, calc(100dvw - 2rem));
-  block-size: 100dvh;
-  max-block-size: 100dvh;
-  max-inline-size: none;
-  flex-direction: column;
-  gap: 0;
-  box-sizing: border-box;
-  margin: 0 auto 0 0;
-  padding: max(0.75rem, env(safe-area-inset-top, 0px)) 0.75rem
-    max(0.75rem, env(safe-area-inset-bottom, 0px));
-  overflow: hidden;
-  overscroll-behavior-x: auto;
-  overscroll-behavior-y: contain;
-  border: 1px solid var(--maia-border);
-  border-inline-start: 0;
-  border-radius: 0 var(--maia-radius-2xl) var(--maia-radius-2xl) 0;
-  background: var(--maia-card);
-  color: var(--maia-foreground);
-  box-shadow: 0 24px 64px rgb(0 0 0 / 0.45);
-  transform: translateX(0);
-  transition: transform 220ms var(--ease-drawer);
-}
-
-@starting-style {
-  html.userpatch-maia .userpatch-mobile-menu:popover-open {
-    transform: translateX(-100%);
-  }
-}
-
-html.userpatch-maia .userpatch-mobile-menu:popover-open::backdrop {
-  background: rgb(0 0 0 / 80%);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
-  transition: opacity 220ms var(--ease-out);
-}
-
-html.userpatch-maia .userpatch-mobile-menu-header {
-  display: flex;
-  min-block-size: 3.5rem;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0 0.5rem 0.75rem;
-  border-bottom: 1px solid var(--maia-border);
-}
-
-html.userpatch-maia .userpatch-mobile-menu-title {
-  margin: 0;
-  color: var(--maia-foreground);
-  font-size: 1.125rem;
-  font-weight: 600;
-  line-height: 1.25;
-}
-
-html.userpatch-maia .userpatch-mobile-menu-close {
-  display: inline-flex;
-  inline-size: 2.5rem;
-  block-size: 2.5rem;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: 1px solid var(--maia-border);
-  border-radius: var(--maia-radius-xl);
-  background: var(--maia-muted);
-  color: var(--maia-foreground);
-  cursor: pointer;
-}
-
 html.userpatch-maia .userpatch-mobile-menu-close svg,
 html.userpatch-maia .userpatch-mobile-menu-summary svg {
   inline-size: 1.25rem;
@@ -3572,8 +7097,7 @@ html.userpatch-maia .userpatch-mobile-menu-summary::-webkit-details-marker {
 }
 
 html.userpatch-maia .userpatch-mobile-menu-link:focus-visible,
-html.userpatch-maia .userpatch-mobile-menu-summary:focus-visible,
-html.userpatch-maia .userpatch-mobile-menu-close:focus-visible {
+html.userpatch-maia .userpatch-mobile-menu-summary:focus-visible {
   background: var(--maia-selection-bg, color-mix(in oklch, var(--maia-foreground) 9%, transparent));
   color: var(--maia-foreground);
 }
@@ -3587,14 +7111,12 @@ html.userpatch-maia .userpatch-mobile-menu-close:focus-visible {
 }
 
 html.userpatch-maia .userpatch-mobile-menu-link:active,
-html.userpatch-maia .userpatch-mobile-menu-summary:active,
-html.userpatch-maia .userpatch-mobile-menu-close:active {
+html.userpatch-maia .userpatch-mobile-menu-summary:active {
   background: color-mix(in oklch, var(--maia-foreground) 14%, transparent);
 }
 
 html.userpatch-maia .userpatch-mobile-menu-link:focus-visible,
-html.userpatch-maia .userpatch-mobile-menu-summary:focus-visible,
-html.userpatch-maia .userpatch-mobile-menu-close:focus-visible {
+html.userpatch-maia .userpatch-mobile-menu-summary:focus-visible {
   outline: 2px solid var(--maia-ring);
   outline-offset: -2px;
 }
@@ -4479,6 +8001,16 @@ html.userpatch-maia.userpatch-detail-page .userpatch-release-copy {
   gap: 4px;
 }
 
+html.userpatch-maia {
+  --userpatch-release-filename-size: 0.875rem;
+}
+
+@media (min-width: 761px) {
+  html.userpatch-maia {
+    --userpatch-release-filename-size: 1.125rem;
+  }
+}
+
 html.userpatch-maia .userpatch-release-file-title,
 html.userpatch-maia .userpatch-release-file-text,
 html.userpatch-maia.userpatch-detail-page .userpatch-release-file-title,
@@ -4486,21 +8018,10 @@ html.userpatch-maia.userpatch-detail-page .userpatch-release-file-text,
 html.userpatch-maia[data-detail-theme] .userpatch-release-file-title,
 html.userpatch-maia[data-detail-theme] .userpatch-release-file-text {
   color: var(--maia-foreground);
-  font-size: 0.875rem !important;
+  font-size: var(--userpatch-release-filename-size) !important;
   font-weight: 400;
-  line-height: ${CONFIG.filenameLineHeight};
+  line-height: ${CONFIG$1.filenameLineHeight};
   overflow-wrap: anywhere;
-}
-
-@media (min-width: 761px) {
-  html.userpatch-maia .userpatch-release-file-title,
-  html.userpatch-maia .userpatch-release-file-text,
-  html.userpatch-maia.userpatch-detail-page .userpatch-release-file-title,
-  html.userpatch-maia.userpatch-detail-page .userpatch-release-file-text,
-  html.userpatch-maia[data-detail-theme] .userpatch-release-file-title,
-  html.userpatch-maia[data-detail-theme] .userpatch-release-file-text {
-    font-size: 1.125rem !important;
-  }
 }
 
 html.userpatch-maia.userpatch-detail-page .userpatch-release-file-text {
@@ -4735,13 +8256,12 @@ html.userpatch-maia.userpatch-detail-page .userpatch-release-toolbar {
   display: contents;
 }
 
-/* Keep the movie filter centered on the logo in the 1rem-offset sidebar. */
+
 html.userpatch-maia.userpatch-detail-page .userpatch-release-main:not(.userpatch-series-main) > .userpatch-release-toolbar > .userpatch-quality-tabs {
   grid-row: 1;
   grid-column: 1 / -1;
   align-self: center;
   justify-self: end;
-  inset-block-start: 1.5rem;
   margin: 0;
 }
 
@@ -4800,63 +8320,6 @@ html.userpatch-maia.userpatch-detail-page .userpatch-season-control {
 
 html.userpatch-maia.userpatch-detail-page .userpatch-season-control[hidden] {
   display: none !important;
-}
-
-html.userpatch-maia.userpatch-detail-page .userpatch-season-trigger {
-  display: flex;
-  inline-size: 100%;
-  box-sizing: border-box;
-  min-inline-size: 0;
-  block-size: 2.125rem;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.375rem;
-  padding: 0.375rem 0.75rem;
-  border: 1px solid transparent;
-  border-radius: 0.75rem;
-  background: var(--maia-selection-bg, rgb(255 255 255 / 0.15));
-  box-shadow: var(--maia-selection-shadow, inset 0 1px 2px rgb(255 255 255 / 0.12));
-  color: var(--maia-foreground);
-  font: inherit;
-  font-size: 0.875rem !important;
-  font-weight: 400;
-  line-height: 1.25;
-  text-align: start;
-  white-space: nowrap;
-  cursor: pointer;
-  transition:
-    transform 140ms var(--ease-out),
-    border-color 140ms ease,
-    background-color 140ms ease;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  html.userpatch-maia.userpatch-detail-page .userpatch-season-trigger:hover:not(:disabled) {
-    background: var(--maia-select-hover-bg, rgb(255 255 255 / 0.2));
-  }
-}
-
-html.userpatch-maia.userpatch-detail-page .userpatch-season-trigger:active:not(:disabled) {
-  transform: scale(0.98);
-  background: var(--maia-select-hover-bg, rgb(255 255 255 / 0.25));
-}
-
-html.userpatch-maia.userpatch-detail-page .userpatch-season-trigger:focus-visible {
-  border-color: var(--maia-ring);
-  outline: none;
-  box-shadow: 0 0 0 3px color-mix(in oklch, var(--maia-ring) 50%, transparent);
-}
-
-html.userpatch-maia.userpatch-detail-page .userpatch-season-trigger:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
-
-html.userpatch-maia.userpatch-detail-page .userpatch-season-value {
-  min-inline-size: 0;
-  flex: 1 1 auto;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 html.userpatch-maia.userpatch-detail-page .userpatch-version-marker {
@@ -4943,7 +8406,7 @@ html.userpatch-maia.userpatch-detail-page body
   font-size: 0.875rem !important;
 }
 
-@media (min-width: ${CONFIG.mobileLayoutBreakpointRem + 0.01}rem) {
+@media (min-width: ${CONFIG$1.mobileLayoutBreakpointRem + 0.01}rem) {
   html.userpatch-maia.userpatch-detail-page .userpatch-series-quality-group {
     flex: 0 1 auto;
     flex-direction: row;
@@ -4987,63 +8450,6 @@ html.userpatch-maia.userpatch-detail-page .userpatch-season-positioner[hidden] {
   display: none !important;
 }
 
-html.userpatch-maia.userpatch-detail-page .userpatch-season-popup {
-  display: flex;
-  inline-size: var(--userpatch-anchor-width, 100%);
-  min-inline-size: min(max(var(--userpatch-anchor-width, 0px), 9rem), calc(100vw - 1rem));
-  max-inline-size: calc(100vw - 1rem);
-  max-block-size: var(--userpatch-popup-height, 22rem);
-  flex-direction: column;
-  box-sizing: border-box;
-  pointer-events: auto;
-  border: 1px solid
-    color-mix(in oklch, var(--maia-foreground) 8%, transparent);
-  border-radius: 1rem;
-  background: var(--maia-popover);
-  color: var(--maia-popover-foreground);
-  box-shadow: 0 16px 40px rgb(0 0 0 / 0.28);
-  overflow: hidden;
-  opacity: 1;
-  transform: scale(1);
-  transform-origin: top left;
-  transition:
-    opacity 140ms var(--ease-out),
-    transform 140ms var(--ease-out);
-}
-
-html.userpatch-maia.userpatch-detail-page .userpatch-season-popup[data-side="top"] {
-  transform-origin: bottom left;
-}
-
-@starting-style {
-  html.userpatch-maia.userpatch-detail-page .userpatch-season-popup {
-    opacity: 0;
-    transform: scale(0.96);
-  }
-}
-
-html.userpatch-maia.userpatch-detail-page .userpatch-season-menu {
-  position: relative;
-  display: block;
-  inline-size: 100%;
-  min-inline-size: 0;
-  min-block-size: 0;
-  max-block-size: var(--userpatch-menu-height, 22rem);
-  flex: 0 1 auto;
-  box-sizing: border-box;
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior-x: auto;
-  overscroll-behavior-y: contain;
-  padding: 0.25rem;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-}
-
-html.userpatch-maia.userpatch-detail-page .userpatch-season-menu::-webkit-scrollbar {
-  display: none;
-}
-
 html.userpatch-maia.userpatch-detail-page .userpatch-season-scroll-control {
   display: flex;
   min-block-size: 1.5rem;
@@ -5079,79 +8485,6 @@ html.userpatch-maia.userpatch-detail-page .userpatch-season-scroll-control:activ
 html.userpatch-maia.userpatch-detail-page .userpatch-season-scroll-control svg {
   inline-size: 1rem;
   block-size: 1rem;
-}
-
-html.userpatch-maia.userpatch-detail-page .userpatch-season-option {
-  position: relative;
-  display: flex;
-  inline-size: 100%;
-  min-block-size: 2.25rem;
-  block-size: auto;
-  box-sizing: border-box;
-  align-items: center;
-  gap: 0.625rem;
-  padding: 0.5rem 2.25rem 0.5rem 0.75rem;
-  border-radius: 0.75rem;
-  color: var(--maia-popover-foreground);
-  font-size: 0.875rem;
-  line-height: 1.35;
-  text-align: start;
-  white-space: normal;
-  overflow-wrap: anywhere;
-  cursor: default;
-  user-select: none;
-  outline: none;
-  transition:
-    background-color 140ms var(--ease-out),
-    color 140ms var(--ease-out);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  html.userpatch-maia.userpatch-detail-page .userpatch-season-option:hover {
-    background: var(--maia-accent);
-    color: var(--maia-accent-foreground);
-  }
-}
-
-html.userpatch-maia.userpatch-detail-page .userpatch-season-option:focus-visible,
-html.userpatch-maia.userpatch-detail-page .userpatch-season-option[data-highlighted] {
-  outline: none;
-  background: var(--maia-accent);
-  color: var(--maia-accent-foreground);
-}
-
-html.userpatch-maia.userpatch-detail-page .userpatch-season-option-label {
-  min-inline-size: 0;
-  flex: 1 1 auto;
-  white-space: normal;
-  overflow-wrap: anywhere;
-  word-break: normal;
-  line-height: 1.35;
-}
-
-html.userpatch-maia.userpatch-detail-page .userpatch-season-option-check {
-  position: absolute;
-  inset-inline-end: 0.5rem;
-  inset-block-start: 50%;
-  transform: translateY(-50%);
-  inline-size: 1rem;
-  block-size: 1rem;
-  opacity: 0;
-  transition: opacity 120ms var(--ease-out);
-  pointer-events: none;
-}
-
-html.userpatch-maia.userpatch-detail-page .userpatch-season-option[aria-selected="true"] .userpatch-season-option-check {
-  opacity: 1;
-}
-
-html.userpatch-maia.userpatch-detail-page .userpatch-season-chevron {
-  display: block;
-  flex: none;
-  inline-size: 1rem;
-  block-size: 1rem;
-  color: var(--maia-muted-foreground);
-  pointer-events: none;
 }
 
 html.userpatch-maia.userpatch-detail-page .userpatch-series-main > .userpatch-series-releases {
@@ -5209,7 +8542,7 @@ html.userpatch-maia.userpatch-detail-page .userpatch-series-main > .userpatch-se
   margin-inline-start: 0;
 }
 
-@media (min-width: ${CONFIG.mobileLayoutBreakpointRem + 0.01}rem) {
+@media (min-width: ${CONFIG$1.mobileLayoutBreakpointRem + 0.01}rem) {
   html.userpatch-maia.userpatch-detail-page .userpatch-series-main > .userpatch-series-toolbar > #series-tabs {
     inset-block-start: 1.5rem;
   }
@@ -5351,7 +8684,7 @@ html.userpatch-maia.userpatch-detail-page .userpatch-mobile-nav {
   display: none !important;
 }
 
-@media (max-width: ${CONFIG.mobileLayoutBreakpointRem}rem) {
+@media (max-width: ${CONFIG$1.mobileLayoutBreakpointRem}rem) {
   html.userpatch-maia header.sticky {
     display: none !important;
   }
@@ -5362,7 +8695,7 @@ html.userpatch-maia.userpatch-detail-page .userpatch-mobile-nav {
     inset-inline: 0;
     inset-block-end: calc(20px + env(safe-area-inset-bottom, 0px));
     display: flex !important;
-    inline-size: min(${CONFIG.mobileNavigationWidth}, calc(100vw - 48px));
+    inline-size: min(${CONFIG$1.mobileNavigationWidth}, calc(100vw - 48px));
     min-block-size: 72px;
     block-size: 72px;
     align-items: center;
@@ -5521,7 +8854,7 @@ html.userpatch-maia.userpatch-detail-page .userpatch-mobile-nav {
   html.userpatch-maia.userpatch-detail-page .content-grid.container {
     flex: none;
     grid-template-columns: minmax(0, 1fr);
-    gap: ${CONFIG.mobileDetailSectionGapRem}rem;
+    gap: ${CONFIG$1.mobileDetailSectionGapRem}rem;
     min-block-size: auto;
   }
 
@@ -5577,7 +8910,7 @@ html.userpatch-maia.userpatch-detail-page .userpatch-mobile-nav {
   }
 
   html.userpatch-maia.userpatch-detail-page .userpatch-release-main:not(.userpatch-series-main) > .userpatch-release-toolbar > .userpatch-quality-tabs {
-    position: static;
+    position: relative;
   }
 
   html.userpatch-maia.userpatch-detail-page .content-main.userpatch-series-main {
@@ -5607,7 +8940,7 @@ html.userpatch-maia.userpatch-detail-page .userpatch-mobile-nav {
 
   html.userpatch-maia.userpatch-detail-page .userpatch-series-main > .userpatch-series-toolbar > .userpatch-series-selects {
     position: sticky;
-    inset-block-start: calc(${CONFIG.mobileQualityStickyTopPx}px + env(safe-area-inset-top, 0px));
+    inset-block-start: calc(${CONFIG$1.mobileQualityStickyTopPx}px + env(safe-area-inset-top, 0px));
     z-index: 20;
     inline-size: 100%;
     flex: initial;
@@ -5668,10 +9001,10 @@ html.userpatch-maia.userpatch-detail-page .userpatch-mobile-nav {
 
   html.userpatch-maia.userpatch-detail-page .userpatch-movie-releases > .userpatch-quality-tabs {
     position: sticky;
-    inset-block-start: calc(${CONFIG.mobileQualityStickyTopPx}px + env(safe-area-inset-top, 0px));
+    inset-block-start: calc(${CONFIG$1.mobileQualityStickyTopPx}px + env(safe-area-inset-top, 0px));
     z-index: 20;
     inline-size: fit-content;
-    margin-block: 0 ${CONFIG.mobileQualityVerticalGapRem}rem;
+    margin-block: 0 ${CONFIG$1.mobileQualityVerticalGapRem}rem;
     margin-inline: auto;
     /* The shared tab pseudo-elements already draw the glass and outline. */
     border: 0;
@@ -5680,9 +9013,9 @@ html.userpatch-maia.userpatch-detail-page .userpatch-mobile-nav {
     box-shadow: none;
   }
 
-  @media (max-width: ${CONFIG.mobileCompactQualityBreakpointRem}rem) {
+  @media (max-width: ${CONFIG$1.mobileCompactQualityBreakpointRem}rem) {
     html.userpatch-maia.userpatch-detail-page .userpatch-movie-releases > .userpatch-quality-tabs .userpatch-quality-tab {
-      padding-inline: ${CONFIG.mobileCompactQualityTabPaddingInlinePx}px;
+      padding-inline: ${CONFIG$1.mobileCompactQualityTabPaddingInlinePx}px;
     }
   }
 
@@ -5700,8 +9033,8 @@ html.userpatch-maia.userpatch-detail-page .userpatch-mobile-nav {
   }
 
   html.userpatch-maia dialog.userpatch-search-dialog[open] {
-    inset-block-start: calc(${CONFIG.mobileSearchDialogInsetPx}px + env(safe-area-inset-top, 0px));
-    max-block-size: calc(100dvh - ${CONFIG.mobileSearchDialogInsetPx}px - 1rem - env(safe-area-inset-top, 0px));
+    inset-block-start: calc(${CONFIG$1.mobileSearchDialogInsetPx}px + env(safe-area-inset-top, 0px));
+    max-block-size: calc(100dvh - ${CONFIG$1.mobileSearchDialogInsetPx}px - 1rem - env(safe-area-inset-top, 0px));
     transform: translateX(-50%);
   }
 }
@@ -5768,7 +9101,7 @@ html.userpatch-maia.userpatch-detail-page .userpatch-mobile-nav {
 ${PROGRESSIVE_IMAGE_CSS}
 html.userpatch-maia.userpatch-detail-page .userpatch-release-toolbar > .userpatch-detail-tabs {
   /* Confine the absolute glass backdrop even when mobile filters are static. */
-  position: relative !important;
+  position: relative;
   isolation: isolate;
   grid-row: 1;
   grid-column: 1 !important;
@@ -5807,9 +9140,45 @@ html.userpatch-maia.userpatch-detail-page .userpatch-release-toolbar > [hidden] 
   }
 }
 
+html.userpatch-maia.userpatch-detail-page .userpatch-movie-releases {
+  padding-block-end: calc(8rem + env(safe-area-inset-bottom, 0px));
+}
+
+html.userpatch-maia .userpatch-short-episode-title,
+html.userpatch-maia[data-userpatch-short-episodes] .userpatch-full-episode-title {
+  display: none;
+}
+html.userpatch-maia[data-userpatch-short-episodes] .userpatch-short-episode-title {
+  display: block;
+}
+
+html.userpatch-maia.userpatch-detail-page body .userpatch-release-meta .userpatch-release-language-badge,
+html.userpatch-maia.userpatch-detail-page body .userpatch-release-meta .userpatch-release-language-badge .userpatch-series-language-text {
+  font-size: inherit !important;
+}
+
 /* Reserve the header inset in layout so every series control shares a baseline,
    including the Info/Links group and rows that wrap at narrower widths. */
-@media (min-width: ${CONFIG.mobileLayoutBreakpointRem + 0.01}rem) {
+@media (min-width: ${CONFIG$1.mobileLayoutBreakpointRem + 0.01}rem) {
+  /* Center the toolbar in the same band as the sidebar wordmark. */
+  html.userpatch-maia.userpatch-detail-page .content-main.userpatch-release-main:not(.userpatch-series-main) {
+    grid-template-rows: 6rem 0 auto;
+  }
+  html.userpatch-maia.userpatch-detail-page .userpatch-release-main:not(.userpatch-series-main) > .userpatch-release-toolbar {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 20;
+    grid-row: 1;
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0;
+  }
+  html.userpatch-maia.userpatch-detail-page .userpatch-release-main:not(.userpatch-series-main) > .userpatch-release-toolbar > .userpatch-quality-tabs {
+    position: relative;
+    inset-block-start: auto;
+  }
   html.userpatch-maia.userpatch-detail-page .content-main.userpatch-series-main {
     grid-template-rows: max-content 0.5rem auto;
   }
@@ -5825,7 +9194,7 @@ html.userpatch-maia.userpatch-detail-page .userpatch-release-toolbar > [hidden] 
     align-self: center;
   }
 }
-@media (max-width: ${CONFIG.mobileLayoutBreakpointRem}rem) {
+@media (max-width: ${CONFIG$1.mobileLayoutBreakpointRem}rem) {
   /* Series filters need the release main as their sticky containing block.
      Keep their toolbar boxless; the movie toolbar can stack with flex. */
   html.userpatch-maia.userpatch-detail-page .userpatch-release-main:not(.userpatch-series-main) > .userpatch-release-toolbar {
@@ -5836,7 +9205,7 @@ html.userpatch-maia.userpatch-detail-page .userpatch-release-toolbar > [hidden] 
     gap: 0.75rem;
     min-block-size: 0;
     padding: 0;
-    margin-block-end: ${CONFIG.mobileDetailSectionGapRem}rem;
+    margin-block-end: ${CONFIG$1.mobileDetailSectionGapRem}rem;
   }
   html.userpatch-maia.userpatch-detail-page .userpatch-release-toolbar > .userpatch-detail-tabs {
     inset-block-start: auto !important;
@@ -5858,6 +9227,9 @@ html.userpatch-maia.userpatch-detail-page .userpatch-series-main > .userpatch-se
 ${TRAILER_CSS}
 ${POSTER_FRAME_CSS}
 ${DETAIL_INFO_CSS}
+${MOBILE_MENU_CSS}
+${SETTINGS_CSS}
+${FETCH_LINKS_CSS}
 ${systemThemeCss(true)}
 `
 
@@ -6275,282 +9647,6 @@ ${systemThemeCss(true)}
     }
   }
 
-  // src/shared/icons.js
-  const LUCIDE_ICON_TEMPLATES = new Map()
-  const createLucideIcon$1 = (name, shapes, decorate) => {
-    const cached = LUCIDE_ICON_TEMPLATES.get(name)
-    if (cached) {
-      return cached.cloneNode(true)
-    }
-    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg")
-    svg.setAttribute("width", "24")
-    svg.setAttribute("height", "24")
-    svg.setAttribute("viewBox", "0 0 24 24")
-    svg.setAttribute("fill", "none")
-    svg.setAttribute("stroke", "currentColor")
-    svg.setAttribute("stroke-width", "2")
-    svg.setAttribute("stroke-linecap", "round")
-    svg.setAttribute("stroke-linejoin", "round")
-    svg.setAttribute("aria-hidden", "true")
-    svg.setAttribute("focusable", "false")
-    if (decorate) {
-      decorate(svg, name)
-    }
-    for (const [tagName, attributes] of shapes[name] || []) {
-      const shape = document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        tagName
-      )
-      for (const [attribute, value] of Object.entries(attributes)) {
-        shape.setAttribute(attribute, value)
-      }
-      svg.append(shape)
-    }
-    LUCIDE_ICON_TEMPLATES.set(name, svg)
-    return svg.cloneNode(true)
-  }
-
-  // src/4khdhub/icons.js
-  const LUCIDE_ICON_SHAPES = {
-    "external-link": [
-      ["path", { d: "M15 3h6v6" }],
-      ["path", { d: "M10 14 21 3" }],
-      [
-        "path",
-        { d: "M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" },
-      ],
-    ],
-    film: [
-      [
-        "rect",
-        {
-          width: "18",
-          height: "18",
-          x: "3",
-          y: "3",
-          rx: "2",
-        },
-      ],
-      ["path", { d: "M7 3v18" }],
-      ["path", { d: "M3 7.5h4" }],
-      ["path", { d: "M3 12h18" }],
-      ["path", { d: "M3 16.5h4" }],
-      ["path", { d: "M17 3v18" }],
-      ["path", { d: "M17 7.5h4" }],
-      ["path", { d: "M17 16.5h4" }],
-    ],
-    "arrow-left": [
-      ["path", { d: "m12 19-7-7 7-7" }],
-      ["path", { d: "M19 12H5" }],
-    ],
-    "arrow-right": [
-      ["path", { d: "M5 12h14" }],
-      ["path", { d: "m12 5 7 7-7 7" }],
-    ],
-    "arrow-up": [
-      ["path", { d: "m5 12 7-7 7 7" }],
-      ["path", { d: "M12 19V5" }],
-    ],
-    "audio-lines": [
-      ["path", { d: "M2 10v3" }],
-      ["path", { d: "M6 6v11" }],
-      ["path", { d: "M10 3v18" }],
-      ["path", { d: "M14 8v7" }],
-      ["path", { d: "M18 5v13" }],
-      ["path", { d: "M22 10v3" }],
-    ],
-    "chevron-down": [["path", { d: "m6 9 6 6 6-6" }]],
-    "chevron-up": [["path", { d: "m18 15-6-6-6 6" }]],
-    check: [["path", { d: "m20 6-11 11-5-5" }]],
-    clapperboard: [
-      ["path", { d: "m12.296 3.464 3.02 3.956" }],
-      [
-        "path",
-        {
-          d: "M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1.1-.3 2.2.3 2.5 1.3z",
-        },
-      ],
-      ["path", { d: "M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" }],
-      ["path", { d: "m6.18 5.276 3.1 3.899" }],
-    ],
-    "file-archive": [
-      [
-        "path",
-        {
-          d: "M13.659 22H18a2 2 0 0 0 2-2V8a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 14 2H6a2 2 0 0 0-2 2v11.5",
-        },
-      ],
-      ["path", { d: "M14 2v5a1 1 0 0 0 1 1h5" }],
-      ["path", { d: "M8 12v-1" }],
-      ["path", { d: "M8 18v-2" }],
-      ["path", { d: "M8 7V6" }],
-      [
-        "circle",
-        {
-          cx: "8",
-          cy: "20",
-          r: "2",
-        },
-      ],
-    ],
-    "file-play": [
-      [
-        "path",
-        {
-          d: "M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z",
-        },
-      ],
-      ["path", { d: "M14 2v5a1 1 0 0 0 1 1h5" }],
-      [
-        "path",
-        {
-          d: "M15.033 13.44a.647.647 0 0 1 0 1.12l-4.065 2.352a.645.645 0 0 1-.968-.56v-4.704a.645.645 0 0 1 .967-.56z",
-        },
-      ],
-    ],
-    download: [
-      ["path", { d: "M12 15V3" }],
-      ["path", { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" }],
-      ["path", { d: "m7 10 5 5 5-5" }],
-    ],
-    house: [
-      ["path", { d: "M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" }],
-      [
-        "path",
-        {
-          d: "M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z",
-        },
-      ],
-    ],
-    info: [
-      [
-        "circle",
-        {
-          cx: "12",
-          cy: "12",
-          r: "10",
-        },
-      ],
-      ["path", { d: "M12 16v-4" }],
-      ["path", { d: "M12 8h.01" }],
-    ],
-    menu: [
-      ["path", { d: "M4 5h16" }],
-      ["path", { d: "M4 12h16" }],
-      ["path", { d: "M4 19h16" }],
-    ],
-    moon: [
-      [
-        "path",
-        {
-          d: "M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401",
-        },
-      ],
-    ],
-    play: [
-      [
-        "path",
-        {
-          d: "M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z",
-        },
-      ],
-    ],
-    search: [
-      ["path", { d: "m21 21-4.34-4.34" }],
-      [
-        "circle",
-        {
-          cx: "11",
-          cy: "11",
-          r: "8",
-        },
-      ],
-    ],
-    tv: [
-      ["path", { d: "m17 2-5 5-5-5" }],
-      [
-        "rect",
-        {
-          width: "20",
-          height: "15",
-          x: "2",
-          y: "7",
-          rx: "2",
-        },
-      ],
-    ],
-    x: [
-      ["path", { d: "M18 6 6 18" }],
-      ["path", { d: "m6 6 12 12" }],
-    ],
-  }
-  const LUCIDE_ICON_RULES = [
-    ["#menu-toggle svg", "menu"],
-    ["#search-toggle svg, .search-icon, .search-icon-overlay", "search"],
-    ["#theme-toggle .theme-icon", "moon"],
-    [
-      "#close-mobile-menu svg, #close-search svg, #close-trailer svg, #search-overlay .close-button svg",
-      "x",
-    ],
-    [".nav-link.dropdown-toggle svg, .dropdown-indicator", "chevron-down"],
-    [".breadcrumb svg", "arrow-left"],
-    ["#play-btn svg, #trailer-btn svg", "play"],
-    [
-      ".download-header .chevron-icon, .series-season-toggle .chevron-icon",
-      "chevron-down",
-    ],
-    [
-      ".download-item a.btn .responsive-icon, .episode-links a.btn .responsive-icon",
-      "download",
-    ],
-    ['#series-tabs .series-tab[data-tab="episodes"] svg', "clapperboard"],
-    [".content-main .info-box > div:first-child > svg", "info"],
-    [".pagination-next svg, a[rel='next'] svg", "arrow-right"],
-    [
-      ".pagination-prev svg, .pagination-previous svg, a[rel='prev'] svg",
-      "arrow-left",
-    ],
-    ["#back-to-top svg", "arrow-up"],
-  ]
-  const applyLucideIcon = (svg, name) => {
-    if (svg.dataset.userpatchLucideIcon === name) {
-      return
-    }
-    const replacement = createLucideIcon(name)
-    svg.replaceChildren(...replacement.childNodes)
-    for (const attribute of [
-      "width",
-      "height",
-      "viewBox",
-      "fill",
-      "stroke",
-      "stroke-width",
-      "stroke-linecap",
-      "stroke-linejoin",
-      "aria-hidden",
-      "focusable",
-    ]) {
-      svg.setAttribute(attribute, replacement.getAttribute(attribute))
-    }
-    svg.dataset.userpatchLucideIcon = name
-  }
-  const normalizeLucideIcons = (root = document) => {
-    const isSeriesDetail = Boolean(
-      root.querySelector("#series-tabs") &&
-      root.querySelector("#complete-pack, #episodes")
-    )
-    for (const [selector, name] of LUCIDE_ICON_RULES) {
-      if (isSeriesDetail && selector.includes(".download-item a.btn")) {
-        continue
-      }
-      for (const svg of root.querySelectorAll(selector)) {
-        applyLucideIcon(svg, name)
-      }
-    }
-  }
-  const createLucideIcon = (name) =>
-    createLucideIcon$1(name, LUCIDE_ICON_SHAPES)
-
   // src/4khdhub/detail-tabs.js
   const captureDetailInfo = (main, titleContainer) => {
     if (main.querySelector(":scope > .userpatch-detail-info")) {
@@ -6687,7 +9783,7 @@ ${systemThemeCss(true)}
       }
       button.append(text, createLucideIcon(icons[value]))
       button.addEventListener("click", () => {
-        storageSet(CONFIG.storageKeys.detailTab, value)
+        storageSet(CONFIG$1.storageKeys.detailTab, value)
         select(value)
       })
       buttons.set(value, button)
@@ -6695,7 +9791,7 @@ ${systemThemeCss(true)}
     }
     toolbar.prepend(group)
     setupIndicatorHover(group, positionIndicator)
-    const savedTab = storageGet(CONFIG.storageKeys.detailTab)
+    const savedTab = storageGet(CONFIG$1.storageKeys.detailTab)
     select(buttons.has(savedTab) ? savedTab : "info")
     document.fonts?.ready.then(() => {
       if (group.isConnected) {
@@ -7128,6 +10224,10 @@ ${systemThemeCss(true)}
 
   // src/4khdhub/dom.js
   const normalizeText = (value) => (value || "").replaceAll(/\s+/g, " ").trim()
+  const getNavigationPath = (path) => {
+    const pathname = normalizePathname(path).toLowerCase()
+    return /^\/page\/[1-9]\d*$/.test(pathname) ? "/" : pathname
+  }
 
   // src/4khdhub/filename.js
   const filenameResizeHandlers = new Map()
@@ -7151,7 +10251,7 @@ ${systemThemeCss(true)}
           callback()
         }
         processed += 1
-        if (processed >= CONFIG.filenameMeasureBatchSize) {
+        if (processed >= CONFIG$1.filenameMeasureBatchSize) {
           break
         }
       }
@@ -7208,7 +10308,7 @@ ${systemThemeCss(true)}
             observeFilenameSize(entry.target)
           }
         },
-        { rootMargin: CONFIG.filenameMeasureRootMargin }
+        { rootMargin: CONFIG$1.filenameMeasureRootMargin }
       )
       filenameIntersectionObserver.observe(element)
     }
@@ -7244,7 +10344,7 @@ ${systemThemeCss(true)}
     let measuredLineHeight = 0
     let measuredClampLines = 0
     const mobileClampBreakpoint = window.matchMedia(
-      `(max-width: ${CONFIG.mobileLayoutBreakpointRem}rem)`
+      `(max-width: ${CONFIG$1.mobileLayoutBreakpointRem}rem)`
     )
     const filenameFontSizeBreakpoint = window.matchMedia("(min-width: 761px)")
     const updateOverflowState = () => {
@@ -7260,10 +10360,10 @@ ${systemThemeCss(true)}
       const fontSize = Number.parseFloat(style.fontSize) || 14
       const lineHeight =
         Number.parseFloat(style.lineHeight) ||
-        fontSize * CONFIG.filenameLineHeight
+        fontSize * CONFIG$1.filenameLineHeight
       const clampLines = mobileClampBreakpoint.matches
-        ? CONFIG.mobileFilenameClampLines
-        : CONFIG.filenameClampLines
+        ? CONFIG$1.mobileFilenameClampLines
+        : CONFIG$1.filenameClampLines
       if (
         width <= 0 ||
         (Math.abs(width - measuredWidth) < 0.5 &&
@@ -7384,77 +10484,24 @@ ${systemThemeCss(true)}
       (cleanup) => !filenameCleanups.includes(cleanup)
     )
   }
-
-  // src/shared/provider-logos.js
-  const makeSvgDataUri = (svg) =>
-    `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
-  const HUBCLOUD_LOGO_SVG = String.raw`<svg xmlns="http://www.w3.org/2000/svg" viewBox="-0.043 0.659 177.311 122.029" width="177" height="123">
-  <defs>
-    <linearGradient id="grad-left" gradientUnits="userSpaceOnUse" x1="31.00" y1="47.00" x2="11.00" y2="117.00">
-      <stop offset="0" stop-color="#00aaef"/>
-      <stop offset="1" stop-color="#0084e9"/>
-    </linearGradient>
-    <linearGradient id="grad-cyan" gradientUnits="userSpaceOnUse" x1="82.00" y1="-6.00" x2="59.60" y2="101.00">
-      <stop offset="0" stop-color="#00f1f2"/>
-      <stop offset="1" stop-color="#00a5ec"/>
-    </linearGradient>
-    <linearGradient id="grad-mid" gradientUnits="userSpaceOnUse" x1="138.00" y1="0.00" x2="65.30" y2="103.00">
-      <stop offset="0" stop-color="#00d5f2"/>
-      <stop offset="1" stop-color="#0064e3"/>
-    </linearGradient>
-    <linearGradient id="grad-white" gradientUnits="userSpaceOnUse" x1="123.00" y1="51.00" x2="123.00" y2="121.00" gradientTransform="matrix(1, 0, 0, 1.001083, 0, -0.055333)">
-      <stop offset="0" stop-color="#fcfafb"/>
-      <stop offset="1" stop-color="#f7f7f7"/>
-    </linearGradient>
-    <path id="left-blue-path" d="M 39.20 44.60 A 38.99 38.99 0 0 0 33.22 122.10 L 71.00 122.10 L 71.00 44.60 Z"/>
-    <path id="cyan-dome-path" d="M 128.40 27.85 C 118.50 11.20, 100.50 0.93, 82.50 1.05 C 53.60 0.02, 28.14 26.14, 27.57 54.50 C 26.56 70.83, 36.41 86.79, 51.31 93.50 C 58.00 96.40, 66.00 98.00, 78.00 98.60 L 113.00 69.00 Z"/>
-    <path id="mid-blue-path" d="M 131.80 27.73 L 128.40 27.85 C 99.62 27.66, 73.17 48.02, 63.30 74.50 C 57.02 89.28, 56.34 107.24, 64.40 122.10 L 145.00 122.10 L 169.17 98.00 A 45.07 45.07 0 0 0 131.80 27.73 Z"/>
-    <path id="white-cloud-path" d="M 96.00 122.05 C 83.84 120.65, 73.97 109.64, 73.33 96.30 A 24.98 24.98 0 0 1 96.06 71.41 A 28.49 28.49 0 0 1 150.56 71.19 A 25.30 25.30 0 0 1 168.43 102.55 A 28.55 28.55 0 0 1 143.00 122.05 Z"/>
-    <clipPath id="blue-silhouette">
-      <path d="M 39.20 44.60 A 38.99 38.99 0 0 0 33.22 122.10 L 71.00 122.10 L 71.00 44.60 Z"/>
-      <path d="M 128.40 27.85 C 118.50 11.20, 100.50 0.93, 82.50 1.05 C 53.60 0.02, 28.14 26.14, 27.57 54.50 C 26.56 70.83, 36.41 86.79, 51.31 93.50 C 58.00 96.40, 66.00 98.00, 78.00 98.60 L 113.00 69.00 Z"/>
-      <path d="M 131.80 27.73 L 128.40 27.85 C 99.62 27.66, 73.17 48.02, 63.30 74.50 C 57.02 89.28, 56.34 107.24, 64.40 122.10 L 145.00 122.10 L 169.17 98.00 A 45.07 45.07 0 0 0 131.80 27.73 Z"/>
-    </clipPath>
-    <filter id="white-shadow" x="-10%" y="-10%" width="120%" height="120%">
-      <feGaussianBlur in="SourceAlpha" stdDeviation="1.1" result="blur"/>
-      <feOffset in="blur" dx="-0.6" dy="-0.2" result="offsetBlur"/>
-      <feFlood flood-color="#001950" flood-opacity="0.42" result="shadowColor"/>
-      <feComposite in="shadowColor" in2="offsetBlur" operator="in"/>
-    </filter>
-  </defs>
-  <path d="M 39.20 44.60 A 38.99 38.99 0 0 0 33.22 122.10 L 71.00 122.10 L 71.00 44.60 Z" fill="url(#grad-left)"/>
-  <path d="M 128.40 27.85 C 118.50 11.20, 100.50 0.93, 82.50 1.05 C 53.60 0.02, 28.14 26.14, 27.57 54.50 C 26.56 70.83, 36.41 86.79, 51.31 93.50 C 58.00 96.40, 66.00 98.00, 78.00 98.60 L 113.00 69.00 Z" fill="url(#grad-cyan)"/>
-  <path d="M 131.80 27.73 L 128.40 27.85 C 99.62 27.66, 73.17 48.02, 63.30 74.50 C 57.02 89.28, 56.34 107.24, 64.40 122.10 L 145.00 122.10 L 169.17 98.00 A 45.07 45.07 0 0 0 131.80 27.73 Z" fill="url(#grad-mid)"/>
-  <path d="M 58.52 95.50 C 64.00 97.40, 70.00 98.20, 79.00 98.80 L 90.00 122.10 L 64.40 122.10 C 59.92 113.83, 58.14 104.61, 58.52 95.50 Z" fill="#005fd8"/>
-  <g clip-path="url(#blue-silhouette)">
-    <path d="M 96.00 122.05 C 83.84 120.65, 73.97 109.64, 73.33 96.30 A 24.98 24.98 0 0 1 96.06 71.41 A 28.49 28.49 0 0 1 150.56 71.19 A 25.30 25.30 0 0 1 168.43 102.55 A 28.55 28.55 0 0 1 143.00 122.05 Z" fill="#000000" filter="url(#white-shadow)"/>
-  </g>
-  <path d="M 96 122.127 C 83.84 120.725 73.97 109.703 73.33 96.349 C 73.324 83.406 83.184 72.598 96.06 71.432 C 102.375 50.406 129.058 44.108 144.089 60.096 C 147.064 63.259 149.277 67.061 150.56 71.212 C 164.237 74.834 172.289 88.98 168.43 102.606 C 164.745 113.711 156.691 121.445 145.022 122.127 L 96 122.127 Z" fill="url(#grad-white)" style=""/>
-</svg>`
-  const HUBCLOUD_LOGO_DATA_URI = makeSvgDataUri(HUBCLOUD_LOGO_SVG)
-  const HUBDRIVE_LOGO_SVG = String.raw`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 249 249" width="249" height="249">
-  <defs>
-    <linearGradient id="bg-blue" gradientUnits="userSpaceOnUse" x1="35.36" y1="35.07" x2="165.36" y2="165.07">
-      <stop offset="0" stop-color="#5492f0"/>
-      <stop offset="1" stop-color="#468aef"/>
-    </linearGradient>
-    <linearGradient id="long-shadow" gradientUnits="userSpaceOnUse" x1="116.86" y1="162.07" x2="156.86" y2="231.37">
-      <stop offset="0" stop-color="#001450" stop-opacity="0.068"/>
-      <stop offset="1" stop-color="#001450" stop-opacity="0"/>
-    </linearGradient>
-    <clipPath id="circle-clip">
-      <circle cx="124.50" cy="124.50" r="123.88"/>
-    </clipPath>
-  </defs>
-  <circle cx="124.50" cy="124.50" r="123.88" fill="url(#bg-blue)"/>
-  <g clip-path="url(#circle-clip)">
-    <path d="M 310.50 227.06 L 160.50 77.06 A 50.95 50.95 0 0 1 175.12 107.56 A 33.99 33.99 0 1 1 175.18 175.54 L 79.38 175.54 A 39.62 39.62 0 0 1 51.36 163.94 L 201.36 313.94 Z" fill="url(#long-shadow)"/>
-  </g>
-  <path d="M 175.18 175.54 L 79.38 175.54 A 39.62 39.62 0 0 1 76.32 96.42 A 50.95 50.95 0 0 1 175.12 107.56 A 33.99 33.99 0 1 1 175.18 175.54 Z M 108.39 97.26 H 141.59 V 125.44 H 158.42 L 125.09 158.69 L 91.83 125.44 H 108.39 Z" fill="#ffffff" fill-rule="evenodd"/>
-</svg>`
-  const HUBDRIVE_LOGO_DATA_URI = makeSvgDataUri(HUBDRIVE_LOGO_SVG)
-  const HUBCDN_LOGO_SVG = String.raw`<svg width="216" height="260" viewBox="0 0 216 260" xmlns="http://www.w3.org/2000/svg"><title>undraw_handcrafts_heart</title><g fill="none"><path d="M94.612 259.442c-52.87-27.61-89.83-83.546-94.497-143.008-2.677-34.116 42-57.722 73.18-43.618s45.416 52.377 42.057 86.433c-3.36 34.055-20.522 64.984-20.74 100.193" fill="#b9fff4"/><path d="m180.8 59.136-.002-.002.022.057.002.002z" fill="#000"/><path d="M210.18 49.32c-9.959-27.16-41.17-31.961-64.158-17.966a102 102 0 0 0-10.83 7.159C126.986 22.216 114.311 6.342 96.626.665c-18.734-3.47-38.053 7.13-50.715 20.369C34.808 33.217 29.554 49.242 23.814 64.39c-7.425 19.42-5.637 40.524-.681 60.308 5.518 24.51 19.25 46.018 34.14 65.883 17.341 23.568 36.811 45.456 55.79 67.695-16.404-27.606-34.051-54.514-48.789-83.074-9.574-18.305-15.647-32.086-19.093-55.445a155 155 0 0 1-1.548-21.374c.179-8.247.613-8.191.746-9.59 2.97-15.129 15.054-38.773 20.212-45.34a39 39 0 0 1 4.92-4.745 27 27 0 0 1 3.381-2.086c4.253-2.02 2.698-2 12.054-4.589h.004c.699-.03 1.345-.032 1.868-.023.23.134.461.265.686.407 8.802 8.28 6.196 6.106 10.328 11.3l1.05 1.484a87.4 87.4 0 0 1 6.546 11.272c1.768 2.63 7.162 26.82 29.194 21.615a28.8 28.8 0 0 0 10.114-5.904 574 574 0 0 0 7.158-5.542c2.509-1.853 7.729-5.67 9.68-6.699a48 48 0 0 1 5.05-2.73 40 40 0 0 1 6.261-1.897c.41-.025.818-.085 1.228-.079.167.002.332.031.498.037.793.196 1.903.478 3.011.821.21.12.422.236.627.365a34 34 0 0 1 1.71 1.71q.766 1.148 1.387 2.381c1.5 4.087 2.738 8.265 3.704 12.51 3.598 14.583 2.86 25.085.322 37.42-10.04 46.747-36.895 82.132-64.628 125.968a621 621 0 0 1-9.546 13.878c10.995-10.373 21.466-21.286 31.577-32.52 21.612-23.877 43.757-47.96 57.517-77.437 7.013-14.537 13.001-29.855 14.723-46.011a112.4 112.4 0 0 0-4.835-45.038" fill="#6366f1"/></g></svg>`
-  const HUBCDN_LOGO_DATA_URI = makeSvgDataUri(HUBCDN_LOGO_SVG)
+  const simplifyEpisodeFilename = (filename) => {
+    const match = filename.match(
+      /^(.+?)[. ]+(S\d{2,3})(E\d{2,3})[. ]+(?:(.+?)[. ]+)?(?:4320|2160|1440|1080|720|576|480|360)(?:p(?=[. _-]|$)|(?=[. ]+(?:LQ|HQ|WEB(?:-DL|RIP))[. _-]))/i
+    )
+    if (!match) {
+      return ""
+    }
+    const [, , , episode, name = ""] = match
+    if (/^(?:S\d+E\d+|E\d+|\d+\b|[-+&])/i.test(name)) {
+      return ""
+    }
+    const number = Number(episode.slice(1))
+    const episodeName = name.replaceAll(/[.\s]+/g, " ").trim()
+    const repeatedLabel = episodeName.match(/^episode\s+(\d+)$/i)
+    return !episodeName || Number(repeatedLabel?.[1]) === number
+      ? `Episode ${number}`
+      : `${number}. ${episodeName}`
+  }
 
   // src/4khdhub/provider-links.js
   const RELEASE_PROVIDER_ORDER = Object.freeze([
@@ -7537,7 +10584,7 @@ ${systemThemeCss(true)}
     /^\d+(?:[.,]\d+)?\s*(?:B|KB|MB|GB|TB|PB|KIB|MIB|GIB|TIB|PIB)$/i.test(value)
   const setupResponsiveReleaseFilter = (toolbar, section, filters, refresh) => {
     const breakpoint = window.matchMedia(
-      `(max-width: ${CONFIG.mobileLayoutBreakpointRem}rem)`
+      `(max-width: ${CONFIG$1.mobileLayoutBreakpointRem}rem)`
     )
     const positionFilter = () => {
       if (breakpoint.matches) {
@@ -7561,8 +10608,9 @@ ${systemThemeCss(true)}
   }
   const scrollListBelowStickyFilter = (filter, list, section) => {
     if (
-      !window.matchMedia(`(max-width: ${CONFIG.mobileLayoutBreakpointRem}rem)`)
-        .matches
+      !window.matchMedia(
+        `(max-width: ${CONFIG$1.mobileLayoutBreakpointRem}rem)`
+      ).matches
     ) {
       return
     }
@@ -7571,7 +10619,7 @@ ${systemThemeCss(true)}
     const listRect = list.getBoundingClientRect()
     const stickyTop =
       Number.parseFloat(filterStyle.insetBlockStart) ||
-      CONFIG.mobileQualityStickyTopPx
+      CONFIG$1.mobileQualityStickyTopPx
     const marginAfter = Number.parseFloat(filterStyle.marginBlockEnd) || 0
     const targetTop =
       window.scrollY +
@@ -7596,7 +10644,7 @@ ${systemThemeCss(true)}
     const behavior = window.matchMedia("(prefers-reduced-motion: reduce)")
       .matches
       ? "auto"
-      : CONFIG.mobileQualityScrollBehavior
+      : CONFIG$1.mobileQualityScrollBehavior
     window.scrollTo({
       top: Math.max(0, targetTop),
       behavior,
@@ -7672,6 +10720,7 @@ ${systemThemeCss(true)}
         const row = document.createElement("div")
         row.className = "userpatch-release-row"
         row.append(copy, actions)
+        addFetchLinks(row, actions)
         item.replaceChildren(row)
         item.classList.add("userpatch-release-item")
         if (isReleaseOpened(filename, actions, openedReleases)) {
@@ -7696,7 +10745,7 @@ ${systemThemeCss(true)}
         toolbar = document.createElement("div")
         toolbar.className = "userpatch-release-toolbar"
         const qualityTabs = createQualityTabs({
-          storageKey: CONFIG.storageKeys.movieQualityTab,
+          storageKey: CONFIG$1.storageKeys.movieQualityTab,
           onQualityChange: (quality) => {
             toolbar.dataset.activeQuality = quality
             clearMobileQualityScrollSpace(section)
@@ -8265,23 +11314,16 @@ ${systemThemeCss(true)}
       const createSeriesSelect = (id, label) => {
         const control = document.createElement("div")
         control.className = "userpatch-season-control"
-        const trigger = document.createElement("button")
-        trigger.type = "button"
-        trigger.className = "userpatch-season-trigger"
-        trigger.setAttribute("role", "combobox")
-        trigger.setAttribute("aria-haspopup", "listbox")
-        trigger.setAttribute("aria-expanded", "false")
-        trigger.setAttribute("aria-controls", `${id}-options`)
-        trigger.setAttribute("aria-label", label)
-        const value = document.createElement("span")
-        value.className = "userpatch-season-value"
+        const { trigger, value } = createSelectTrigger(
+          `${id}-options`,
+          label,
+          createLucideIcon("chevron-down")
+        )
         const versionMarker = document.createElement("span")
         versionMarker.className =
           "userpatch-version-marker userpatch-season-version-marker"
         versionMarker.hidden = true
-        const chevron = createLucideIcon("chevron-down")
-        chevron.classList.add("userpatch-season-chevron")
-        chevron.setAttribute("aria-hidden", "true")
+        value.after(versionMarker)
         const positioner = document.createElement("div")
         positioner.className = "userpatch-season-positioner"
         positioner.hidden = true
@@ -8307,7 +11349,6 @@ ${systemThemeCss(true)}
         menu.setAttribute("role", "listbox")
         menu.setAttribute("aria-label", label)
         const scrollDown = createScrollControl("down")
-        trigger.append(value, versionMarker, chevron)
         control.append(trigger)
         popup.append(scrollUp, menu, scrollDown)
         positioner.append(popup)
@@ -8348,7 +11389,7 @@ ${systemThemeCss(true)}
       qualitySelect.trigger.setAttribute("aria-describedby", languageBadge.id)
       qualityGroup.append(qualitySelect.control, languageBadge)
       const archiveQualityTabs = createQualityTabs({
-        storageKey: CONFIG.storageKeys.seriesArchiveQualityTab,
+        storageKey: CONFIG$1.storageKeys.seriesArchiveQualityTab,
         onQualityChange: () => {
           clearMobileQualityScrollSpace(listSection)
           filterArchiveReleases()
@@ -8370,7 +11411,7 @@ ${systemThemeCss(true)}
       main.insertBefore(toolbar, sourceSection || null)
       main.insertBefore(listSection, sourceSection || null)
       document.body.append(seasonSelect.positioner, qualitySelect.positioner)
-      const savedMode = storageGet(CONFIG.storageKeys.seriesTab)
+      const savedMode = storageGet(CONFIG$1.storageKeys.seriesTab)
       let activeMode =
         savedMode && modeEntries.get(savedMode)?.length
           ? savedMode
@@ -8504,13 +11545,28 @@ ${systemThemeCss(true)}
             )
             meta.append(archiveLanguageBadge)
           }
+          copy.append(title)
+          if (entry.mode === "episodes") {
+            const short = simplifyEpisodeFilename(filename)
+            if (short) {
+              title.classList.add("userpatch-full-episode-title")
+              const shortTitle = document.createElement("div")
+              shortTitle.className =
+                "userpatch-release-file-title userpatch-short-episode-title"
+              shortTitle.textContent = short
+              shortTitle.title = filename
+              copy.append(shortTitle)
+            }
+          }
           if (size || languages) {
-            copy.append(title, meta)
-          } else {
-            copy.append(title)
+            copy.append(meta)
           }
           const actions = createReleaseActions(file)
-          rowLayout.append(copy, actions)
+          rowLayout.append(copy)
+          if (actions) {
+            rowLayout.append(actions)
+            addFetchLinks(rowLayout, actions)
+          }
           row.append(rowLayout)
           rowFragment.append(row)
           filenameRows.push({
@@ -8612,25 +11668,18 @@ ${systemThemeCss(true)}
       const renderSelectOptions = (select, items, selectedKey) => {
         select.menu.replaceChildren(
           ...items.map((item) => {
-            const option = document.createElement("div")
-            option.className = "userpatch-season-option"
-            option.setAttribute("role", "option")
-            option.tabIndex = -1
-            option.dataset.selectKey = item.key
-            const label = document.createElement("span")
-            label.className = "userpatch-season-option-label"
-            label.textContent = item.label
-            option.append(label)
+            const option = createSelectOption(
+              item.key,
+              item.label,
+              createLucideIcon("check")
+            )
             if (item.version) {
               const marker = document.createElement("span")
               marker.className = "userpatch-version-marker"
               marker.textContent = `v${item.version}`
               marker.dataset.version = String(item.version)
-              option.append(marker)
+              option.lastElementChild.before(marker)
             }
-            const check = createLucideIcon("check")
-            check.classList.add("userpatch-season-option-check")
-            option.append(check)
             return option
           })
         )
@@ -8664,8 +11713,8 @@ ${systemThemeCss(true)}
           return
         }
         const rect = select.trigger.getBoundingClientRect()
-        const viewportInset = CONFIG.seriesSelectViewportInsetPx
-        const sideOffset = CONFIG.seriesSelectSideOffsetPx
+        const viewportInset = CONFIG$1.seriesSelectViewportInsetPx
+        const sideOffset = CONFIG$1.seriesSelectSideOffsetPx
         const maxAvailableWidth = window.innerWidth - viewportInset * 2
         const popupWidth = Math.min(
           Math.max(rect.width, 144),
@@ -8680,7 +11729,7 @@ ${systemThemeCss(true)}
           `${popupWidth}px`
         )
         const preferredHeight = Math.min(
-          CONFIG.seriesSelectPopupMaxHeightPx,
+          CONFIG$1.seriesSelectPopupMaxHeightPx,
           window.innerHeight - viewportInset * 2
         )
         const roomBelow =
@@ -8704,7 +11753,7 @@ ${systemThemeCss(true)}
         )
         const needsScroll = naturalHeight > availableHeight
         const scrollControlsHeight = needsScroll
-          ? CONFIG.seriesSelectScrollControlHeightPx * 2
+          ? CONFIG$1.seriesSelectScrollControlHeightPx * 2
           : 0
         const menuHeight = Math.max(
           1,
@@ -8791,7 +11840,7 @@ ${systemThemeCss(true)}
         if (
           !currentQualityEntries.some((entry) => entry.key === selectedEntryKey)
         ) {
-          const savedQuality = storageGet(CONFIG.storageKeys.seriesQuality)
+          const savedQuality = storageGet(CONFIG$1.storageKeys.seriesQuality)
           const matchedEntry = savedQuality
             ? currentQualityEntries.find(
                 (entry) => entry.label === savedQuality
@@ -8824,7 +11873,7 @@ ${systemThemeCss(true)}
           const chosenSeason = currentSeasons.find((item) => item.key === key)
           if (chosenSeason?.label) {
             storageSet(
-              CONFIG.storageKeys.seriesSeasonPrefix +
+              CONFIG$1.storageKeys.seriesSeasonPrefix +
                 normalizePathname(location.pathname),
               chosenSeason.label
             )
@@ -8837,7 +11886,7 @@ ${systemThemeCss(true)}
             (item) => item.key === key
           )
           if (chosenEntry?.label) {
-            storageSet(CONFIG.storageKeys.seriesQuality, chosenEntry.label)
+            storageSet(CONFIG$1.storageKeys.seriesQuality, chosenEntry.label)
           }
           updateSelectSelection(qualitySelect, currentQualityEntries, key)
         }
@@ -8851,7 +11900,7 @@ ${systemThemeCss(true)}
         currentEntries = modeEntries.get(activeMode) || []
         currentSeasons = getCurrentSeasons()
         const savedSeason = storageGet(
-          CONFIG.storageKeys.seriesSeasonPrefix +
+          CONFIG$1.storageKeys.seriesSeasonPrefix +
             normalizePathname(location.pathname)
         )
         const matchedSeason = savedSeason
@@ -8885,7 +11934,7 @@ ${systemThemeCss(true)}
             return
           }
           activeMode = button.dataset.tab
-          storageSet(CONFIG.storageKeys.seriesTab, activeMode)
+          storageSet(CONFIG$1.storageKeys.seriesTab, activeMode)
           selectedSeasonKey = ""
           for (const modeButton of modeButtons) {
             const isActive = modeButton === button
@@ -9236,7 +12285,7 @@ ${systemThemeCss(true)}
   // src/4khdhub/header-nav.js
   const NAV_CONTAINER_SELECTOR = "header.sticky > .header > .container"
   const NAV_ITEM_SELECTOR =
-    ".navbar-brand, #main-nav .nav-list > .nav-item > .nav-link, #menu-toggle, #search-toggle"
+    ".navbar-brand, #main-nav .nav-list > .nav-item > .nav-link, #menu-toggle, #search-toggle, .userpatch-settings-trigger"
   let headerNavigationCleanup = null
   let headerNavigationContainer = null
   let refreshHeaderNavigation = () => {}
@@ -9431,7 +12480,7 @@ ${systemThemeCss(true)}
   }
   const setupHeaderNavigation = () => {
     try {
-      if (isCloudflareChallenge()) {
+      if (isCloudflareChallenge$1()) {
         headerNavigationCleanup?.()
         return false
       }
@@ -9440,6 +12489,15 @@ ${systemThemeCss(true)}
       }
       applySiteBranding()
       setupHeaderSearch()
+      const searchToggle = document.querySelector(
+        "header.sticky #search-toggle"
+      )
+      if (
+        searchToggle &&
+        !searchToggle.parentElement.querySelector(".userpatch-settings-trigger")
+      ) {
+        searchToggle.after(createSettingsButton(CONFIG$1))
+      }
       normalizeLucideIcons(document)
       const container = document.querySelector(NAV_CONTAINER_SELECTOR)
       if (!container) {
@@ -9470,8 +12528,8 @@ ${systemThemeCss(true)}
           if (url.origin !== location.origin) {
             return false
           }
-          const targetPath = normalizePathname(url.pathname).toLowerCase()
-          const currentPath = normalizePathname(location.pathname).toLowerCase()
+          const targetPath = getNavigationPath(url.pathname)
+          const currentPath = getNavigationPath(location.pathname)
           return (
             targetPath === currentPath ||
             (targetPath !== "/" && currentPath.startsWith(`${targetPath}/`))
@@ -9607,47 +12665,27 @@ ${systemThemeCss(true)}
 
   // src/4khdhub/mobile-nav.js
   let mobileNavigationCleanup = null
-  let mobileMenuPopover = null
-  let mobileMenuTrigger = null
-  const createMobileMenuPopover = () => {
-    if (!("popover" in HTMLElement.prototype)) {
-      return null
-    }
+  let mobileMenu = null
+  const ensureMobileMenu = () => {
     const sourceList = document.querySelector("#main-nav .nav-list")
     if (!sourceList) {
       return null
     }
     const sourceMarkup = sourceList.innerHTML
     if (
-      mobileMenuPopover?.isConnected &&
-      mobileMenuPopover.dataset.sourceMarkup === sourceMarkup
+      mobileMenu?.isConnected &&
+      mobileMenu.dataset.sourceMarkup === sourceMarkup
     ) {
-      return mobileMenuPopover
+      return mobileMenu
     }
-    mobileMenuTrigger = null
-    if (mobileMenuPopover?.matches(":popover-open")) {
-      mobileMenuPopover.hidePopover()
-    }
-    mobileMenuPopover?.remove()
-    const popover = document.createElement("div")
-    popover.className = "userpatch-mobile-menu"
-    popover.id = CONFIG.mobileMenuPopoverId
-    popover.setAttribute("popover", "auto")
-    popover.dataset.sourceMarkup = sourceMarkup
-    const header = document.createElement("header")
-    header.className = "userpatch-mobile-menu-header"
-    const title = document.createElement("h2")
-    title.className = "userpatch-mobile-menu-title"
-    title.id = "userpatch-mobile-menu-title"
-    title.textContent = "Menu"
-    const closeButton = document.createElement("button")
-    closeButton.type = "button"
-    closeButton.className = "userpatch-mobile-menu-close"
-    closeButton.setAttribute("aria-label", "Close menu")
-    closeButton.setAttribute("popovertarget", CONFIG.mobileMenuPopoverId)
-    closeButton.setAttribute("popovertargetaction", "hide")
-    closeButton.append(createLucideIcon("x"))
-    header.append(title, closeButton)
+    mobileMenu?.remove()
+    const menu = createMobileMenu(
+      CONFIG$1.mobileMenuId,
+      HEADER_WORDMARK_DATA_URI,
+      "4K-HDHub",
+      createLucideIcon("x")
+    )
+    menu.dataset.sourceMarkup = sourceMarkup
     const menuNavigation = document.createElement("nav")
     menuNavigation.className = "userpatch-mobile-menu-nav"
     menuNavigation.setAttribute("aria-label", "Site navigation")
@@ -9717,36 +12755,16 @@ ${systemThemeCss(true)}
       list.append(item)
     }
     menuNavigation.append(list)
-    popover.append(header, menuNavigation)
-    popover.addEventListener("click", (event) => {
-      if (event.target instanceof Element && event.target.closest("a[href]")) {
-        popover.hidePopover()
-      }
-    })
-    popover.addEventListener("toggle", (event) => {
-      if (event.newState === "open") {
-        popover
-          .querySelector("a[href], summary")
-          ?.focus({ preventScroll: true })
-        return
-      }
-      const trigger = mobileMenuTrigger
-      mobileMenuTrigger = null
-      trigger?.focus({ preventScroll: true })
-    })
-    document.body.append(popover)
-    mobileMenuPopover = popover
-    return popover
+    menu.append(menuNavigation)
+    document.body.append(menu)
+    mobileMenu = menu
+    return menu
   }
   const removeMobileNavigation = () => {
     mobileNavigationCleanup?.()
     mobileNavigationCleanup = null
-    mobileMenuTrigger = null
-    if (mobileMenuPopover?.matches(":popover-open")) {
-      mobileMenuPopover.hidePopover()
-    }
-    mobileMenuPopover?.remove()
-    mobileMenuPopover = null
+    mobileMenu?.remove()
+    mobileMenu = null
     document
       .querySelectorAll(".userpatch-mobile-nav")
       .forEach((navigation) => navigation.remove())
@@ -9764,7 +12782,7 @@ ${systemThemeCss(true)}
         destination,
         label,
         iconName,
-      ] of CONFIG.mobileNavigationItems) {
+      ] of CONFIG$1.mobileNavigationItems) {
         const isAction = destination === "menu" || destination === "search"
         const item = document.createElement(isAction ? "button" : "a")
         item.className = "userpatch-mobile-nav-item"
@@ -9773,8 +12791,7 @@ ${systemThemeCss(true)}
           item.type = "button"
           item.dataset.action = destination
           if (destination === "menu") {
-            item.setAttribute("popovertarget", CONFIG.mobileMenuPopoverId)
-            item.setAttribute("aria-controls", CONFIG.mobileMenuPopoverId)
+            bindMobileMenuButton(item, CONFIG$1.mobileMenuId, openMobileMenu)
           }
         } else {
           item.href = destination
@@ -9801,12 +12818,13 @@ ${systemThemeCss(true)}
         item.append(icon, text)
         navigation.append(item)
       }
+      navigation.append(createSettingsButton(CONFIG$1, true))
       document.body.append(navigation)
     }
-    createMobileMenuPopover()
-    const currentPath = normalizePathname(location.pathname)
+    ensureMobileMenu()
+    const currentPath = getNavigationPath(location.pathname)
     for (const link of navigation.querySelectorAll("a[href]")) {
-      const targetPath = normalizePathname(link.href)
+      const targetPath = getNavigationPath(link.href)
       if (targetPath === currentPath) {
         link.setAttribute("aria-current", "page")
       } else {
@@ -9820,17 +12838,6 @@ ${systemThemeCss(true)}
         }
         const trigger = event.target.closest("[data-action]")
         const action = trigger?.dataset.action
-        if (action === "menu") {
-          if (!mobileMenuPopover?.isConnected) {
-            mobileMenuPopover = createMobileMenuPopover()
-          }
-          if (!mobileMenuPopover || !trigger) {
-            document.querySelector("#menu-toggle")?.click()
-            return
-          }
-          mobileMenuTrigger = trigger
-          return
-        }
         if (action === "search") {
           if (openHeaderSearch()) {
             return
@@ -9844,6 +12851,7 @@ ${systemThemeCss(true)}
     }
     return true
   }
+  const openMobileMenu = () => ensureMobileMenu()?.showModal()
 
   // src/4khdhub/ongoing-cards.js
   let ongoingCardNavigationCleanup = null
@@ -9880,11 +12888,11 @@ ${systemThemeCss(true)}
           )
         ) {
           sessionStorage.setItem(
-            CONFIG.ongoingPosterSessionKey,
+            CONFIG$1.ongoingPosterSessionKey,
             normalizePathname(target.pathname)
           )
         } else {
-          sessionStorage.removeItem(CONFIG.ongoingPosterSessionKey)
+          sessionStorage.removeItem(CONFIG$1.ongoingPosterSessionKey)
         }
       } catch {
         return
@@ -9914,7 +12922,8 @@ ${systemThemeCss(true)}
     }
     let storedPath = ""
     try {
-      storedPath = sessionStorage.getItem(CONFIG.ongoingPosterSessionKey) || ""
+      storedPath =
+        sessionStorage.getItem(CONFIG$1.ongoingPosterSessionKey) || ""
     } catch {
       storedPath = ""
     }
@@ -9979,8 +12988,12 @@ ${systemThemeCss(true)}
       ongoingCardNavigationCleanup?.()
       clearOngoingCardNavigationCleanup()
       removeMobileNavigation()
-      restoreManagedMeta([COLOR_SCHEME_META_ID, THEME_COLOR_META_ID])
-      document.getElementById(STYLE_ID)?.remove()
+      removeSettings()
+      document
+        .querySelector("header.sticky .userpatch-settings-trigger")
+        ?.remove()
+      restoreManagedMeta([COLOR_SCHEME_META_ID$1, THEME_COLOR_META_ID$1])
+      document.getElementById(STYLE_ID$1)?.remove()
       document.getElementById(FONT_STYLE_ID)?.remove()
       document.documentElement?.classList.remove(
         MAIA_CLASS,
@@ -10007,7 +13020,7 @@ ${systemThemeCss(true)}
   let releaseContentRoot = null
   showRedesignLoader(/(^|\.)4khdhub\./i)
   const processCurrentPage = () => {
-    if (isCloudflareChallenge()) {
+    if (isCloudflareChallenge$1()) {
       dismissPageLoader(true)
       removeStyles()
       return true
@@ -10047,6 +13060,8 @@ ${systemThemeCss(true)}
     setupHeaderNavigation()
     setupMobileNavigation()
     if (isDetailPage) {
+      applyEpisodeNameSetting(CONFIG$1.shortEpisodeNamesKey)
+      applyFetchLinksSetting(CONFIG$1.fetchLinksKey)
       applyDetailPageLayout(siteRoot)
       markOngoingDetailPoster(siteRoot)
     }
@@ -10083,7 +13098,7 @@ ${systemThemeCss(true)}
     }
     return ready
   }
-  initStorage({ openedReleasesKey: CONFIG.storageKeys.openedReleases })
+  initStorage({ openedReleasesKey: CONFIG$1.storageKeys.openedReleases })
   initPageLoop({
     processPage: processCurrentPage,
     attributeFilter: [
@@ -10094,14 +13109,14 @@ ${systemThemeCss(true)}
       "srcset",
     ],
     characterData: true,
-    discoveryTimeoutMs: CONFIG.pageDiscoveryTimeoutMs,
+    discoveryTimeoutMs: CONFIG$1.pageDiscoveryTimeoutMs,
   })
   initMaiaStyles({
-    styleId: STYLE_ID,
+    styleId: STYLE_ID$1,
     fontStyleId: FONT_STYLE_ID,
-    colorSchemeMetaId: COLOR_SCHEME_META_ID,
-    themeColorMetaId: THEME_COLOR_META_ID,
-    themeColor: CONFIG.themeColor,
+    colorSchemeMetaId: COLOR_SCHEME_META_ID$1,
+    themeColorMetaId: THEME_COLOR_META_ID$1,
+    themeColor: CONFIG$1.themeColor,
     css: MAIA_CSS,
     siteSignature: () =>
       document.body &&
@@ -10121,7 +13136,7 @@ ${systemThemeCss(true)}
           spinner.className = PAGE_SPINNER_CLASS
           return spinner
         },
-        CONFIG.pageLoaderTimeoutMs
+        CONFIG$1.pageLoaderTimeoutMs
       )
     }
     document.addEventListener("DOMContentLoaded", watchCurrentPage, {

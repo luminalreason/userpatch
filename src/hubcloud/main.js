@@ -16,6 +16,7 @@ import {
 } from "./detect.js"
 import { normalizeFileDetails } from "./file-details.js"
 import { normalizeLucideIcons } from "./icons.js"
+import { enableInlineLinks } from "./inline-links.js"
 import { wrapDownloadButtons } from "./mirror-rows.js"
 import { isHubCloudPackPage, normalizePackPage } from "./pack-page.js"
 import { ensureHeader, ensureStyles } from "./site-header.js"
@@ -34,6 +35,7 @@ const processPage = () => {
     return true
   }
   normalizeFileDetails()
+  enableInlineLinks()
   normalizeActionButtons()
   normalizeLucideIcons()
   wrapDownloadButtons()

@@ -1,3 +1,8 @@
+import {
+  BUTTON_GROUP_CSS,
+  KUMO_BUTTON_PAINT,
+  KUMO_PRIMARY_BUTTON_TOKENS,
+} from "../shared/button-group.js"
 import { GENERATED_PAGE_CSS } from "../shared/generated-page.js"
 import { systemThemeCss } from "../shared/system-theme.js"
 import {
@@ -11,6 +16,7 @@ import {
 } from "./config.js"
 
 export const REDESIGN_CSS = `
+${BUTTON_GROUP_CSS}
 :root {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
@@ -626,14 +632,12 @@ a#button1,
 button#button1,
 .btn-success#button1,
 .${DIRECT_DOWNLOAD_BUTTON_CLASS} {
+  ${KUMO_PRIMARY_BUTTON_TOKENS}
+  ${KUMO_BUTTON_PAINT}
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   gap: 0.625rem !important;
-  background-color: #0051c3 !important;
-  color: #ffffff !important;
-  border: 1px solid rgba(255, 255, 255, 0.14) !important;
-  border-radius: var(--radius-lg, 0.625rem) !important;
   min-height: 56px !important;
   padding: 0.875rem 1.25rem !important;
   font-size: 16px !important;
@@ -644,7 +648,6 @@ button#button1,
   width: 100% !important;
   max-width: 100% !important;
   margin: 0.75rem 0 !important;
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.22), 0 1px 2px 0 rgba(0, 0, 0, 0.24) !important;
   box-sizing: border-box !important;
   cursor: pointer !important;
   transition: transform 100ms ease, filter 100ms ease !important;
@@ -675,8 +678,7 @@ button#button1,
   #download:hover,
   #button1:hover,
   .${DIRECT_DOWNLOAD_BUTTON_CLASS}:hover {
-    filter: brightness(1.06) !important;
-    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.25), 0 2px 4px 0 rgba(0, 0, 0, 0.28) !important;
+    --userpatch-button-tint: 22%;
   }
 }
 
@@ -690,11 +692,28 @@ button#button1,
 #download[data-userpatch-loading="true"],
 #button1[data-userpatch-loading="true"],
 .${DIRECT_DOWNLOAD_BUTTON_CLASS}[data-userpatch-loading="true"] {
-  background: #0051c3 !important;
-  color: #ffffff !important;
   opacity: 0.8 !important;
   pointer-events: none !important;
   cursor: wait !important;
+}
+
+html :is(#download, #button1, .${DIRECT_DOWNLOAD_BUTTON_CLASS})[data-userpatch-inline-links][hidden] {
+  display: none !important;
+}
+.userpatch-inline-links-results {
+  inline-size: 100%;
+}
+.userpatch-inline-links-results > :empty {
+  display: none;
+}
+.userpatch-inline-links-results > [role="status"] {
+  color: var(--muted-foreground);
+  padding-block: 0.5rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-userpatch-inline-links] .userpatch-spinner {
+    animation: none !important;
+  }
 }
 
 @keyframes userpatch-spin {
@@ -709,20 +728,16 @@ button#button1,
 
 [data-slot="button-group"],
 .${BUTTON_GROUP_CLASS} {
+  ${KUMO_BUTTON_PAINT}
   display: flex !important;
   align-items: stretch !important;
   max-width: 100% !important;
   width: 100% !important;
   margin: 0.75rem 0 !important;
   min-height: 56px !important;
-  border-radius: var(--radius-lg, 0.625rem) !important;
-  border: 1px solid rgba(255, 255, 255, 0.14) !important;
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.22), 0 1px 2px 0 rgba(0, 0, 0, 0.24) !important;
   overflow: hidden !important;
   box-sizing: border-box !important;
   position: relative !important;
-  background-color: var(--userpatch-btn-bg, var(--secondary)) !important;
-  color: var(--userpatch-btn-color, var(--foreground)) !important;
   transition: filter 100ms ease !important;
 }
 
@@ -737,7 +752,7 @@ button#button1,
   [data-slot="button-group"]:hover,
   .${BUTTON_GROUP_CLASS}:hover {
     filter: brightness(1.06) !important;
-    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.25), 0 2px 4px 0 rgba(0, 0, 0, 0.28) !important;
+    --userpatch-button-tint: 22%;
   }
 }
 
@@ -943,8 +958,8 @@ button.btn:not(.${COPY_BUTTON_CLASS}):not(.${DIRECT_DOWNLOAD_BUTTON_CLASS}):not(
   border-radius: var(--radius-lg, 0.625rem) !important;
   background-color: var(--secondary) !important;
   color: var(--foreground) !important;
-  border: 1px solid rgba(255, 255, 255, 0.14) !important;
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.22), 0 1px 2px 0 rgba(0, 0, 0, 0.24) !important;
+  border: 1px solid rgb(255 255 255 / 14%) !important;
+  box-shadow: none !important;
   box-sizing: border-box !important;
   transition: transform 100ms ease, filter 100ms ease !important;
 }
@@ -1509,13 +1524,7 @@ button.btn:not(.${COPY_BUTTON_CLASS}):not(.${DIRECT_DOWNLOAD_BUTTON_CLASS}):not(
   min-height: unset !important;
   height: auto !important;
   padding: 0.25rem 0.625rem !important;
-  border: 1px solid rgba(255, 255, 255, 0.14) !important;
-  border-radius: var(--radius-md, 0.5rem) !important;
-  background-color: var(--userpatch-btn-bg, var(--secondary)) !important;
-  color: var(--userpatch-btn-color, var(--foreground)) !important;
-  box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.18),
-    0 1px 2px 0 rgba(0, 0, 0, 0.16) !important;
+  ${KUMO_BUTTON_PAINT}
   box-sizing: border-box !important;
   font-size: 0.8125rem !important;
   font-weight: 500 !important;

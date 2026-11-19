@@ -248,6 +248,7 @@ export const ensureMirrorGuide = ({ hubCdn = false } = {}) => {
       const badge = document.createElement("div")
       const theme = MIRROR_THEMES[item.variant] || MIRROR_THEMES.default
       badge.className = "userpatch-guide-button"
+      badge.dataset.mirrorType = item.variant
       badge.style.setProperty("--userpatch-btn-bg", theme.bg)
       badge.style.setProperty("--userpatch-btn-color", theme.color)
       const badgeIcon =

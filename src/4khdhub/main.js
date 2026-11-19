@@ -11,6 +11,8 @@ import {
   showRedesignLoader,
 } from "../shared/page-loader.js"
 import { setupProgressiveImage } from "../shared/progressive-images.js"
+import { applyFetchLinksSetting } from "../shared/redesign-settings.js"
+import { applyEpisodeNameSetting } from "../shared/redesign-settings.js"
 import { initStorage } from "../shared/storage.js"
 import { ensureStyles, initMaiaStyles, MAIA_CLASS } from "../shared/styles.js"
 import {
@@ -85,6 +87,8 @@ const processCurrentPage = () => {
   setupHeaderNavigation()
   setupMobileNavigation()
   if (isDetailPage) {
+    applyEpisodeNameSetting(CONFIG.shortEpisodeNamesKey)
+    applyFetchLinksSetting(CONFIG.fetchLinksKey)
     applyDetailPageLayout(siteRoot)
     markOngoingDetailPoster(siteRoot)
   }

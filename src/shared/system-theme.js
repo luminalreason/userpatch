@@ -1,3 +1,20 @@
+import { storageGet } from "./storage.js"
+
+export const themeSettingKey = "userpatch-theme-setting"
+
+export const getThemeSetting = () => {
+  const saved = storageGet(themeSettingKey)
+  return saved === "light" || saved === "dark" ? saved : "system"
+}
+
+const resolveTheme = () => {
+  const saved = getThemeSetting()
+  if (saved !== "system") {
+    return saved
+  }
+  return preference.matches ? "dark" : "light"
+}
+
 let preference = null
 
 const updateSystemTheme = () => {
@@ -5,7 +22,7 @@ const updateSystemTheme = () => {
   if (!root || !Object.hasOwn(root.dataset, "userpatchTheme")) {
     return
   }
-  const theme = preference.matches ? "dark" : "light"
+  const theme = resolveTheme()
   if (root.dataset.userpatchTheme !== theme) {
     root.dataset.userpatchTheme = theme
   }
@@ -35,7 +52,7 @@ export const ensureSystemTheme = () => {
       }
     })
   }
-  const theme = preference.matches ? "dark" : "light"
+  const theme = resolveTheme()
   document.documentElement.dataset.userpatchTheme = theme
   updateSystemTheme()
   return theme
@@ -98,8 +115,9 @@ export const systemThemeCss = (legacyHsl = false) => {
         0 2px 4px rgb(0 0 0 / 0.5), 0 4px 8px rgb(0 0 0 / 0.3);
       --maia-poster-gloss: inset 0 1px 2px rgb(255 255 255 / 0.12);
     }
-    @media (prefers-color-scheme: light) {
-      html.userpatch-maia, html[data-userpatch-theme] {
+    html[data-userpatch-theme="dark"] { color-scheme: dark !important; }
+    html[data-userpatch-theme="light"] {
+        color-scheme: light !important;
         ${tokens}
         --maia-control-surface: oklch(0.98 0 0 / 90%);
         --maia-control-border-opacity: 0.14;
@@ -127,14 +145,13 @@ export const systemThemeCss = (legacyHsl = false) => {
           0 2px 4px rgb(0 0 0 / 0.19), 0 4px 8px rgb(0 0 0 / 0.08);
         --maia-poster-gloss: inset 0 1px 2px rgb(255 255 255 / 0.25);
       }
-      html.userpatch-maia .userpatch-media-badge img,
-      html.userpatch-maia .userpatch-quality-tab img,
-      html.userpatch-maia .userpatch-quality-filter img {
+      html.userpatch-maia[data-userpatch-theme="light"] .userpatch-media-badge img,
+      html.userpatch-maia[data-userpatch-theme="light"] .userpatch-quality-tab img,
+      html.userpatch-maia[data-userpatch-theme="light"] .userpatch-quality-filter img {
         filter: none !important;
       }
-      html.userpatch-maia .userpatch-quality-tab:disabled img {
+      html.userpatch-maia[data-userpatch-theme="light"] .userpatch-quality-tab:disabled img {
         filter: opacity(0.45) !important;
       }
-    }
   `
 }

@@ -1,5 +1,6 @@
 import { restoreManagedMeta } from "../shared/managed-meta.js"
 import { dismissPageLoader } from "../shared/page-loader.js"
+import { removeSettings } from "../shared/redesign-settings.js"
 import { MAIA_CLASS } from "../shared/styles.js"
 import {
   COLOR_SCHEME_META_ID,
@@ -42,6 +43,7 @@ export const removeAppChrome = () => {
   resetHeaderNavigation()
   resetSearchDialog()
   resetMobileNavigationState()
+  removeSettings()
   clearDetailTooltipCleanup()
   resetScreenshotViewer()
   for (const node of document.querySelectorAll(

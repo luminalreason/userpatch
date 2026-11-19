@@ -1,13 +1,13 @@
 // ==UserScript==
 // @name         HubCloud Redesign
 // @namespace    https://github.com/luminalreason/userpatch
-// @version      0.3.0
+// @version      0.4.0
 // @description  A system-themed interface with clearer download choices, link sharing, copy controls, and a guide to compare download mirrors.
 // @author       luminalreason
 // @match        *://*/*
 // @run-at       document-start
 // @inject-into  content
-// @grant        none
+// @grant        GM_xmlhttpRequest
 // @noframes
 // ==/UserScript==
 
@@ -312,6 +312,12 @@
 
   // src/hubcloud/icons.js
   const LUCIDE_ICON_SHAPES = Object.freeze({
+    "refresh-cw": Object.freeze([
+      ["path", { d: "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" }],
+      ["path", { d: "M21 3v5h-5" }],
+      ["path", { d: "M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" }],
+      ["path", { d: "M8 16H3v5" }],
+    ]),
     copy: Object.freeze([
       [
         "rect",
@@ -582,7 +588,14 @@
   const copyFeedbackTimers = new WeakMap()
   const showCopiedFeedback = (
     button,
-    { label, copiedLabel, icon = "copy", text = "", copiedText = "" }
+    {
+      label,
+      copiedLabel,
+      icon = "copy",
+      text = "",
+      copiedText = "",
+      showTitle = true,
+    }
   ) => {
     const render = (copied) => {
       const currentLabel = copied ? copiedLabel : label
@@ -594,7 +607,9 @@
         button.append(span)
       }
       button.setAttribute("aria-label", currentLabel)
-      button.title = currentLabel
+      if (showTitle) {
+        button.title = currentLabel
+      }
       button.classList.toggle("userpatch-copied", copied)
     }
     window.clearTimeout(copyFeedbackTimers.get(button))
@@ -656,6 +671,17 @@
     }
     return clean
   }
+  const isCloudflareMirror = (value) => {
+    try {
+      const url = new URL(value, location.href)
+      return (
+        /^https?:$/.test(url.protocol) &&
+        /(?:^|\.)(?:workers\.dev|r2\.dev)$/i.test(url.hostname)
+      )
+    } catch {
+      return false
+    }
+  }
   const getButtonVariant = (button) => {
     const text = (button.textContent || "").toLowerCase()
     const id = (button.dataset?.originalId || button.id || "").toLowerCase()
@@ -709,7 +735,7 @@
     ) {
       return "10gbps"
     }
-    return "default"
+    return isCloudflareMirror(href) ? "cloudflare" : "default"
   }
   const RESUMABLE_THEME = Object.freeze({
     bg: "#0051c3",
@@ -718,6 +744,7 @@
   const MIRROR_THEMES = Object.freeze({
     fsl: RESUMABLE_THEME,
     t3: RESUMABLE_THEME,
+    cloudflare: RESUMABLE_THEME,
     "10gbps": Object.freeze({
       bg: "#c2410c",
       color: "#ffffff",
@@ -741,10 +768,8 @@
   })
   const DIALOG_ID = "userpatch-mirror-guide-dialog"
   const TRIGGER_ID = "userpatch-mirror-guide-trigger"
-  const orderDownloadButtons = () => {
-    const groups = Array.from(
-      document.querySelectorAll(`.${BUTTON_GROUP_CLASS}`)
-    )
+  const orderDownloadButtons = (root = document) => {
+    const groups = Array.from(root.querySelectorAll(`.${BUTTON_GROUP_CLASS}`))
     if (groups.length <= 1) {
       return
     }
@@ -761,6 +786,7 @@
       }
       return (
         {
+          cloudflare: 13,
           "10gbps": 20,
           gofile: 25,
           pixeldrain: 30,
@@ -773,7 +799,7 @@
       return
     }
     const sorted = groups.toSorted((a, b) => getPriority(a) - getPriority(b))
-    const guideRow = document.getElementById(GUIDE_ROW_ID)
+    const guideRow = parent.querySelector(`:scope > #${GUIDE_ROW_ID}`)
     const isAlreadySorted = groups.every((group, i) => group === sorted[i])
     const isGuideRowAtStart =
       !guideRow || guideRow.nextElementSibling === sorted[0]
@@ -853,15 +879,19 @@
       for (const icon of oldIcons) {
         icon.remove()
       }
-      const cleanLabel = cleanMirrorLabel(button.textContent || "")
+      const cleanLabel =
+        variant === "cloudflare"
+          ? "Cloudflare Server"
+          : cleanMirrorLabel(button.textContent || "")
       button.textContent = ""
+      const externalMirror =
+        ["10gbps", "pixeldrain", "buzz"].includes(variant) &&
+        button.dataset.userpatchDirectMirror !== "true"
       const mirrorIcon =
         variant === "telegram"
           ? createTelegramIcon()
           : createLucideIcon(
-              ["10gbps", "pixeldrain", "buzz"].includes(variant)
-                ? "external-link"
-                : "arrow-down-to-line"
+              externalMirror ? "external-link" : "arrow-down-to-line"
             )
       const labelSpan = document.createElement("span")
       labelSpan.className = "userpatch-btn-label"
@@ -891,6 +921,7 @@
       group.dataset.orientation = "horizontal"
       group.dataset.mirrorType = variant
       group.className = `${BUTTON_GROUP_CLASS} userpatch-group-${variant}`
+      group.setAttribute("aria-label", cleanLabel)
       group.style.setProperty("--userpatch-btn-bg", theme.bg)
       group.style.setProperty("--userpatch-btn-color", theme.color)
       const copyBtn = document.createElement("button")
@@ -920,7 +951,7 @@
       button.before(group)
       group.append(button, copyBtn)
     }
-    orderDownloadButtons()
+    orderDownloadButtons(root)
     if (guide) {
       ensureMirrorGuide()
     }
@@ -1138,6 +1169,7 @@
         const badge = document.createElement("div")
         const theme = MIRROR_THEMES[item.variant] || MIRROR_THEMES.default
         badge.className = "userpatch-guide-button"
+        badge.dataset.mirrorType = item.variant
         badge.style.setProperty("--userpatch-btn-bg", theme.bg)
         badge.style.setProperty("--userpatch-btn-color", theme.color)
         const badgeIcon =
@@ -1213,10 +1245,10 @@
           variant: "10gbps",
         }
       }
-      if (/(^|\.)(workers\.dev|r2\.dev)$/.test(host)) {
+      if (isCloudflareMirror(href)) {
         return {
           label: "Cloudflare Server",
-          variant: "fsl",
+          variant: "cloudflare",
         }
       }
     } catch {}
@@ -1992,7 +2024,10 @@ html.userpatch-generated-page :is(.note, .note-text) {
       `#download, a#download, button#download, #button1, a#button1, button#button1, .${DIRECT_DOWNLOAD_BUTTON_CLASS}`
     )
     for (const btn of actionBtns) {
-      if (btn.dataset.userpatchLoading === "true") {
+      if (
+        btn.dataset.userpatchInlineLinks ||
+        btn.dataset.userpatchLoading === "true"
+      ) {
         continue
       }
       if (!btn.querySelector('[data-userpatch-lucide-icon="sparkles"]')) {
@@ -2295,14 +2330,519 @@ html.userpatch-generated-page :is(.note, .note-text) {
     }
   }
 
+  // src/shared/fetch-mirrors.js
+  const providerHosts = new Set([
+    "greenmotors.club",
+    "greenmotors.cc",
+    "hubcloud.mov",
+    "hubcloud.pw",
+    "hubdrive.blog",
+    "hubdrive.bar",
+    "gamerxyt.com",
+  ])
+  const httpsUrl = (value, base) => {
+    try {
+      const url = new URL(value, base)
+      return url.protocol === "https:" &&
+        !url.username &&
+        !url.password &&
+        !url.port
+        ? url
+        : null
+    } catch {
+      return null
+    }
+  }
+  const providerUrl = (value, base) => {
+    const url = httpsUrl(value, base)
+    if (
+      !url ||
+      !providerHosts.has(url.hostname) ||
+      isDirectFileLink(url.href)
+    ) {
+      return null
+    }
+    if (url.hostname === "gamerxyt.com" && !isHubCloudDownloadUrl(url.href)) {
+      return null
+    }
+    return url
+  }
+  const canonicalShareUrl = (value, base) => {
+    const share = httpsUrl(value, base)
+    if (!share) {
+      return null
+    }
+    if (
+      /^hubcloud\.[a-z]+$/.test(share.hostname) &&
+      /^\/drive\/[a-z0-9]{15}\/?$/i.test(share.pathname)
+    ) {
+      share.hostname = "hubcloud.pw"
+      return share
+    }
+    if (
+      /^hubdrive\.[a-z]+$/.test(share.hostname) &&
+      /^\/file\/\d+\/?$/.test(share.pathname)
+    ) {
+      share.hostname = "hubdrive.bar"
+      return share
+    }
+    return null
+  }
+  const getRelayShareUrl = ({ root, url }) => {
+    if (
+      !/^greenmotors\.(?:club|cc)$/.test(url.hostname) ||
+      !url.searchParams.has("id")
+    ) {
+      return null
+    }
+    for (const script of root.querySelectorAll("script:not([src])")) {
+      const payload = script.textContent.match(
+        /\bs\(\s*['"]o['"]\s*,\s*['"]([A-Za-z0-9+/=]+)['"]/
+      )?.[1]
+      if (!payload) {
+        continue
+      }
+      try {
+        const decoded = atob(atob(payload)).replaceAll(/[a-z]/gi, (char) => {
+          const start = char <= "Z" ? 65 : 97
+          return String.fromCharCode(
+            start + ((char.charCodeAt(0) - start + 13) % 26)
+          )
+        })
+        const share = canonicalShareUrl(atob(JSON.parse(atob(decoded)).o))
+        if (share) {
+          return share
+        }
+      } catch {}
+    }
+    return null
+  }
+  const readProviderPage = async (url, streamHandoff = false) => {
+    if (!url || typeof GM_xmlhttpRequest !== "function") {
+      return null
+    }
+    return await new Promise((resolve) => {
+      const maxBytes = 768 * 1024
+      const request = GM_xmlhttpRequest({
+        method: "GET",
+        url: url.href,
+        anonymous: true,
+        timeout: 6500,
+        responseType: "text",
+        headers: { Accept: "text/html" },
+        onprogress: ({ loaded }) => {
+          if (loaded > maxBytes) {
+            resolve(null)
+            request.abort()
+          }
+        },
+        onload: (response) => {
+          const finalUrl = streamHandoff
+            ? httpsUrl(response.finalUrl || url.href)
+            : providerUrl(response.finalUrl || url.href)
+          if (
+            !finalUrl ||
+            response.status !== 200 ||
+            !/^content-type:\s*(?:text\/html|application\/xhtml\+xml)\b/im.test(
+              response.responseHeaders || ""
+            ) ||
+            typeof response.responseText !== "string" ||
+            response.responseText.length > maxBytes
+          ) {
+            resolve(null)
+            return
+          }
+          const template = document.createElement("template")
+          template.innerHTML = response.responseText
+          const root = template.content
+          const title = root.querySelector("title")?.textContent || ""
+          if (
+            /just a moment|attention required|mediator page|checking your browser/i.test(
+              title
+            ) ||
+            root.querySelector(
+              "#challenge-form, #challenge-running, #cf-challenge-running"
+            )
+          ) {
+            resolve({ requiresBrowser: true })
+            return
+          }
+          resolve({
+            root,
+            url: finalUrl,
+          })
+        },
+        onerror: () => resolve(null),
+        onabort: () => resolve(null),
+        ontimeout: () => resolve(null),
+      })
+    }).catch(() => null)
+  }
+  const resolveProviderShare = async (href, provider) => {
+    const host = provider === "HubCloud" ? "hubcloud.pw" : "hubdrive.bar"
+    const direct = canonicalShareUrl(href)
+    if (direct?.hostname === host) {
+      return direct
+    }
+    const page = await readProviderPage(direct || providerUrl(href))
+    if (!page?.root) {
+      return null
+    }
+    const share = getRelayShareUrl(page) || canonicalShareUrl(page.url.href)
+    if (share?.hostname === host) {
+      return share
+    }
+    const targetPage =
+      share && share.href !== page.url.href
+        ? await readProviderPage(share)
+        : page
+    for (const anchor of targetPage?.root?.querySelectorAll("a[href]") || []) {
+      const linkedShare = canonicalShareUrl(
+        anchor.getAttribute("href"),
+        targetPage.url.href
+      )
+      if (linkedShare?.hostname === host) {
+        return linkedShare
+      }
+    }
+    return null
+  }
+  const resolvePlayableMirror = async (mirror) => {
+    if (mirror.variant !== "10gbps") {
+      return mirror
+    }
+    const wrapper = httpsUrl(mirror.url)
+    if (
+      !wrapper ||
+      !wrapper.searchParams.get("id") ||
+      isDirectFileLink(wrapper.href)
+    ) {
+      return mirror
+    }
+    const page = await readProviderPage(wrapper, true)
+    if (
+      !page?.root?.querySelector("main #loadingState.state") ||
+      !/hubcloud/i.test(
+        page.root.querySelector("header .logo-text")?.textContent || ""
+      ) ||
+      !page.root.querySelector("a#vd, a#downloadBtn")
+    ) {
+      return mirror
+    }
+    const playable = httpsUrl(page.url.searchParams.get("link"))
+    return playable &&
+      playable.href !== page.url.href &&
+      playable.href !== wrapper.href
+      ? {
+          ...mirror,
+          url: playable.href,
+          playable: true,
+        }
+      : mirror
+  }
+  const getMirrors = (page, requestedDownload = false) => {
+    const { root, url } = page
+    const card = root.querySelector("#section2 .card, .main > .card")
+    if (
+      !card?.querySelector(".card-header") ||
+      !card.querySelector(".list-group-item") ||
+      !(
+        requestedDownload ||
+        /^(?:hubcloud)\./i.test(url.hostname) ||
+        isHubCloudDownloadUrl(url.href)
+      )
+    ) {
+      return []
+    }
+    const mirrors = new Map()
+    for (const link of root.querySelectorAll(
+      "a.btn[href], a[id^=pxl][href], a:is(#fsl, #fsl2, #s3, #tgbtn)[href]"
+    )) {
+      const mirror = httpsUrl(link.getAttribute("href"), url.href)
+      const label = cleanMirrorLabel(link.textContent)
+      const variant = getButtonVariant(link)
+      if (
+        mirror &&
+        label &&
+        !isWatchOnlineButton(link) &&
+        (variant !== "default" || isDirectFileLink(mirror.href)) &&
+        !mirrors.has(mirror.href)
+      ) {
+        mirrors.set(mirror.href, {
+          url: mirror.href,
+          label,
+          id: link.id,
+          variant,
+        })
+      }
+    }
+    return [...mirrors.values()]
+  }
+  const fetchReleaseMirrors = async (providers) => {
+    const visited = new Set()
+    let requiresBrowser = false
+    const readChain = async (url, remaining) => {
+      if (!url || !remaining || visited.has(url.href)) {
+        return null
+      }
+      visited.add(url.href)
+      const page = await readProviderPage(url)
+      if (!page) {
+        return null
+      }
+      if (page.requiresBrowser) {
+        requiresBrowser = true
+        return null
+      }
+      const share = getRelayShareUrl(page)
+      if (share) {
+        return readChain(share, remaining - 1)
+      }
+      const mirrors = getMirrors(page)
+      if (mirrors.length) {
+        return mirrors
+      }
+      for (const link of page.root.querySelectorAll("a[href]")) {
+        const candidate = providerUrl(link.getAttribute("href"), page.url.href)
+        if (
+          candidate &&
+          ((isHubCloudDownloadUrl(candidate.href) &&
+            (candidate.hostname === page.url.hostname ||
+              candidate.hostname === "gamerxyt.com") &&
+            /generate\s+(?:direct\s+)?download\s+link/i.test(
+              link.textContent
+            )) ||
+            (candidate.hostname.startsWith("hubcloud.") &&
+              /hub\s*cloud/i.test(link.textContent))) &&
+          !visited.has(candidate.href)
+        ) {
+          return readChain(candidate, remaining - 1)
+        }
+      }
+      return null
+    }
+    const mirrors =
+      (await readChain(providerUrl(providers.get("HubCloud")?.href), 4)) ||
+      (await readChain(providerUrl(providers.get("HubDrive")?.href), 4)) ||
+      []
+    return {
+      mirrors,
+      requiresBrowser,
+    }
+  }
+  const fetchHubCloudMirrors = async (href) => {
+    const url = httpsUrl(href)
+    if (!url || !isHubCloudDownloadUrl(url.href)) {
+      return {
+        mirrors: [],
+        requiresBrowser: false,
+      }
+    }
+    const page = await readProviderPage(url, true)
+    return {
+      mirrors: page?.root ? getMirrors(page, true) : [],
+      requiresBrowser: Boolean(page?.requiresBrowser),
+    }
+  }
+  const renderFetchedMirrors = (output, mirrors, onOpen) => {
+    output.replaceChildren()
+    for (const { url, label, id, playable } of mirrors) {
+      const link = document.createElement("a")
+      link.href = url
+      link.target = "_blank"
+      link.rel = "noopener noreferrer"
+      link.dataset.noSwup = ""
+      link.dataset.originalId = id
+      if (playable) {
+        link.dataset.userpatchDirectMirror = "true"
+      }
+      link.className = "btn"
+      link.textContent = label
+      if (onOpen) {
+        link.addEventListener("click", () => onOpen(url))
+      }
+      output.append(link)
+    }
+    wrapDownloadButtons(output, { guide: false })
+    return output.querySelector(".userpatch-btn-group") !== null
+  }
+
+  // src/hubcloud/inline-links.js
+  const enableInlineLinks = () => {
+    if (typeof GM_xmlhttpRequest !== "function") {
+      return
+    }
+    const candidates = document.querySelectorAll(
+      `a#download[href], a#button1[href], a.${DIRECT_DOWNLOAD_BUTTON_CLASS}[href]`
+    )
+    for (const link of candidates) {
+      if (
+        link.dataset.userpatchInlineLinks ||
+        !isHubCloudDownloadUrl(link.href)
+      ) {
+        continue
+      }
+      link.dataset.userpatchInlineLinks = "true"
+      link.setAttribute("role", "button")
+      const results = document.createElement("div")
+      results.className = "userpatch-inline-links-results"
+      const status = document.createElement("div")
+      status.setAttribute("role", "status")
+      const output = document.createElement("div")
+      results.append(status, output)
+      link.after(results)
+      let busy = false
+      const renderState = () => {
+        link.replaceChildren(
+          busy ? createSpinnerIcon() : createLucideIcon("sparkles"),
+          "Show links"
+        )
+        if (busy) {
+          link.setAttribute("aria-busy", "true")
+          link.setAttribute("aria-disabled", "true")
+        } else {
+          link.removeAttribute("aria-busy")
+          link.removeAttribute("aria-disabled")
+        }
+      }
+      renderState()
+      link.addEventListener(
+        "click",
+        async (event) => {
+          event.preventDefault()
+          event.stopImmediatePropagation()
+          if (busy || link.hidden) {
+            return
+          }
+          busy = true
+          renderState()
+          status.textContent = ""
+          try {
+            const { mirrors, requiresBrowser } = await fetchHubCloudMirrors(
+              link.href
+            )
+            const resolved = await Promise.all(
+              mirrors.map(resolvePlayableMirror)
+            )
+            if (!results.isConnected) {
+              return
+            }
+            if (resolved.length && renderFetchedMirrors(output, resolved)) {
+              const restoreFocus = document.activeElement === link
+              link.hidden = true
+              if (restoreFocus) {
+                output.querySelector("a[href]")?.focus({ preventScroll: true })
+              }
+            } else {
+              status.textContent = requiresBrowser
+                ? "Provider verification is required."
+                : "No mirrors found. Try again."
+            }
+          } finally {
+            busy = false
+            renderState()
+          }
+        },
+        true
+      )
+      link.addEventListener("keydown", (event) => {
+        if (event.key === " ") {
+          event.preventDefault()
+          link.click()
+        }
+      })
+    }
+  }
+
+  // src/shared/storage.js
+  const storageGet = (key) => {
+    try {
+      return window.localStorage.getItem(key)
+    } catch {
+      return null
+    }
+  }
+  const storageSet = (key, value) => {
+    try {
+      if (value === null || value === undefined) {
+        window.localStorage.removeItem(key)
+      } else {
+        window.localStorage.setItem(key, String(value))
+      }
+    } catch {}
+  }
+  let openedReleasesKey = ""
+  const initStorage = (context) => {
+    openedReleasesKey = context.openedReleasesKey
+  }
+  const getOpenedReleases = () => {
+    try {
+      const raw = storageGet(openedReleasesKey)
+      if (!raw) {
+        return new Set()
+      }
+      const parsed = JSON.parse(raw)
+      return new Set(Array.isArray(parsed) ? parsed : [])
+    } catch {
+      return new Set()
+    }
+  }
+  const saveOpenedRelease = (...identifiers) => {
+    const valid = identifiers.filter(
+      (id) => Boolean(id) && typeof id === "string"
+    )
+    if (!valid.length) {
+      return
+    }
+    const items = getOpenedReleases()
+    for (const identifier of valid) {
+      items.delete(identifier)
+      items.add(identifier)
+    }
+    storageSet(openedReleasesKey, JSON.stringify([...items].slice(-1e3)))
+  }
+  const markReleaseOpened = (row, item) => {
+    if (row) {
+      row.dataset.userpatchOpened = "true"
+    }
+    if (item) {
+      item.dataset.userpatchOpened = "true"
+    }
+  }
+  const isReleaseOpened = (identifier, linksRoot, openedReleases) => {
+    if (identifier && openedReleases.has(identifier)) {
+      return true
+    }
+    if (linksRoot) {
+      for (const anchor of linksRoot.querySelectorAll("a[href]")) {
+        if (openedReleases.has(anchor.href)) {
+          return true
+        }
+      }
+    }
+    return false
+  }
+
   // src/shared/system-theme.js
+  const themeSettingKey = "userpatch-theme-setting"
+  const getThemeSetting = () => {
+    const saved = storageGet(themeSettingKey)
+    return saved === "light" || saved === "dark" ? saved : "system"
+  }
+  const resolveTheme = () => {
+    const saved = getThemeSetting()
+    if (saved !== "system") {
+      return saved
+    }
+    return preference.matches ? "dark" : "light"
+  }
   let preference = null
   const updateSystemTheme = () => {
     const root = document.documentElement
     if (!root || !Object.hasOwn(root.dataset, "userpatchTheme")) {
       return
     }
-    const theme = preference.matches ? "dark" : "light"
+    const theme = resolveTheme()
     if (root.dataset.userpatchTheme !== theme) {
       root.dataset.userpatchTheme = theme
     }
@@ -2331,7 +2871,7 @@ html.userpatch-generated-page :is(.note, .note-text) {
         }
       })
     }
-    const theme = preference.matches ? "dark" : "light"
+    const theme = resolveTheme()
     document.documentElement.dataset.userpatchTheme = theme
     updateSystemTheme()
     return theme
@@ -2391,8 +2931,9 @@ html.userpatch-generated-page :is(.note, .note-text) {
         0 2px 4px rgb(0 0 0 / 0.5), 0 4px 8px rgb(0 0 0 / 0.3);
       --maia-poster-gloss: inset 0 1px 2px rgb(255 255 255 / 0.12);
     }
-    @media (prefers-color-scheme: light) {
-      html.userpatch-maia, html[data-userpatch-theme] {
+    html[data-userpatch-theme="dark"] { color-scheme: dark !important; }
+    html[data-userpatch-theme="light"] {
+        color-scheme: light !important;
         ${tokens}
         --maia-control-surface: oklch(0.98 0 0 / 90%);
         --maia-control-border-opacity: 0.14;
@@ -2420,20 +2961,53 @@ html.userpatch-generated-page :is(.note, .note-text) {
           0 2px 4px rgb(0 0 0 / 0.19), 0 4px 8px rgb(0 0 0 / 0.08);
         --maia-poster-gloss: inset 0 1px 2px rgb(255 255 255 / 0.25);
       }
-      html.userpatch-maia .userpatch-media-badge img,
-      html.userpatch-maia .userpatch-quality-tab img,
-      html.userpatch-maia .userpatch-quality-filter img {
+      html.userpatch-maia[data-userpatch-theme="light"] .userpatch-media-badge img,
+      html.userpatch-maia[data-userpatch-theme="light"] .userpatch-quality-tab img,
+      html.userpatch-maia[data-userpatch-theme="light"] .userpatch-quality-filter img {
         filter: none !important;
       }
-      html.userpatch-maia .userpatch-quality-tab:disabled img {
+      html.userpatch-maia[data-userpatch-theme="light"] .userpatch-quality-tab:disabled img {
         filter: opacity(0.45) !important;
       }
-    }
   `
   }
 
+  // src/shared/button-group.js
+  const KUMO_PRIMARY_BUTTON_TOKENS = `
+  --userpatch-btn-bg: light-dark(
+    oklch(0.5772 0.2324 260),
+    color-mix(in oklch, oklch(0.5772 0.2324 260), black 10%)
+  );
+  --userpatch-btn-color: #fff;
+`
+  const KUMO_MUTED_BUTTON_TOKENS = `
+  --userpatch-btn-bg: color-mix(in oklch, var(--maia-muted, var(--secondary)), var(--maia-foreground, var(--foreground)) 10%);
+  --userpatch-btn-color: var(--maia-foreground, var(--foreground));
+`
+  const KUMO_BUTTON_PAINT = `
+  --userpatch-button-base: var(--userpatch-btn-bg, light-dark(#fff, #27272a));
+  --userpatch-button-highlight: light-dark(rgb(255 255 255 / 75%), rgb(255 255 255 / 50%));
+  --userpatch-button-tint: 15%;
+  border: 1px solid color-mix(in oklch, var(--userpatch-button-base), black 10%) !important;
+  border-radius: 0.625rem !important;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in oklch, var(--userpatch-button-base), white var(--userpatch-button-tint)),
+    var(--userpatch-button-base)
+  ) !important;
+  color: var(--userpatch-btn-color, light-dark(#18181b, #f4f4f5)) !important;
+  box-shadow: inset 0 1px var(--userpatch-button-highlight),
+    0 1px 2px light-dark(rgb(0 0 0 / 9%), rgb(0 0 0 / 24%)) !important;
+`
+  const BUTTON_GROUP_CSS = `
+.userpatch-btn-group > :is(button, a) + :is(button, a) {
+  border-inline-start: 1px solid color-mix(in oklch, currentColor 22%, transparent) !important;
+}
+`
+
   // src/hubcloud/css.js
   const REDESIGN_CSS = `
+${BUTTON_GROUP_CSS}
 :root {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
@@ -3049,14 +3623,12 @@ a#button1,
 button#button1,
 .btn-success#button1,
 .${DIRECT_DOWNLOAD_BUTTON_CLASS} {
+  ${KUMO_PRIMARY_BUTTON_TOKENS}
+  ${KUMO_BUTTON_PAINT}
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   gap: 0.625rem !important;
-  background-color: #0051c3 !important;
-  color: #ffffff !important;
-  border: 1px solid rgba(255, 255, 255, 0.14) !important;
-  border-radius: var(--radius-lg, 0.625rem) !important;
   min-height: 56px !important;
   padding: 0.875rem 1.25rem !important;
   font-size: 16px !important;
@@ -3067,7 +3639,6 @@ button#button1,
   width: 100% !important;
   max-width: 100% !important;
   margin: 0.75rem 0 !important;
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.22), 0 1px 2px 0 rgba(0, 0, 0, 0.24) !important;
   box-sizing: border-box !important;
   cursor: pointer !important;
   transition: transform 100ms ease, filter 100ms ease !important;
@@ -3098,8 +3669,7 @@ button#button1,
   #download:hover,
   #button1:hover,
   .${DIRECT_DOWNLOAD_BUTTON_CLASS}:hover {
-    filter: brightness(1.06) !important;
-    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.25), 0 2px 4px 0 rgba(0, 0, 0, 0.28) !important;
+    --userpatch-button-tint: 22%;
   }
 }
 
@@ -3113,11 +3683,28 @@ button#button1,
 #download[data-userpatch-loading="true"],
 #button1[data-userpatch-loading="true"],
 .${DIRECT_DOWNLOAD_BUTTON_CLASS}[data-userpatch-loading="true"] {
-  background: #0051c3 !important;
-  color: #ffffff !important;
   opacity: 0.8 !important;
   pointer-events: none !important;
   cursor: wait !important;
+}
+
+html :is(#download, #button1, .${DIRECT_DOWNLOAD_BUTTON_CLASS})[data-userpatch-inline-links][hidden] {
+  display: none !important;
+}
+.userpatch-inline-links-results {
+  inline-size: 100%;
+}
+.userpatch-inline-links-results > :empty {
+  display: none;
+}
+.userpatch-inline-links-results > [role="status"] {
+  color: var(--muted-foreground);
+  padding-block: 0.5rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-userpatch-inline-links] .userpatch-spinner {
+    animation: none !important;
+  }
 }
 
 @keyframes userpatch-spin {
@@ -3132,20 +3719,16 @@ button#button1,
 
 [data-slot="button-group"],
 .${BUTTON_GROUP_CLASS} {
+  ${KUMO_BUTTON_PAINT}
   display: flex !important;
   align-items: stretch !important;
   max-width: 100% !important;
   width: 100% !important;
   margin: 0.75rem 0 !important;
   min-height: 56px !important;
-  border-radius: var(--radius-lg, 0.625rem) !important;
-  border: 1px solid rgba(255, 255, 255, 0.14) !important;
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.22), 0 1px 2px 0 rgba(0, 0, 0, 0.24) !important;
   overflow: hidden !important;
   box-sizing: border-box !important;
   position: relative !important;
-  background-color: var(--userpatch-btn-bg, var(--secondary)) !important;
-  color: var(--userpatch-btn-color, var(--foreground)) !important;
   transition: filter 100ms ease !important;
 }
 
@@ -3160,7 +3743,7 @@ button#button1,
   [data-slot="button-group"]:hover,
   .${BUTTON_GROUP_CLASS}:hover {
     filter: brightness(1.06) !important;
-    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.25), 0 2px 4px 0 rgba(0, 0, 0, 0.28) !important;
+    --userpatch-button-tint: 22%;
   }
 }
 
@@ -3366,8 +3949,8 @@ button.btn:not(.${COPY_BUTTON_CLASS}):not(.${DIRECT_DOWNLOAD_BUTTON_CLASS}):not(
   border-radius: var(--radius-lg, 0.625rem) !important;
   background-color: var(--secondary) !important;
   color: var(--foreground) !important;
-  border: 1px solid rgba(255, 255, 255, 0.14) !important;
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.22), 0 1px 2px 0 rgba(0, 0, 0, 0.24) !important;
+  border: 1px solid rgb(255 255 255 / 14%) !important;
+  box-shadow: none !important;
   box-sizing: border-box !important;
   transition: transform 100ms ease, filter 100ms ease !important;
 }
@@ -3932,13 +4515,7 @@ button.btn:not(.${COPY_BUTTON_CLASS}):not(.${DIRECT_DOWNLOAD_BUTTON_CLASS}):not(
   min-height: unset !important;
   height: auto !important;
   padding: 0.25rem 0.625rem !important;
-  border: 1px solid rgba(255, 255, 255, 0.14) !important;
-  border-radius: var(--radius-md, 0.5rem) !important;
-  background-color: var(--userpatch-btn-bg, var(--secondary)) !important;
-  color: var(--userpatch-btn-color, var(--foreground)) !important;
-  box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.18),
-    0 1px 2px 0 rgba(0, 0, 0, 0.16) !important;
+  ${KUMO_BUTTON_PAINT}
   box-sizing: border-box !important;
   font-size: 0.8125rem !important;
   font-weight: 500 !important;
@@ -4218,6 +4795,7 @@ ${systemThemeCss()}
         return true
       }
       normalizeFileDetails()
+      enableInlineLinks()
       normalizeActionButtons()
       normalizeLucideIcons()
       wrapDownloadButtons()

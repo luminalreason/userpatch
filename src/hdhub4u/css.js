@@ -1,7 +1,9 @@
 import { HBLINKS_CSS } from "../hblinks/css.js"
 import { DETAIL_INFO_CSS } from "../shared/detail-info.js"
+import { MOBILE_MENU_CSS } from "../shared/mobile-menu.js"
 import { POSTER_FRAME_CSS } from "../shared/poster-frame.js"
 import { PROGRESSIVE_IMAGE_CSS } from "../shared/progressive-images.js"
+import { SETTINGS_CSS } from "../shared/redesign-settings.js"
 import { systemThemeCss } from "../shared/system-theme.js"
 import { TRAILER_CSS } from "../shared/trailer.js"
 import { CONFIG } from "./config.js"
@@ -32,6 +34,7 @@ html.userpatch-maia {
   --maia-accent: oklch(0.269 0 0);
   --maia-accent-foreground: oklch(0.985 0 0);
   --maia-border: oklch(1 0 0 / 10%);
+  --maia-destructive: oklch(0.704 0.191 22.216);
   --maia-input: oklch(1 0 0 / 15%);
   --maia-ring: oklch(0.556 0 0);
   --maia-opened-blue: oklch(0.58 0.2 250);
@@ -158,7 +161,7 @@ html.userpatch-maia main#main-content {
 }
 
 html.userpatch-maia a:focus-visible,
-html.userpatch-maia button:focus-visible,
+html.userpatch-maia button:focus-visible:not(:where(.userpatch-season-trigger)),
 html.userpatch-maia summary:focus-visible,
 html.userpatch-maia [role="button"]:focus-visible {
   outline: 1px solid var(--maia-ring) !important;
@@ -869,81 +872,6 @@ html.userpatch-maia .userpatch-mobile-nav-brand-logo {
   block-size: 2rem !important;
 }
 
-html.userpatch-maia .userpatch-mobile-menu:popover-open {
-  position: fixed;
-  inset-block: 0;
-  inset-inline-start: 0;
-  display: flex;
-  inline-size: min(${CONFIG.mobileMenuWidth}, calc(100dvw - 2rem));
-  block-size: 100dvh;
-  max-block-size: 100dvh;
-  max-inline-size: none;
-  flex-direction: column;
-  gap: 0;
-  box-sizing: border-box;
-  margin: 0 auto 0 0;
-  padding: max(0.75rem, env(safe-area-inset-top, 0px)) 0.75rem
-    max(0.75rem, env(safe-area-inset-bottom, 0px));
-  overflow: hidden;
-  overscroll-behavior-x: auto;
-  overscroll-behavior-y: contain;
-  border: 1px solid var(--maia-border);
-  border-inline-start: 0;
-  border-radius: 0 var(--maia-radius-2xl) var(--maia-radius-2xl) 0;
-  background: var(--maia-card);
-  color: var(--maia-foreground);
-  box-shadow: 0 24px 64px rgb(0 0 0 / 0.45);
-  transform: translateX(0);
-  transition: transform 220ms var(--ease-drawer);
-}
-
-@starting-style {
-  html.userpatch-maia .userpatch-mobile-menu:popover-open {
-    transform: translateX(-100%);
-  }
-}
-
-html.userpatch-maia .userpatch-mobile-menu:popover-open::backdrop {
-  background: rgb(0 0 0 / 80%);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
-  transition: opacity 220ms var(--ease-out);
-}
-
-html.userpatch-maia .userpatch-mobile-menu-header {
-  display: flex;
-  min-block-size: 3.5rem;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0 0.5rem 0.75rem;
-  border-bottom: 1px solid var(--maia-border);
-}
-
-html.userpatch-maia .userpatch-mobile-menu-title {
-  margin: 0;
-  color: var(--maia-foreground);
-  font-size: 1.125rem;
-  font-weight: 600;
-  line-height: 1.25;
-}
-
-html.userpatch-maia .userpatch-mobile-menu-close {
-  display: inline-flex;
-  inline-size: 2.5rem;
-  block-size: 2.5rem;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  margin: 0;
-  padding: 0;
-  border: 1px solid var(--maia-border);
-  border-radius: var(--maia-radius-xl);
-  background: var(--maia-muted);
-  color: var(--maia-foreground);
-  cursor: pointer;
-}
-
 html.userpatch-maia .userpatch-mobile-menu-close svg,
 html.userpatch-maia .userpatch-mobile-menu-summary svg {
   inline-size: 1.25rem;
@@ -1005,8 +933,7 @@ html.userpatch-maia .userpatch-mobile-menu-summary::-webkit-details-marker {
 }
 
 html.userpatch-maia .userpatch-mobile-menu-link:focus-visible,
-html.userpatch-maia .userpatch-mobile-menu-summary:focus-visible,
-html.userpatch-maia .userpatch-mobile-menu-close:focus-visible {
+html.userpatch-maia .userpatch-mobile-menu-summary:focus-visible {
   background: var(--maia-selection-bg, color-mix(in oklch, var(--maia-foreground) 9%, transparent));
   color: var(--maia-foreground);
   outline: 2px solid var(--maia-ring);
@@ -1022,8 +949,7 @@ html.userpatch-maia .userpatch-mobile-menu-close:focus-visible {
 }
 
 html.userpatch-maia .userpatch-mobile-menu-link:active,
-html.userpatch-maia .userpatch-mobile-menu-summary:active,
-html.userpatch-maia .userpatch-mobile-menu-close:active {
+html.userpatch-maia .userpatch-mobile-menu-summary:active {
   background: color-mix(in oklch, var(--maia-foreground) 14%, transparent);
 }
 
@@ -1682,6 +1608,7 @@ html.userpatch-maia .userpatch-detail-main {
   overscroll-behavior-y: contain;
     scrollbar-gutter: auto;
   }
+  html.userpatch-maia .userpatch-detail-main:has(.userpatch-release-list:not([hidden])),
   html.userpatch-maia .userpatch-detail-main:has(.userpatch-screens:not([hidden])),
   html.userpatch-maia .userpatch-detail-main:has(.userpatch-detail-info:not([hidden]) .userpatch-trailer) {
     padding-block-end: calc(8rem + env(safe-area-inset-bottom, 0px));
@@ -1714,6 +1641,7 @@ html.userpatch-maia .userpatch-detail-toolbar > .userpatch-quality-tabs {
 }
 
 @media (max-width: ${CONFIG.mobileLayoutBreakpointRem}rem) {
+  html.userpatch-maia .userpatch-detail-root:has(.userpatch-release-list:not([hidden])),
   html.userpatch-maia .userpatch-detail-root:has(.userpatch-detail-info:not([hidden]) .userpatch-trailer),
   html.userpatch-maia .userpatch-detail-root:has(.userpatch-screens:not([hidden])) {
     padding-block-end: calc(8rem + env(safe-area-inset-bottom, 0px));
@@ -1938,7 +1866,7 @@ html.userpatch-maia .userpatch-quality-tab[data-tab-content="label"] {
 @media (hover: hover) and (pointer: fine) {
   html.userpatch-maia .userpatch-mode-tab:hover:not(:disabled),
   html.userpatch-maia .userpatch-quality-tab:hover:not(:disabled) {
-    color: var(--maia-foreground);
+    color: var(--maia-foreground) !important;
   }
 }
 
@@ -2455,5 +2383,7 @@ html.userpatch-maia .userpatch-poster-frame.userpatch-ongoing-poster {
     0 0 16px rgb(255 147 30 / 0.16),
     0 0 28px rgb(220 38 38 / 0.14)) !important;
 }
+${MOBILE_MENU_CSS}
+${SETTINGS_CSS}
 ${systemThemeCss()}
 `

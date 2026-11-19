@@ -19,9 +19,10 @@ export const CONFIG = Object.freeze({
   mobileDetailSectionGapRem: 0.75,
   mobileQualityVerticalGapRem: 0.75,
   mobileSearchDialogInsetPx: 12,
-  mobileMenuWidth: "280px",
-  mobileMenuPopoverId: "userpatch-mobile-menu",
-  mobileNavigationWidth: "260px",
+  mobileMenuId: "userpatch-mobile-menu",
+  mobileNavigationWidth: "320px",
+  fetchLinksKey: "userpatch-4khdhub-fetch-links",
+  shortEpisodeNamesKey: "userpatch-4khdhub-short-episode-names",
   ongoingPosterSessionKey: "userpatch-4khdhub-ongoing-poster-path",
   storageKeys: Object.freeze({
     detailTab: "userpatch-4khdhub-detail-tab",

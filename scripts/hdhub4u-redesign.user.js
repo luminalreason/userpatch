@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HDHub4u + HUBLinks Redesign
 // @namespace    https://github.com/luminalreason/userpatch
-// @version      0.3.1
+// @version      0.4.0
 // @description  Reworks HDHub4u and HUBLinks with a shared responsive, system-themed interface and clearer release links.
 // @author       luminalreason
 // @match        *://*/*
@@ -1557,13 +1557,25 @@
   }
 
   // src/shared/system-theme.js
+  const themeSettingKey = "userpatch-theme-setting"
+  const getThemeSetting = () => {
+    const saved = storageGet(themeSettingKey)
+    return saved === "light" || saved === "dark" ? saved : "system"
+  }
+  const resolveTheme = () => {
+    const saved = getThemeSetting()
+    if (saved !== "system") {
+      return saved
+    }
+    return preference.matches ? "dark" : "light"
+  }
   let preference = null
   const updateSystemTheme = () => {
     const root = document.documentElement
     if (!root || !Object.hasOwn(root.dataset, "userpatchTheme")) {
       return
     }
-    const theme = preference.matches ? "dark" : "light"
+    const theme = resolveTheme()
     if (root.dataset.userpatchTheme !== theme) {
       root.dataset.userpatchTheme = theme
     }
@@ -1592,7 +1604,7 @@
         }
       })
     }
-    const theme = preference.matches ? "dark" : "light"
+    const theme = resolveTheme()
     document.documentElement.dataset.userpatchTheme = theme
     updateSystemTheme()
     return theme
@@ -1652,8 +1664,9 @@
         0 2px 4px rgb(0 0 0 / 0.5), 0 4px 8px rgb(0 0 0 / 0.3);
       --maia-poster-gloss: inset 0 1px 2px rgb(255 255 255 / 0.12);
     }
-    @media (prefers-color-scheme: light) {
-      html.userpatch-maia, html[data-userpatch-theme] {
+    html[data-userpatch-theme="dark"] { color-scheme: dark !important; }
+    html[data-userpatch-theme="light"] {
+        color-scheme: light !important;
         ${tokens}
         --maia-control-surface: oklch(0.98 0 0 / 90%);
         --maia-control-border-opacity: 0.14;
@@ -1681,15 +1694,14 @@
           0 2px 4px rgb(0 0 0 / 0.19), 0 4px 8px rgb(0 0 0 / 0.08);
         --maia-poster-gloss: inset 0 1px 2px rgb(255 255 255 / 0.25);
       }
-      html.userpatch-maia .userpatch-media-badge img,
-      html.userpatch-maia .userpatch-quality-tab img,
-      html.userpatch-maia .userpatch-quality-filter img {
+      html.userpatch-maia[data-userpatch-theme="light"] .userpatch-media-badge img,
+      html.userpatch-maia[data-userpatch-theme="light"] .userpatch-quality-tab img,
+      html.userpatch-maia[data-userpatch-theme="light"] .userpatch-quality-filter img {
         filter: none !important;
       }
-      html.userpatch-maia .userpatch-quality-tab:disabled img {
+      html.userpatch-maia[data-userpatch-theme="light"] .userpatch-quality-tab:disabled img {
         filter: opacity(0.45) !important;
       }
-    }
   `
   }
 
@@ -1982,9 +1994,8 @@
     pageLoaderTimeoutMs: 4e3,
     mobileLayoutBreakpointRem: 52,
     searchPagePath: "/search.html",
-    mobileMenuWidth: "280px",
-    mobileMenuPopoverId: "userpatch-mobile-menu",
-    mobileNavigationWidth: "260px",
+    mobileMenuId: "userpatch-mobile-menu",
+    mobileNavigationWidth: "320px",
     storageKeys: Object.freeze({
       detailTab: "userpatch-hdhub4u-detail-tab",
       movieQualityTab: "userpatch-hdhub4u-quality-tab",
@@ -2197,7 +2208,7 @@ html.userpatch-maia.userpatch-hblinks-page .userpatch-hblinks-option-row {
   background: transparent !important;
   color: var(--maia-foreground) !important;
   font-size: 1rem !important;
-  font-weight: 500 !important;
+  font-weight: 400 !important;
   /* The theme's display font stylizes digits ("480p" becomes glyph soup);
      the list reads like 4KHDHub's rows, so it uses the clean sans stack. */
   font-family: "Inter Variable", ui-sans-serif, system-ui, -apple-system,
@@ -2209,7 +2220,8 @@ html.userpatch-maia.userpatch-hblinks-page .userpatch-hblinks-option-row {
 html.userpatch-maia.userpatch-hblinks-page .userpatch-hblinks-option-title {
   min-inline-size: 0;
   overflow-wrap: anywhere;
-  font-family: ui-sans-serif, system-ui, sans-serif !important;
+  font-family: inherit !important;
+  font-weight: 400 !important;
 }
 
 html.userpatch-maia.userpatch-hblinks-page .userpatch-hblinks-actions {
@@ -2398,6 +2410,109 @@ html.userpatch-maia.userpatch-detail-page .userpatch-detail-tabs .userpatch-qual
 }
 `
 
+  // src/shared/mobile-menu.js
+  const createMobileMenu = (id, logo, siteName, closeIcon) => {
+    const menu = document.createElement("dialog")
+    menu.className = "userpatch-mobile-menu"
+    menu.id = id
+    menu.setAttribute("aria-label", "Site menu")
+    const header = document.createElement("header")
+    header.className = "userpatch-mobile-menu-header"
+    const brand = document.createElement("a")
+    brand.className = "userpatch-mobile-menu-brand"
+    brand.href = "/"
+    brand.dataset.noSwup = ""
+    const image = document.createElement("img")
+    image.src = logo
+    image.alt = siteName
+    brand.append(image)
+    const close = document.createElement("button")
+    close.type = "button"
+    close.className = "userpatch-mobile-menu-close"
+    close.autofocus = true
+    close.setAttribute("aria-label", "Close menu")
+    close.append(closeIcon)
+    close.addEventListener("click", () => menu.close())
+    header.append(brand, close)
+    menu.append(header)
+    menu.addEventListener("click", (event) => {
+      if (event.target.closest("a[href]")) {
+        menu.close()
+      }
+    })
+    return menu
+  }
+  const bindMobileMenuButton = (button, id, openMenu) => {
+    button.setAttribute("aria-haspopup", "dialog")
+    button.setAttribute("aria-controls", id)
+    button.addEventListener("click", openMenu)
+  }
+  const MOBILE_MENU_CSS = `
+html.userpatch-maia .userpatch-mobile-menu[open] {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  inline-size: 100%;
+  block-size: 100%;
+  max-inline-size: none;
+  max-block-size: none;
+  flex-direction: column;
+  box-sizing: border-box;
+  margin: 0;
+  padding: max(0.75rem, env(safe-area-inset-top, 0px))
+    max(0.75rem, env(safe-area-inset-right, 0px))
+    max(0.75rem, env(safe-area-inset-bottom, 0px))
+    max(0.75rem, env(safe-area-inset-left, 0px));
+  overflow: hidden;
+  overscroll-behavior: contain;
+  border: 0;
+  background: var(--maia-background);
+  color: var(--maia-foreground);
+}
+
+html.userpatch-maia .userpatch-mobile-menu-header {
+  display: flex;
+  min-block-size: 3.5rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--maia-border);
+}
+
+html.userpatch-maia .userpatch-mobile-menu-close {
+  display: inline-flex;
+  inline-size: 2.5rem;
+  block-size: 2.5rem;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--maia-foreground);
+  cursor: pointer;
+}
+html.userpatch-maia .userpatch-mobile-menu-close:focus-visible {
+  outline: 2px solid var(--maia-ring) !important;
+  outline-offset: -2px;
+  box-shadow: none !important;
+}
+html.userpatch-maia .userpatch-mobile-menu::backdrop {
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+html.userpatch-maia .userpatch-mobile-menu-brand img {
+  display: block;
+  inline-size: 7rem;
+  block-size: 2.5rem;
+  object-fit: contain;
+}
+
+`
+
   // src/shared/poster-frame.js
   const POSTER_FRAME_CSS = `
 html.userpatch-maia :is(.movie-card-image, .content-sidebar .poster-image,
@@ -2540,6 +2655,710 @@ html.userpatch-maia img.userpatch-progressive-image.userpatch-image-loaded {
       }
     }
   })
+
+  // src/shared/select.js
+  const createSelectTrigger = (id, label, icon) => {
+    const trigger = document.createElement("button")
+    trigger.type = "button"
+    trigger.className = "userpatch-season-trigger"
+    trigger.setAttribute("role", "combobox")
+    trigger.setAttribute("aria-haspopup", "listbox")
+    trigger.setAttribute("aria-expanded", "false")
+    trigger.setAttribute("aria-controls", id)
+    trigger.setAttribute("aria-label", label)
+    const value = document.createElement("span")
+    value.className = "userpatch-season-value"
+    icon.classList.add("userpatch-season-chevron")
+    trigger.append(value, icon)
+    return {
+      trigger,
+      value,
+    }
+  }
+  const createSelectOption = (key, text, icon) => {
+    const option = document.createElement("div")
+    option.className = "userpatch-season-option"
+    option.setAttribute("role", "option")
+    option.tabIndex = -1
+    option.dataset.selectKey = key
+    const label = document.createElement("span")
+    label.className = "userpatch-season-option-label"
+    label.textContent = text
+    icon.classList.add("userpatch-season-option-check")
+    option.append(label, icon)
+    return option
+  }
+  const SELECT_CSS = `
+html.userpatch-maia .userpatch-season-trigger {
+  display: flex;
+  inline-size: 100%;
+  box-sizing: border-box;
+  min-inline-size: 0;
+  block-size: 2.125rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.375rem;
+  padding: calc(0.375rem + 1px) calc(0.75rem + 1px);
+  border: 0;
+  border-radius: 0.75rem;
+  background: var(--maia-selection-bg, rgb(255 255 255 / 0.15));
+  box-shadow: var(--maia-selection-shadow, inset 0 1px 2px rgb(255 255 255 / 0.12));
+  color: var(--maia-foreground);
+  font: inherit;
+  font-size: 0.875rem !important;
+  font-weight: 400;
+  line-height: 1.25;
+  text-align: start;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 140ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  html.userpatch-maia .userpatch-season-trigger:hover:not(:disabled) {
+    background: var(--maia-select-hover-bg, rgb(255 255 255 / 0.2));
+  }
+}
+
+html.userpatch-maia .userpatch-season-trigger:active:not(:disabled) {
+  background: var(--maia-select-hover-bg, rgb(255 255 255 / 0.25));
+}
+
+html.userpatch-maia .userpatch-season-trigger:focus-visible {
+  outline: 2px solid var(--maia-ring);
+  outline-offset: -2px;
+}
+
+html.userpatch-maia .userpatch-season-trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+html.userpatch-maia .userpatch-season-value {
+  min-inline-size: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+html.userpatch-maia .userpatch-season-popup {
+  display: flex;
+  inline-size: var(--userpatch-anchor-width, 100%);
+  min-inline-size: min(max(var(--userpatch-anchor-width, 0px), 9rem), calc(100vw - 1rem));
+  max-inline-size: calc(100vw - 1rem);
+  max-block-size: var(--userpatch-popup-height, 22rem);
+  flex-direction: column;
+  box-sizing: border-box;
+  pointer-events: auto;
+  border: 1px solid
+    color-mix(in oklch, var(--maia-foreground) 8%, transparent);
+  border-radius: 1rem;
+  background: var(--maia-popover);
+  color: var(--maia-popover-foreground);
+  box-shadow: 0 16px 40px rgb(0 0 0 / 0.28);
+  overflow: hidden;
+  opacity: 1;
+  transform: scale(1);
+  transform-origin: top left;
+  transition:
+    opacity 140ms var(--ease-out),
+    transform 140ms var(--ease-out);
+}
+
+html.userpatch-maia .userpatch-season-popup[data-side="top"] {
+  transform-origin: bottom left;
+}
+
+@starting-style {
+  html.userpatch-maia .userpatch-season-popup {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+html.userpatch-maia .userpatch-season-menu {
+  position: relative;
+  display: block;
+  inline-size: 100%;
+  min-inline-size: 0;
+  min-block-size: 0;
+  max-block-size: var(--userpatch-menu-height, 22rem);
+  flex: 0 1 auto;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-x: auto;
+  overscroll-behavior-y: contain;
+  padding: 0.25rem;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+html.userpatch-maia .userpatch-season-menu::-webkit-scrollbar {
+  display: none;
+}
+
+html.userpatch-maia .userpatch-season-option {
+  position: relative;
+  display: flex;
+  inline-size: 100%;
+  min-block-size: 2.25rem;
+  block-size: auto;
+  box-sizing: border-box;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 2.25rem 0.5rem 0.75rem;
+  border-radius: 0.75rem;
+  color: var(--maia-popover-foreground);
+  font-size: 0.875rem;
+  line-height: 1.35;
+  text-align: start;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  cursor: default;
+  user-select: none;
+  outline: none;
+  transition:
+    background-color 140ms var(--ease-out),
+    color 140ms var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  html.userpatch-maia .userpatch-season-option:hover {
+    background: var(--maia-accent);
+    color: var(--maia-accent-foreground);
+  }
+}
+
+html.userpatch-maia .userpatch-season-option:focus-visible,
+html.userpatch-maia .userpatch-season-option[data-highlighted] {
+  outline: none;
+  background: var(--maia-accent);
+  color: var(--maia-accent-foreground);
+}
+
+html.userpatch-maia .userpatch-season-option-label {
+  min-inline-size: 0;
+  flex: 1 1 auto;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  line-height: 1.35;
+}
+
+html.userpatch-maia .userpatch-season-option-check {
+  position: absolute;
+  inset-inline-end: 0.5rem;
+  inset-block-start: 50%;
+  transform: translateY(-50%);
+  inline-size: 1rem;
+  block-size: 1rem;
+  opacity: 0;
+  transition: opacity 120ms var(--ease-out);
+  pointer-events: none;
+}
+
+html.userpatch-maia .userpatch-season-option[aria-selected="true"] .userpatch-season-option-check {
+  opacity: 1;
+}
+
+html.userpatch-maia .userpatch-season-chevron {
+  display: block;
+  flex: none;
+  inline-size: 1rem;
+  block-size: 1rem;
+  color: var(--maia-muted-foreground);
+  pointer-events: none;
+}
+
+`
+
+  // src/shared/redesign-settings.js
+  const dialogId = "userpatch-settings"
+  const icons = {
+    x: [["path", { d: "m18 6-12 12M6 6l12 12" }]],
+    "chevron-down": [["path", { d: "m6 9 6 6 6-6" }]],
+    check: [["path", { d: "M20 6 9 17l-5-5" }]],
+    settings: [
+      [
+        "path",
+        {
+          d: "M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915",
+        },
+      ],
+      [
+        "circle",
+        {
+          cx: 12,
+          cy: 12,
+          r: 3,
+        },
+      ],
+    ],
+  }
+  const syncShortNames = (enabled) => {
+    document.documentElement.toggleAttribute(
+      "data-userpatch-short-episodes",
+      enabled
+    )
+  }
+  const applyEpisodeNameSetting = (key) => {
+    syncShortNames(storageGet(key) === "true")
+  }
+  const applyFetchLinksSetting = (key) => {
+    document.documentElement.toggleAttribute(
+      "data-userpatch-fetch-links",
+      typeof GM_xmlhttpRequest === "function" && storageGet(key) === "true"
+    )
+  }
+  const createThemeSelect = () => {
+    const id = "userpatch-theme-options"
+    const { trigger, value } = createSelectTrigger(
+      id,
+      "Theme",
+      createLucideIcon$1("chevron-down", icons)
+    )
+    const picker = document.createElement("div")
+    picker.id = id
+    picker.className = "userpatch-season-popup userpatch-theme-picker"
+    picker.setAttribute("popover", "auto")
+    const list = document.createElement("div")
+    list.className = "userpatch-season-menu"
+    list.setAttribute("role", "listbox")
+    list.setAttribute("aria-label", "Theme")
+    list.id = `${id}-list`
+    trigger.setAttribute("aria-controls", list.id)
+    trigger.setAttribute("popovertarget", id)
+    const options = ["System", "Light", "Dark"].map((label) =>
+      createSelectOption(
+        label.toLowerCase(),
+        label,
+        createLucideIcon$1("check", icons)
+      )
+    )
+    list.append(...options)
+    picker.append(list)
+    const selectTheme = (theme) => {
+      for (const option of options) {
+        const selected = option.dataset.selectKey === theme
+        option.setAttribute("aria-selected", String(selected))
+        if (selected) {
+          value.textContent = option.firstElementChild.textContent
+          trigger.setAttribute("aria-valuetext", value.textContent)
+        }
+      }
+    }
+    const commitTheme = (option) => {
+      const theme = option.dataset.selectKey
+      selectTheme(theme)
+      storageSet(themeSettingKey, theme === "system" ? null : theme)
+      ensureSystemTheme()
+      picker.hidePopover()
+      trigger.focus()
+    }
+    selectTheme(getThemeSetting())
+    const positionPicker = () => {
+      if (CSS.supports("position-area: block-end span-inline-start")) {
+        return
+      }
+      const anchor = trigger.getBoundingClientRect()
+      const width = picker.offsetWidth
+      const height = picker.offsetHeight
+      picker.style.left = `${Math.max(8, anchor.right - width)}px`
+      picker.style.top = `${anchor.bottom + height + 12 <= innerHeight ? anchor.bottom + 4 : Math.max(8, anchor.top - height - 4)}px`
+    }
+    picker.addEventListener("beforetoggle", (event) => {
+      trigger.setAttribute("aria-expanded", String(event.newState === "open"))
+    })
+    picker.addEventListener("toggle", (event) => {
+      if (event.newState === "open") {
+        positionPicker()
+        list.querySelector('[aria-selected="true"]')?.focus()
+      }
+    })
+    trigger.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault()
+        picker.showPopover({ source: trigger })
+      }
+    })
+    list.addEventListener("click", (event) => {
+      const option = event.target.closest('[role="option"]')
+      if (option) {
+        commitTheme(option)
+      }
+    })
+    list.addEventListener("keydown", (event) => {
+      const index = options.indexOf(event.target)
+      switch (event.key) {
+        case "Enter":
+        case " ":
+          commitTheme(event.target)
+          break
+        case "ArrowUp":
+          options[Math.max(0, index - 1)].focus()
+          break
+        case "ArrowDown":
+          options[Math.min(options.length - 1, index + 1)].focus()
+          break
+        case "Home":
+          options[0].focus()
+          break
+        case "End":
+          options.at(-1).focus()
+          break
+        case "Tab":
+          picker.hidePopover()
+          trigger.focus()
+          return
+        default: {
+          if (
+            event.key.length !== 1 ||
+            event.ctrlKey ||
+            event.metaKey ||
+            event.altKey
+          ) {
+            return
+          }
+          const next = options.find((option) =>
+            option.dataset.selectKey.startsWith(event.key.toLowerCase())
+          )
+          next?.focus()
+        }
+      }
+      event.preventDefault()
+    })
+    return {
+      trigger,
+      picker,
+    }
+  }
+  const ensureSettings = ({
+    storageKeys,
+    ongoingPosterSessionKey,
+    shortEpisodeNamesKey,
+    fetchLinksKey,
+  }) => {
+    const existing = document.getElementById(dialogId)
+    if (existing) {
+      return existing
+    }
+    const dialog = document.createElement("dialog")
+    dialog.id = dialogId
+    dialog.className = "userpatch-settings-dialog"
+    dialog.setAttribute("aria-labelledby", "userpatch-settings-title")
+    dialog.innerHTML = `
+    <div class="userpatch-settings-header">
+      <h2 id="userpatch-settings-title">Settings</h2>
+      <form method="dialog">
+        <button type="submit" class="userpatch-settings-close" aria-label="Close settings" autofocus></button>
+      </form>
+    </div>
+    <div class="userpatch-settings-fields">
+      <div class="userpatch-settings-row userpatch-settings-theme"><span>Theme</span></div>
+    </div>
+    <div class="userpatch-settings-footer">
+      <button type="button" class="userpatch-settings-button userpatch-clear-cache" aria-haspopup="dialog">Clear cache</button>
+    </div>
+  `
+    dialog
+      .querySelector(".userpatch-settings-close")
+      .append(createLucideIcon$1("x", icons))
+    const { trigger, picker } = createThemeSelect()
+    dialog.querySelector(".userpatch-settings-theme").append(trigger, picker)
+    const addSwitch = (labelText, key, apply) => {
+      const label = document.createElement("label")
+      label.className = "userpatch-settings-row"
+      const text = document.createElement("span")
+      text.textContent = labelText
+      const toggle = document.createElement("input")
+      toggle.type = "checkbox"
+      toggle.className = "userpatch-settings-switch"
+      toggle.setAttribute("role", "switch")
+      toggle.checked = storageGet(key) === "true"
+      toggle.addEventListener("change", () => {
+        storageSet(key, toggle.checked ? "true" : null)
+        apply(key)
+      })
+      label.append(text, toggle)
+      dialog.querySelector(".userpatch-settings-fields").append(label)
+    }
+    if (shortEpisodeNamesKey) {
+      addSwitch(
+        "Simplify single-episode filenames",
+        shortEpisodeNamesKey,
+        applyEpisodeNameSetting
+      )
+    }
+    if (fetchLinksKey && typeof GM_xmlhttpRequest === "function") {
+      addSwitch("Fetch links", fetchLinksKey, applyFetchLinksSetting)
+    }
+    const confirmation = document.createElement("dialog")
+    confirmation.id = "userpatch-cache-confirmation"
+    confirmation.className =
+      "userpatch-settings-dialog userpatch-cache-confirmation"
+    confirmation.setAttribute("role", "alertdialog")
+    confirmation.setAttribute("aria-labelledby", "userpatch-cache-title")
+    confirmation.setAttribute("aria-describedby", "userpatch-cache-description")
+    confirmation.innerHTML = `
+    <div class="userpatch-cache-header">
+      <h2 id="userpatch-cache-title">Clear cache?</h2>
+      <p id="userpatch-cache-description">Clears opened-link history and saved tab and filter selections on this site.</p>
+    </div>
+    <form method="dialog" class="userpatch-settings-footer">
+      <button class="userpatch-settings-button" type="submit" autofocus>Cancel</button>
+      <button class="userpatch-settings-button userpatch-settings-destructive" type="button">Clear cache</button>
+    </form>
+  `
+    dialog
+      .querySelector(".userpatch-clear-cache")
+      .addEventListener("click", () => {
+        confirmation.showModal()
+      })
+    confirmation
+      .querySelector(".userpatch-settings-destructive")
+      .addEventListener("click", () => {
+        for (const [name, key] of Object.entries(storageKeys)) {
+          if (name !== "seriesSeasonPrefix") {
+            storageSet(key, null)
+          }
+        }
+        try {
+          if (storageKeys.seriesSeasonPrefix) {
+            for (const key of Object.keys(localStorage)) {
+              if (key.startsWith(storageKeys.seriesSeasonPrefix)) {
+                localStorage.removeItem(key)
+              }
+            }
+          }
+          if (ongoingPosterSessionKey) {
+            sessionStorage.removeItem(ongoingPosterSessionKey)
+          }
+        } catch {}
+        location.reload()
+      })
+    document.body.append(dialog, confirmation)
+    return dialog
+  }
+  const createSettingsButton = (config, labelVisible = false) => {
+    const button = document.createElement("button")
+    button.type = "button"
+    button.className = labelVisible
+      ? "userpatch-mobile-nav-item"
+      : "userpatch-settings-trigger"
+    button.setAttribute("aria-label", "Settings")
+    button.setAttribute("aria-haspopup", "dialog")
+    button.setAttribute("aria-controls", dialogId)
+    const icon = createLucideIcon$1("settings", icons)
+    if (labelVisible) {
+      const iconWrapper = document.createElement("span")
+      iconWrapper.className = "userpatch-mobile-nav-icon"
+      iconWrapper.append(icon)
+      const text = document.createElement("span")
+      text.textContent = "Settings"
+      button.append(iconWrapper, text)
+    } else {
+      button.append(icon)
+    }
+    button.addEventListener("click", () => ensureSettings(config).showModal())
+    return button
+  }
+  const removeSettings = () => {
+    document.getElementById(dialogId)?.remove()
+    document.getElementById("userpatch-cache-confirmation")?.remove()
+    delete document.documentElement.dataset.userpatchShortEpisodes
+    delete document.documentElement.dataset.userpatchFetchLinks
+  }
+  const SETTINGS_CSS = `
+${SELECT_CSS}
+html.userpatch-maia dialog.userpatch-settings-dialog {
+  position: fixed;
+  inset: 0;
+  box-sizing: border-box;
+  inline-size: min(28rem, calc(100% - 2rem));
+  max-block-size: calc(100dvh - 2rem);
+  margin: auto;
+  padding: 1.5rem;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 0;
+  border-radius: 1.625rem;
+  background: var(--maia-popover);
+  color: var(--maia-popover-foreground);
+  box-shadow: 0 0 0 1px color-mix(in oklch, var(--maia-foreground) 5%, transparent);
+  font-size: 0.875rem;
+}
+html.userpatch-maia .userpatch-settings-dialog[open] {
+  display: grid;
+  gap: 1.5rem;
+}
+html.userpatch-maia .userpatch-settings-dialog::backdrop {
+  overflow: hidden;
+  overscroll-behavior: contain;
+  background: rgb(0 0 0 / 80%);
+  backdrop-filter: blur(2px);
+}
+html.userpatch-maia .userpatch-settings-header,
+html.userpatch-maia .userpatch-settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+html.userpatch-maia .userpatch-settings-header form,
+html.userpatch-maia .userpatch-settings-dialog :is(h2, p) {
+  margin: 0;
+}
+html.userpatch-maia .userpatch-settings-header h2 {
+  color: inherit;
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1;
+}
+html.userpatch-maia .userpatch-settings-close,
+html.userpatch-maia .userpatch-settings-button {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  margin: 0;
+  border: 1px solid transparent;
+  border-radius: 1.625rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+html.userpatch-maia .userpatch-settings-close {
+  inline-size: 2rem;
+  block-size: 2rem;
+  margin-block: -0.25rem;
+  margin-inline-end: -0.25rem;
+  padding: 0;
+}
+html.userpatch-maia .userpatch-settings-close svg {
+  inline-size: 1rem;
+  block-size: 1rem;
+}
+html.userpatch-maia .userpatch-settings-close:hover {
+  background: var(--maia-muted);
+}
+html.userpatch-maia .userpatch-settings-fields {
+  display: grid;
+  gap: 0.75rem;
+}
+html.userpatch-maia .userpatch-settings-row {
+  min-block-size: 2.25rem;
+}
+html.userpatch-maia .userpatch-settings-theme .userpatch-season-trigger {
+  inline-size: 9rem;
+  block-size: 2.25rem;
+  margin: 0;
+  anchor-name: --userpatch-theme-trigger;
+}
+html.userpatch-maia .userpatch-theme-picker {
+  position: fixed;
+  inset: 0 auto auto 0;
+  inline-size: 9rem;
+  margin: 0;
+  padding: 0;
+}
+html.userpatch-maia .userpatch-theme-picker:not(:popover-open) {
+  display: none;
+}
+@supports (position-area: block-end span-inline-start) {
+  html.userpatch-maia .userpatch-theme-picker {
+    inset: auto;
+    position-anchor: --userpatch-theme-trigger;
+    position-area: block-end span-inline-start;
+    position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
+    margin-block: 0.25rem;
+  }
+}
+html.userpatch-maia .userpatch-settings-switch {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  inline-size: 2.75rem;
+  block-size: 1.5rem;
+  margin: 0 0.125rem 0 0;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--maia-input);
+  cursor: pointer;
+}
+html.userpatch-maia .userpatch-settings-switch::before {
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+  margin-inline: 1px;
+  border-radius: 50%;
+  background: light-dark(var(--maia-background), var(--maia-foreground));
+  content: "";
+}
+html.userpatch-maia .userpatch-settings-switch:checked {
+  background: var(--maia-primary);
+}
+html.userpatch-maia .userpatch-settings-switch:checked::before {
+  margin-inline-start: auto;
+  background: var(--maia-primary-foreground);
+}
+html.userpatch-maia .userpatch-settings-footer {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 0.5rem;
+  margin: 0;
+}
+html.userpatch-maia .userpatch-settings-button {
+  block-size: 2.25rem;
+  padding: 0 0.75rem;
+  line-height: 1;
+  border-color: var(--maia-border);
+  background: color-mix(in oklch, var(--maia-input) 30%, transparent);
+}
+html.userpatch-maia .userpatch-settings-button:hover {
+  background: color-mix(in oklch, var(--maia-input) 50%, transparent);
+}
+html.userpatch-maia .userpatch-settings-destructive {
+  border-color: transparent;
+  background: color-mix(in oklch, var(--maia-destructive) 15%, transparent);
+  color: var(--maia-destructive);
+}
+html.userpatch-maia .userpatch-settings-destructive:hover {
+  background: color-mix(in oklch, var(--maia-destructive) 25%, transparent);
+}
+html.userpatch-maia .userpatch-cache-header {
+  display: grid;
+  gap: 0.375rem;
+  text-align: center;
+}
+html.userpatch-maia .userpatch-cache-header h2 {
+  font-size: 1.125rem;
+  font-weight: 500;
+}
+html.userpatch-maia .userpatch-cache-header p {
+  color: var(--maia-muted-foreground);
+}
+@media (max-width: 39.99rem) {
+  html.userpatch-maia .userpatch-cache-confirmation {
+    max-inline-size: 20rem;
+  }
+}
+@media (min-width: 40rem) {
+  html.userpatch-maia .userpatch-settings-footer {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+  html.userpatch-maia .userpatch-cache-header {
+    text-align: start;
+  }
+}
+html.userpatch-maia .userpatch-settings-dialog :is(button:not(:where(.userpatch-season-trigger)), input):focus-visible {
+  outline: 2px solid var(--maia-ring);
+  outline-offset: 2px;
+}
+`
 
   // src/shared/trailer.js
   const findTrailerUrl = (root) => {
@@ -2699,6 +3518,39 @@ html.userpatch-maia li.thumb .userpatch-poster-fallback {
 }
 `
 
+  // src/shared/button-group.js
+  const KUMO_PRIMARY_BUTTON_TOKENS = `
+  --userpatch-btn-bg: light-dark(
+    oklch(0.5772 0.2324 260),
+    color-mix(in oklch, oklch(0.5772 0.2324 260), black 10%)
+  );
+  --userpatch-btn-color: #fff;
+`
+  const KUMO_MUTED_BUTTON_TOKENS = `
+  --userpatch-btn-bg: color-mix(in oklch, var(--maia-muted, var(--secondary)), var(--maia-foreground, var(--foreground)) 10%);
+  --userpatch-btn-color: var(--maia-foreground, var(--foreground));
+`
+  const KUMO_BUTTON_PAINT = `
+  --userpatch-button-base: var(--userpatch-btn-bg, light-dark(#fff, #27272a));
+  --userpatch-button-highlight: light-dark(rgb(255 255 255 / 75%), rgb(255 255 255 / 50%));
+  --userpatch-button-tint: 15%;
+  border: 1px solid color-mix(in oklch, var(--userpatch-button-base), black 10%) !important;
+  border-radius: 0.625rem !important;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in oklch, var(--userpatch-button-base), white var(--userpatch-button-tint)),
+    var(--userpatch-button-base)
+  ) !important;
+  color: var(--userpatch-btn-color, light-dark(#18181b, #f4f4f5)) !important;
+  box-shadow: inset 0 1px var(--userpatch-button-highlight),
+    0 1px 2px light-dark(rgb(0 0 0 / 9%), rgb(0 0 0 / 24%)) !important;
+`
+  const BUTTON_GROUP_CSS = `
+.userpatch-btn-group > :is(button, a) + :is(button, a) {
+  border-inline-start: 1px solid color-mix(in oklch, currentColor 22%, transparent) !important;
+}
+`
+
   // src/hdhub4u/landing.js
   const isLandingPage = () =>
     Boolean(
@@ -2842,11 +3694,8 @@ html.userpatch-landing-page #userpatch-landing .userpatch-landing-action {
   gap: 0.65rem;
   min-block-size: 56px;
   padding: 0.75rem 1rem !important;
-  border: 1px solid rgb(255 255 255 / 14%) !important;
-  border-radius: 0.625rem !important;
-  background: #0051c3 !important;
-  color: #fff !important;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 22%), 0 1px 2px rgb(0 0 0 / 24%) !important;
+  ${KUMO_PRIMARY_BUTTON_TOKENS}
+  ${KUMO_BUTTON_PAINT}
   font: 400 18px/1.45 "Inter Variable", ui-sans-serif, system-ui, sans-serif !important;
   text-decoration: none !important;
   transform: none !important;
@@ -2889,7 +3738,7 @@ html.userpatch-landing-page :is(.userpatch-landing-action, .userpatch-landing-re
 }
 @media (hover: hover) and (pointer: fine) {
   html.userpatch-landing-page .userpatch-landing-action:hover {
-    filter: brightness(1.06);
+    --userpatch-button-tint: 22%;
   }
 }
 `
@@ -2978,6 +3827,7 @@ html.userpatch-maia {
   --maia-accent: oklch(0.269 0 0);
   --maia-accent-foreground: oklch(0.985 0 0);
   --maia-border: oklch(1 0 0 / 10%);
+  --maia-destructive: oklch(0.704 0.191 22.216);
   --maia-input: oklch(1 0 0 / 15%);
   --maia-ring: oklch(0.556 0 0);
   --maia-opened-blue: oklch(0.58 0.2 250);
@@ -3104,7 +3954,7 @@ html.userpatch-maia main#main-content {
 }
 
 html.userpatch-maia a:focus-visible,
-html.userpatch-maia button:focus-visible,
+html.userpatch-maia button:focus-visible:not(:where(.userpatch-season-trigger)),
 html.userpatch-maia summary:focus-visible,
 html.userpatch-maia [role="button"]:focus-visible {
   outline: 1px solid var(--maia-ring) !important;
@@ -3815,81 +4665,6 @@ html.userpatch-maia .userpatch-mobile-nav-brand-logo {
   block-size: 2rem !important;
 }
 
-html.userpatch-maia .userpatch-mobile-menu:popover-open {
-  position: fixed;
-  inset-block: 0;
-  inset-inline-start: 0;
-  display: flex;
-  inline-size: min(${CONFIG.mobileMenuWidth}, calc(100dvw - 2rem));
-  block-size: 100dvh;
-  max-block-size: 100dvh;
-  max-inline-size: none;
-  flex-direction: column;
-  gap: 0;
-  box-sizing: border-box;
-  margin: 0 auto 0 0;
-  padding: max(0.75rem, env(safe-area-inset-top, 0px)) 0.75rem
-    max(0.75rem, env(safe-area-inset-bottom, 0px));
-  overflow: hidden;
-  overscroll-behavior-x: auto;
-  overscroll-behavior-y: contain;
-  border: 1px solid var(--maia-border);
-  border-inline-start: 0;
-  border-radius: 0 var(--maia-radius-2xl) var(--maia-radius-2xl) 0;
-  background: var(--maia-card);
-  color: var(--maia-foreground);
-  box-shadow: 0 24px 64px rgb(0 0 0 / 0.45);
-  transform: translateX(0);
-  transition: transform 220ms var(--ease-drawer);
-}
-
-@starting-style {
-  html.userpatch-maia .userpatch-mobile-menu:popover-open {
-    transform: translateX(-100%);
-  }
-}
-
-html.userpatch-maia .userpatch-mobile-menu:popover-open::backdrop {
-  background: rgb(0 0 0 / 80%);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
-  transition: opacity 220ms var(--ease-out);
-}
-
-html.userpatch-maia .userpatch-mobile-menu-header {
-  display: flex;
-  min-block-size: 3.5rem;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0 0.5rem 0.75rem;
-  border-bottom: 1px solid var(--maia-border);
-}
-
-html.userpatch-maia .userpatch-mobile-menu-title {
-  margin: 0;
-  color: var(--maia-foreground);
-  font-size: 1.125rem;
-  font-weight: 600;
-  line-height: 1.25;
-}
-
-html.userpatch-maia .userpatch-mobile-menu-close {
-  display: inline-flex;
-  inline-size: 2.5rem;
-  block-size: 2.5rem;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  margin: 0;
-  padding: 0;
-  border: 1px solid var(--maia-border);
-  border-radius: var(--maia-radius-xl);
-  background: var(--maia-muted);
-  color: var(--maia-foreground);
-  cursor: pointer;
-}
-
 html.userpatch-maia .userpatch-mobile-menu-close svg,
 html.userpatch-maia .userpatch-mobile-menu-summary svg {
   inline-size: 1.25rem;
@@ -3951,8 +4726,7 @@ html.userpatch-maia .userpatch-mobile-menu-summary::-webkit-details-marker {
 }
 
 html.userpatch-maia .userpatch-mobile-menu-link:focus-visible,
-html.userpatch-maia .userpatch-mobile-menu-summary:focus-visible,
-html.userpatch-maia .userpatch-mobile-menu-close:focus-visible {
+html.userpatch-maia .userpatch-mobile-menu-summary:focus-visible {
   background: var(--maia-selection-bg, color-mix(in oklch, var(--maia-foreground) 9%, transparent));
   color: var(--maia-foreground);
   outline: 2px solid var(--maia-ring);
@@ -3968,8 +4742,7 @@ html.userpatch-maia .userpatch-mobile-menu-close:focus-visible {
 }
 
 html.userpatch-maia .userpatch-mobile-menu-link:active,
-html.userpatch-maia .userpatch-mobile-menu-summary:active,
-html.userpatch-maia .userpatch-mobile-menu-close:active {
+html.userpatch-maia .userpatch-mobile-menu-summary:active {
   background: color-mix(in oklch, var(--maia-foreground) 14%, transparent);
 }
 
@@ -4628,6 +5401,7 @@ html.userpatch-maia .userpatch-detail-main {
   overscroll-behavior-y: contain;
     scrollbar-gutter: auto;
   }
+  html.userpatch-maia .userpatch-detail-main:has(.userpatch-release-list:not([hidden])),
   html.userpatch-maia .userpatch-detail-main:has(.userpatch-screens:not([hidden])),
   html.userpatch-maia .userpatch-detail-main:has(.userpatch-detail-info:not([hidden]) .userpatch-trailer) {
     padding-block-end: calc(8rem + env(safe-area-inset-bottom, 0px));
@@ -4660,6 +5434,7 @@ html.userpatch-maia .userpatch-detail-toolbar > .userpatch-quality-tabs {
 }
 
 @media (max-width: ${CONFIG.mobileLayoutBreakpointRem}rem) {
+  html.userpatch-maia .userpatch-detail-root:has(.userpatch-release-list:not([hidden])),
   html.userpatch-maia .userpatch-detail-root:has(.userpatch-detail-info:not([hidden]) .userpatch-trailer),
   html.userpatch-maia .userpatch-detail-root:has(.userpatch-screens:not([hidden])) {
     padding-block-end: calc(8rem + env(safe-area-inset-bottom, 0px));
@@ -4884,7 +5659,7 @@ html.userpatch-maia .userpatch-quality-tab[data-tab-content="label"] {
 @media (hover: hover) and (pointer: fine) {
   html.userpatch-maia .userpatch-mode-tab:hover:not(:disabled),
   html.userpatch-maia .userpatch-quality-tab:hover:not(:disabled) {
-    color: var(--maia-foreground);
+    color: var(--maia-foreground) !important;
   }
 }
 
@@ -5401,6 +6176,8 @@ html.userpatch-maia .userpatch-poster-frame.userpatch-ongoing-poster {
     0 0 16px rgb(255 147 30 / 0.16),
     0 0 28px rgb(220 38 38 / 0.14)) !important;
 }
+${MOBILE_MENU_CSS}
+${SETTINGS_CSS}
 ${systemThemeCss()}
 `
 
@@ -6539,6 +7316,151 @@ ${systemThemeCss()}
     searchDialog = null
   }
 
+  // src/hdhub4u/mobile-nav.js
+  let mobileMenu = null
+  const ensureMobileMenu = () => {
+    if (!document.body) {
+      return null
+    }
+    if (mobileMenu?.isConnected) {
+      return mobileMenu
+    }
+    const items = collectNavigation()
+    const menu = createMobileMenu(
+      CONFIG.mobileMenuId,
+      HEADER_WORDMARK_DATA_URI,
+      "HDHub4u",
+      createLucideIcon("x")
+    )
+    const nav = document.createElement("nav")
+    nav.className = "userpatch-mobile-menu-nav"
+    nav.setAttribute("aria-label", "Site navigation")
+    const list = document.createElement("ul")
+    list.className = "userpatch-mobile-menu-list"
+    let groupIndex = 0
+    for (const item of items) {
+      const listItem = document.createElement("li")
+      listItem.className = "userpatch-mobile-menu-item"
+      if (item.children) {
+        const group = document.createElement("details")
+        group.className = "userpatch-mobile-menu-group"
+        const summary = document.createElement("summary")
+        summary.className = "userpatch-mobile-menu-summary"
+        const label = document.createElement("span")
+        label.textContent = item.label
+        const submenuId = `userpatch-mobile-menu-sublist-${groupIndex}`
+        summary.setAttribute("aria-controls", submenuId)
+        summary.append(label, createLucideIcon("chevron-down"))
+        const submenu = document.createElement("ul")
+        submenu.className = "userpatch-mobile-menu-sublist"
+        submenu.id = submenuId
+        for (const child of item.children) {
+          const childItem = document.createElement("li")
+          const link = document.createElement("a")
+          link.className = "userpatch-mobile-menu-link"
+          link.href = child.href
+          link.textContent = child.label
+          childItem.append(link)
+          submenu.append(childItem)
+        }
+        group.append(summary, submenu)
+        listItem.append(group)
+        groupIndex += 1
+      } else {
+        const link = document.createElement("a")
+        link.className = "userpatch-mobile-menu-link"
+        link.href = item.href
+        if (!item.href.startsWith("/")) {
+          link.target = "_blank"
+          link.rel = "noopener noreferrer"
+        }
+        link.textContent = item.label
+        listItem.append(link)
+      }
+      list.append(listItem)
+    }
+    nav.append(list)
+    menu.append(nav)
+    document.body.append(menu)
+    mobileMenu = menu
+    return menu
+  }
+  let mobileNavigationElement = null
+  const ensureMobileNavigation = () => {
+    if (!document.body) {
+      return false
+    }
+    if (mobileNavigationElement?.isConnected) {
+      return true
+    }
+    if (!ensureMobileMenu()) {
+      return false
+    }
+    const navigation = document.createElement("nav")
+    navigation.className = "userpatch-mobile-nav"
+    navigation.setAttribute("aria-label", "Mobile navigation")
+    for (const [destination, label] of CONFIG.mobileNavigationItems) {
+      const isAction = destination === "menu" || destination === "search"
+      const item = document.createElement(isAction ? "button" : "a")
+      item.className = "userpatch-mobile-nav-item"
+      item.setAttribute("aria-label", label)
+      if (isAction) {
+        item.type = "button"
+        if (destination === "menu") {
+          bindMobileMenuButton(item, CONFIG.mobileMenuId, openMobileMenu)
+        } else {
+          item.addEventListener("click", () => {
+            if (!openSearchDialog()) {
+              location.href = CONFIG.searchPagePath
+            }
+          })
+        }
+      } else {
+        item.href = destination
+      }
+      const icon = document.createElement("span")
+      icon.className = "userpatch-mobile-nav-icon"
+      icon.setAttribute("aria-hidden", "true")
+      if (label === "Home") {
+        icon.classList.add("userpatch-mobile-nav-icon-brand")
+        const image = document.createElement("img")
+        image.className = "userpatch-mobile-nav-brand-logo"
+        image.src = SITE_ICON_DATA_URI
+        image.alt = ""
+        image.width = 20
+        image.height = 20
+        image.decoding = "async"
+        icon.append(image)
+      } else {
+        icon.append(
+          createLucideIcon(destination === "menu" ? "menu" : "search")
+        )
+      }
+      const text = document.createElement("span")
+      text.textContent = label
+      item.append(icon, text)
+      navigation.append(item)
+    }
+    navigation.append(createSettingsButton(CONFIG, true))
+    document.body.append(navigation)
+    mobileNavigationElement = navigation
+    const currentPath = normalizePathname(location.pathname)
+    for (const link of navigation.querySelectorAll("a[href]")) {
+      const targetPath = normalizePathname(link.href)
+      if (targetPath === currentPath) {
+        link.setAttribute("aria-current", "page")
+      } else {
+        link.removeAttribute("aria-current")
+      }
+    }
+    return true
+  }
+  const resetMobileNavigationState = () => {
+    mobileMenu = null
+    mobileNavigationElement = null
+  }
+  const openMobileMenu = () => ensureMobileMenu()?.showModal()
+
   // src/hdhub4u/header-nav.js
   const NAV_LABEL_WORD_FIXES = [
     [/\bbollywood\b/gi, "Bollywood"],
@@ -6868,9 +7790,11 @@ ${systemThemeCss()}
     menuToggle.type = "button"
     menuToggle.className = "userpatch-header-action userpatch-menu-toggle"
     menuToggle.setAttribute("aria-label", "Menu")
-    menuToggle.setAttribute("popovertarget", CONFIG.mobileMenuPopoverId)
+    bindMobileMenuButton(menuToggle, CONFIG.mobileMenuId, openMobileMenu)
     menuToggle.append(createLucideIcon("menu"))
-    container.append(menuToggle, searchToggle)
+    const settings = createSettingsButton(CONFIG)
+    settings.classList.add("userpatch-header-action")
+    container.append(menuToggle, searchToggle, settings)
     inner.append(container)
     header.append(inner)
     document.body.prepend(header)
@@ -7007,170 +7931,6 @@ ${systemThemeCss()}
     return true
   }
 
-  // src/hdhub4u/mobile-nav.js
-  let mobileMenuPopover = null
-  const ensureMobileMenuPopover = () => {
-    if (!document.body) {
-      return null
-    }
-    if (mobileMenuPopover?.isConnected) {
-      return mobileMenuPopover
-    }
-    if (!("popover" in HTMLElement.prototype)) {
-      return null
-    }
-    const items = collectNavigation()
-    const popover = document.createElement("div")
-    popover.className = "userpatch-mobile-menu"
-    popover.id = CONFIG.mobileMenuPopoverId
-    popover.setAttribute("popover", "auto")
-    const header = document.createElement("header")
-    header.className = "userpatch-mobile-menu-header"
-    const title = document.createElement("h2")
-    title.className = "userpatch-mobile-menu-title"
-    title.textContent = "Menu"
-    const closeButton = document.createElement("button")
-    closeButton.type = "button"
-    closeButton.className = "userpatch-mobile-menu-close"
-    closeButton.setAttribute("aria-label", "Close menu")
-    closeButton.setAttribute("popovertarget", CONFIG.mobileMenuPopoverId)
-    closeButton.setAttribute("popovertargetaction", "hide")
-    closeButton.append(createLucideIcon("x"))
-    header.append(title, closeButton)
-    const nav = document.createElement("nav")
-    nav.className = "userpatch-mobile-menu-nav"
-    nav.setAttribute("aria-label", "Site navigation")
-    const list = document.createElement("ul")
-    list.className = "userpatch-mobile-menu-list"
-    let groupIndex = 0
-    for (const item of items) {
-      const listItem = document.createElement("li")
-      listItem.className = "userpatch-mobile-menu-item"
-      if (item.children) {
-        const group = document.createElement("details")
-        group.className = "userpatch-mobile-menu-group"
-        const summary = document.createElement("summary")
-        summary.className = "userpatch-mobile-menu-summary"
-        const label = document.createElement("span")
-        label.textContent = item.label
-        const submenuId = `userpatch-mobile-menu-sublist-${groupIndex}`
-        summary.setAttribute("aria-controls", submenuId)
-        summary.append(label, createLucideIcon("chevron-down"))
-        const submenu = document.createElement("ul")
-        submenu.className = "userpatch-mobile-menu-sublist"
-        submenu.id = submenuId
-        for (const child of item.children) {
-          const childItem = document.createElement("li")
-          const link = document.createElement("a")
-          link.className = "userpatch-mobile-menu-link"
-          link.href = child.href
-          link.textContent = child.label
-          childItem.append(link)
-          submenu.append(childItem)
-        }
-        group.append(summary, submenu)
-        listItem.append(group)
-        groupIndex += 1
-      } else {
-        const link = document.createElement("a")
-        link.className = "userpatch-mobile-menu-link"
-        link.href = item.href
-        if (!item.href.startsWith("/")) {
-          link.target = "_blank"
-          link.rel = "noopener noreferrer"
-        }
-        link.textContent = item.label
-        listItem.append(link)
-      }
-      list.append(listItem)
-    }
-    nav.append(list)
-    popover.append(header, nav)
-    popover.addEventListener("click", (event) => {
-      if (event.target instanceof Element && event.target.closest("a[href]")) {
-        popover.hidePopover()
-      }
-    })
-    document.body.append(popover)
-    mobileMenuPopover = popover
-    return popover
-  }
-  let mobileNavigationElement = null
-  const ensureMobileNavigation = () => {
-    if (!document.body) {
-      return false
-    }
-    if (mobileNavigationElement?.isConnected) {
-      return true
-    }
-    const popover = ensureMobileMenuPopover()
-    if (!popover) {
-      return false
-    }
-    const navigation = document.createElement("nav")
-    navigation.className = "userpatch-mobile-nav"
-    navigation.setAttribute("aria-label", "Mobile navigation")
-    for (const [destination, label] of CONFIG.mobileNavigationItems) {
-      const isAction = destination === "menu" || destination === "search"
-      const item = document.createElement(isAction ? "button" : "a")
-      item.className = "userpatch-mobile-nav-item"
-      item.setAttribute("aria-label", label)
-      if (isAction) {
-        item.type = "button"
-        if (destination === "menu") {
-          item.setAttribute("popovertarget", CONFIG.mobileMenuPopoverId)
-          item.setAttribute("aria-controls", CONFIG.mobileMenuPopoverId)
-        } else {
-          item.addEventListener("click", () => {
-            if (!openSearchDialog()) {
-              location.href = CONFIG.searchPagePath
-            }
-          })
-        }
-      } else {
-        item.href = destination
-      }
-      const icon = document.createElement("span")
-      icon.className = "userpatch-mobile-nav-icon"
-      icon.setAttribute("aria-hidden", "true")
-      if (label === "Home") {
-        icon.classList.add("userpatch-mobile-nav-icon-brand")
-        const image = document.createElement("img")
-        image.className = "userpatch-mobile-nav-brand-logo"
-        image.src = SITE_ICON_DATA_URI
-        image.alt = ""
-        image.width = 20
-        image.height = 20
-        image.decoding = "async"
-        icon.append(image)
-      } else {
-        icon.append(
-          createLucideIcon(destination === "menu" ? "menu" : "search")
-        )
-      }
-      const text = document.createElement("span")
-      text.textContent = label
-      item.append(icon, text)
-      navigation.append(item)
-    }
-    document.body.append(navigation)
-    mobileNavigationElement = navigation
-    const currentPath = normalizePathname(location.pathname)
-    for (const link of navigation.querySelectorAll("a[href]")) {
-      const targetPath = normalizePathname(link.href)
-      if (targetPath === currentPath) {
-        link.setAttribute("aria-current", "page")
-      } else {
-        link.removeAttribute("aria-current")
-      }
-    }
-    return true
-  }
-  const resetMobileNavigationState = () => {
-    mobileMenuPopover = null
-    mobileNavigationElement = null
-  }
-
   // src/shared/managed-meta.js
   const restoreManagedMeta = (metaIds) => {
     for (const id of metaIds) {
@@ -7222,6 +7982,7 @@ ${systemThemeCss()}
     resetHeaderNavigation()
     resetSearchDialog()
     resetMobileNavigationState()
+    removeSettings()
     clearDetailTooltipCleanup()
     resetScreenshotViewer()
     for (const node of document.querySelectorAll(

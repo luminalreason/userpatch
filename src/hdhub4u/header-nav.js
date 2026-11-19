@@ -1,9 +1,12 @@
 import { normalizePathname } from "../shared/dom.js"
+import { bindMobileMenuButton } from "../shared/mobile-menu.js"
 import { positionSelectionIndicator } from "../shared/quality-tabs.js"
+import { createSettingsButton } from "../shared/redesign-settings.js"
 import { HEADER_WORDMARK_DATA_URI } from "./branding.js"
 import { CONFIG } from "./config.js"
 import { normalizeText } from "./dom.js"
 import { createLucideIcon } from "./icons.js"
+import { openMobileMenu } from "./mobile-nav.js"
 import { openSearchDialog } from "./search-dialog.js"
 
 export const NAV_LABEL_WORD_FIXES = [
@@ -339,9 +342,11 @@ export const ensureHeader = () => {
   menuToggle.type = "button"
   menuToggle.className = "userpatch-header-action userpatch-menu-toggle"
   menuToggle.setAttribute("aria-label", "Menu")
-  menuToggle.setAttribute("popovertarget", CONFIG.mobileMenuPopoverId)
+  bindMobileMenuButton(menuToggle, CONFIG.mobileMenuId, openMobileMenu)
   menuToggle.append(createLucideIcon("menu"))
-  container.append(menuToggle, searchToggle)
+  const settings = createSettingsButton(CONFIG)
+  settings.classList.add("userpatch-header-action")
+  container.append(menuToggle, searchToggle, settings)
 
   inner.append(container)
   header.append(inner)

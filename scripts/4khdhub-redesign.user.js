@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         4K-HDHub Redesign
 // @namespace    https://github.com/luminalreason/userpatch
-// @version      0.5.2
+// @version      0.6.0
 // @description  Reworks 4K-HDHub with a responsive, system-themed interface, site search, saved season and quality filters, and readable video and audio badges.
 // @author       luminalreason
 // @match        *://4khdhub.one/*
@@ -1212,7 +1212,7 @@ html.userpatch-maia .userpatch-season-chevron {
       <div class="userpatch-settings-row userpatch-settings-theme"><span>Theme</span></div>
     </div>
     <div class="userpatch-settings-footer">
-      <button type="button" class="userpatch-settings-button userpatch-clear-cache" aria-haspopup="dialog">Clear cache</button>
+      <button type="button" class="userpatch-settings-button userpatch-clear-cache" aria-haspopup="dialog">Reset settings</button>
     </div>
   `
     dialog
@@ -1220,10 +1220,11 @@ html.userpatch-maia .userpatch-season-chevron {
       .append(createLucideIcon$2("x", icons))
     const { trigger, picker } = createThemeSelect()
     dialog.querySelector(".userpatch-settings-theme").append(trigger, picker)
-    const addSwitch = (labelText, key, apply) => {
+    const addSwitch = (labelText, descriptionText, key, apply) => {
       const label = document.createElement("label")
       label.className = "userpatch-settings-row"
       const text = document.createElement("span")
+      text.id = `${key}-label`
       text.textContent = labelText
       const toggle = document.createElement("input")
       toggle.type = "checkbox"
@@ -1234,18 +1235,36 @@ html.userpatch-maia .userpatch-season-chevron {
         storageSet(key, toggle.checked ? "true" : null)
         apply(key)
       })
-      label.append(text, toggle)
+      if (descriptionText) {
+        const description = document.createElement("span")
+        description.id = `${key}-description`
+        description.className = "userpatch-settings-description"
+        description.textContent = descriptionText
+        const copy = document.createElement("span")
+        copy.append(text, description)
+        label.append(copy, toggle)
+        toggle.setAttribute("aria-describedby", description.id)
+      } else {
+        label.append(text, toggle)
+      }
+      toggle.setAttribute("aria-labelledby", text.id)
       dialog.querySelector(".userpatch-settings-fields").append(label)
     }
     if (shortEpisodeNamesKey) {
       addSwitch(
-        "Simplify single-episode filenames",
+        "Shorten episode filenames",
+        "",
         shortEpisodeNamesKey,
         applyEpisodeNameSetting
       )
     }
     if (fetchLinksKey && typeof GM_xmlhttpRequest === "function") {
-      addSwitch("Fetch links", fetchLinksKey, applyFetchLinksSetting)
+      addSwitch(
+        "Show links on this page",
+        "Use Show links to see download options without leaving the title page.",
+        fetchLinksKey,
+        applyFetchLinksSetting
+      )
     }
     const confirmation = document.createElement("dialog")
     confirmation.id = "userpatch-cache-confirmation"
@@ -1256,12 +1275,12 @@ html.userpatch-maia .userpatch-season-chevron {
     confirmation.setAttribute("aria-describedby", "userpatch-cache-description")
     confirmation.innerHTML = `
     <div class="userpatch-cache-header">
-      <h2 id="userpatch-cache-title">Clear cache?</h2>
-      <p id="userpatch-cache-description">Resets script settings and clears opened-link history and saved tabs and filters on this site.</p>
+      <h2 id="userpatch-cache-title">Reset settings?</h2>
+      <p id="userpatch-cache-description">Restore default settings and clear your opened-link history, saved tabs, and filters for this site.</p>
     </div>
     <form method="dialog" class="userpatch-settings-footer">
       <button class="userpatch-settings-button" type="submit" autofocus>Cancel</button>
-      <button class="userpatch-settings-button userpatch-settings-destructive" type="button">Clear cache</button>
+      <button class="userpatch-settings-button userpatch-settings-destructive" type="button">Reset settings</button>
     </form>
   `
     dialog
@@ -1402,6 +1421,13 @@ html.userpatch-maia .userpatch-settings-close svg {
 }
 html.userpatch-maia .userpatch-settings-close:hover {
   background: var(--maia-muted);
+}
+html.userpatch-maia .userpatch-settings-description {
+  display: block;
+  margin-block-start: 0.25rem;
+  color: var(--maia-muted-foreground);
+  font-size: 0.875rem;
+  line-height: 1.4;
 }
 html.userpatch-maia .userpatch-settings-fields {
   display: grid;
@@ -2449,6 +2475,108 @@ html.userpatch-maia .userpatch-trailer-frame > iframe {
       )
     )
 
+  // src/hubcloud/pixeldrain.js
+  const proxyListUrl = "https://pixeldrain-bypass.gamedrive.org/api/proxy.json"
+  const cacheKey = "userpatch-pixeldrain-proxies"
+  const cacheLifetime = 24 * 60 * 60 * 1e3
+  let pendingProxyList
+  const getPixelDrainMirrorPath = (href) => {
+    const url = URL.parse(href)
+    if (
+      !url ||
+      !/^https?:$/.test(url.protocol) ||
+      !/^(?:www\.)?(?:pixeldrain\.(?:com|net|dev)|pixeldra\.in)$/.test(
+        url.hostname
+      )
+    ) {
+      return null
+    }
+    const match = url.pathname.match(/^\/(u|l|d)\/([\w-]+)\/?$/)
+    if (!match) {
+      return null
+    }
+    const [, type, id] = match
+    return {
+      u: id,
+      l: `zip/${id}`,
+      d: `dzip/${id}`,
+    }[type]
+  }
+  const normalizePixelDrainProxies = (payload) => {
+    const entries = Array.isArray(payload) ? payload : payload?.proxies
+    const list = Array.isArray(entries) ? entries : [payload?.proxy]
+    return list.flatMap((entry) => {
+      if (typeof entry !== "string" || !entry.trim()) {
+        return []
+      }
+      const value = entry.trim()
+      const base = URL.parse(
+        /^[a-z][\w+.-]*:\/\//i.test(value) ? value : `https://${value}`
+      )
+      if (
+        base?.protocol !== "https:" ||
+        base.username ||
+        base.password ||
+        base.search ||
+        base.hash
+      ) {
+        return []
+      }
+      return [`${base.href.replace(/\/+$/, "")}/`]
+    })
+  }
+  const getProxyList = () => {
+    let cached
+    try {
+      cached = JSON.parse(storageGet(cacheKey))
+    } catch {}
+    const fallback = normalizePixelDrainProxies(cached?.proxies)
+    if (fallback.length && Date.now() - cached.time < cacheLifetime) {
+      return Promise.resolve(fallback)
+    }
+    if (typeof GM_xmlhttpRequest !== "function") {
+      return Promise.resolve(fallback)
+    }
+    pendingProxyList ??= new Promise((resolve) => {
+      try {
+        GM_xmlhttpRequest({
+          method: "GET",
+          url: proxyListUrl,
+          anonymous: true,
+          responseType: "json",
+          timeout: 5e3,
+          onload: ({ status, response }) => {
+            const proxies =
+              status === 200 ? normalizePixelDrainProxies(response) : []
+            if (proxies.length) {
+              storageSet(
+                cacheKey,
+                JSON.stringify({
+                  time: Date.now(),
+                  proxies,
+                })
+              )
+            }
+            resolve(proxies.length ? proxies : fallback)
+          },
+          onerror: () => resolve(fallback),
+          ontimeout: () => resolve(fallback),
+          onabort: () => resolve(fallback),
+        })
+      } catch {
+        resolve(fallback)
+      }
+    }).finally(() => {
+      pendingProxyList = undefined
+    })
+    return pendingProxyList
+  }
+  const resolvePixelDrainMirror = async (path) => {
+    const proxies = await getProxyList()
+    const base = proxies[Math.floor(Math.random() * proxies.length)]
+    return base ? new URL(path, base).href : null
+  }
+
   // src/hubcloud/mirror-rows.js
   const isWatchOnlineButton = (button) => {
     if (!button) {
@@ -2476,6 +2604,9 @@ html.userpatch-maia .userpatch-trailer-frame > iframe {
     }
     if (lower.includes("10gbps") || lower.includes("10 gbps")) {
       return "10Gbps Server"
+    }
+    if (lower === "pixeldrain bypass") {
+      return "PixelDrain Bypass"
     }
     if (lower.includes("pixel")) {
       return "PixelDrain"
@@ -2580,7 +2711,11 @@ html.userpatch-maia .userpatch-trailer-frame > iframe {
       color: "#ffffff",
     }),
     pixeldrain: Object.freeze({
-      bg: "#047857",
+      bg: "#065b45",
+      color: "#ffffff",
+    }),
+    "pixeldrain-bypass": Object.freeze({
+      bg: "#087557",
       color: "#ffffff",
     }),
     telegram: Object.freeze({
@@ -2616,6 +2751,7 @@ html.userpatch-maia .userpatch-trailer-frame > iframe {
           "10gbps": 20,
           gofile: 25,
           pixeldrain: 30,
+          "pixeldrain-bypass": 31,
           telegram: 50,
         }[variant] || 40
       )
@@ -2687,7 +2823,8 @@ html.userpatch-maia .userpatch-trailer-frame > iframe {
       if (!href || !/^https?:$/.test(button.protocol)) {
         continue
       }
-      const variant = getButtonVariant(button)
+      const bypass = button.dataset.userpatchPixelDrainBypass === "true"
+      const variant = bypass ? "pixeldrain-bypass" : getButtonVariant(button)
       const theme = MIRROR_THEMES[variant] || MIRROR_THEMES.default
       button.classList.remove(
         "btn-danger",
@@ -2776,6 +2913,30 @@ html.userpatch-maia .userpatch-trailer-frame > iframe {
       })
       button.before(group)
       group.append(button, copyBtn)
+      const mirrorPath =
+        !bypass &&
+        variant === "pixeldrain" &&
+        getPixelDrainMirrorPath(button.href)
+      if (mirrorPath) {
+        void resolvePixelDrainMirror(mirrorPath).then((url) => {
+          if (!url || !group.isConnected) {
+            return
+          }
+          const mirror = document.createElement("a")
+          mirror.href = url
+          mirror.target = "_blank"
+          mirror.rel = "noopener noreferrer"
+          mirror.dataset.noSwup = ""
+          mirror.dataset.userpatchPixelDrainBypass = "true"
+          mirror.dataset.userpatchDirectMirror = "true"
+          mirror.className = "btn"
+          mirror.textContent = "PixelDrain Bypass"
+          const staging = document.createDocumentFragment()
+          staging.append(mirror)
+          wrapDownloadButtons(staging, { guide: false })
+          group.after(staging)
+        })
+      }
     }
     orderDownloadButtons(root)
     if (guide) {
@@ -4707,7 +4868,7 @@ html.userpatch-maia[data-userpatch-fetch-links] .userpatch-release-row > .userpa
   grid-row: 1;
 }
 html.userpatch-maia[data-userpatch-fetch-links] .userpatch-release-row > .userpatch-fetch-results {
-  grid-column: 1;
+  grid-column: 1 / -1;
   grid-row: 2;
   margin-block-start: 0.5rem;
 }

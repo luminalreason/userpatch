@@ -395,7 +395,7 @@ html.userpatch-maia[data-userpatch-fetch-links] .userpatch-release-row > .userpa
   grid-row: 1;
 }
 html.userpatch-maia[data-userpatch-fetch-links] .userpatch-release-row > .userpatch-fetch-results {
-  grid-column: 1;
+  grid-column: 1 / -1;
   grid-row: 2;
   margin-block-start: 0.5rem;
 }

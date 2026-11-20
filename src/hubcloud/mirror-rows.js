@@ -9,6 +9,10 @@ import {
 import { createTelegramIcon } from "./icons.js"
 import { createLucideIcon } from "./icons.js"
 import { ensureMirrorGuide } from "./mirror-guide.js"
+import {
+  getPixelDrainMirrorPath,
+  resolvePixelDrainMirror,
+} from "./pixeldrain.js"
 
 export const isWatchOnlineButton = (button) => {
   if (!button) {
@@ -38,6 +42,9 @@ export const cleanMirrorLabel = (text) => {
   }
   if (lower.includes("10gbps") || lower.includes("10 gbps")) {
     return "10Gbps Server"
+  }
+  if (lower === "pixeldrain bypass") {
+    return "PixelDrain Bypass"
   }
   if (lower.includes("pixel")) {
     return "PixelDrain"
@@ -152,7 +159,11 @@ export const MIRROR_THEMES = Object.freeze({
     color: "#ffffff",
   }),
   pixeldrain: Object.freeze({
-    bg: "#047857",
+    bg: "#065b45",
+    color: "#ffffff",
+  }),
+  "pixeldrain-bypass": Object.freeze({
+    bg: "#087557",
     color: "#ffffff",
   }),
   telegram: Object.freeze({
@@ -191,6 +202,7 @@ export const orderDownloadButtons = (root = document) => {
         "10gbps": 20,
         gofile: 25,
         pixeldrain: 30,
+        "pixeldrain-bypass": 31,
         telegram: 50,
       }[variant] || 40
     )
@@ -273,7 +285,8 @@ export const wrapDownloadButtons = (
       continue
     }
 
-    const variant = getButtonVariant(button)
+    const bypass = button.dataset.userpatchPixelDrainBypass === "true"
+    const variant = bypass ? "pixeldrain-bypass" : getButtonVariant(button)
     const theme = MIRROR_THEMES[variant] || MIRROR_THEMES.default
 
     button.classList.remove(
@@ -376,6 +389,31 @@ export const wrapDownloadButtons = (
 
     button.before(group)
     group.append(button, copyBtn)
+
+    const mirrorPath =
+      !bypass &&
+      variant === "pixeldrain" &&
+      getPixelDrainMirrorPath(button.href)
+    if (mirrorPath) {
+      void resolvePixelDrainMirror(mirrorPath).then((url) => {
+        if (!url || !group.isConnected) {
+          return
+        }
+        const mirror = document.createElement("a")
+        mirror.href = url
+        mirror.target = "_blank"
+        mirror.rel = "noopener noreferrer"
+        mirror.dataset.noSwup = ""
+        mirror.dataset.userpatchPixelDrainBypass = "true"
+        mirror.dataset.userpatchDirectMirror = "true"
+        mirror.className = "btn"
+        mirror.textContent = "PixelDrain Bypass"
+        const staging = document.createDocumentFragment()
+        staging.append(mirror)
+        wrapDownloadButtons(staging, { guide: false })
+        group.after(staging)
+      })
+    }
   }
 
   orderDownloadButtons(root)

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HDHub4u + HUBLinks Redesign
 // @namespace    https://github.com/luminalreason/userpatch
-// @version      0.4.2
+// @version      0.4.3
 // @description  Reworks HDHub4u and HUBLinks with a shared responsive, system-themed interface and clearer release links.
 // @author       luminalreason
 // @match        *://*/*
@@ -3321,7 +3321,7 @@ html.userpatch-maia .userpatch-season-chevron {
       <div class="userpatch-settings-row userpatch-settings-theme"><span>Theme</span></div>
     </div>
     <div class="userpatch-settings-footer">
-      <button type="button" class="userpatch-settings-button userpatch-clear-cache" aria-haspopup="dialog">Clear cache</button>
+      <button type="button" class="userpatch-settings-button userpatch-clear-cache" aria-haspopup="dialog">Reset settings</button>
     </div>
   `
     dialog
@@ -3329,10 +3329,11 @@ html.userpatch-maia .userpatch-season-chevron {
       .append(createLucideIcon$2("x", icons))
     const { trigger, picker } = createThemeSelect()
     dialog.querySelector(".userpatch-settings-theme").append(trigger, picker)
-    const addSwitch = (labelText, key, apply) => {
+    const addSwitch = (labelText, descriptionText, key, apply) => {
       const label = document.createElement("label")
       label.className = "userpatch-settings-row"
       const text = document.createElement("span")
+      text.id = `${key}-label`
       text.textContent = labelText
       const toggle = document.createElement("input")
       toggle.type = "checkbox"
@@ -3343,18 +3344,36 @@ html.userpatch-maia .userpatch-season-chevron {
         storageSet(key, toggle.checked ? "true" : null)
         apply(key)
       })
-      label.append(text, toggle)
+      if (descriptionText) {
+        const description = document.createElement("span")
+        description.id = `${key}-description`
+        description.className = "userpatch-settings-description"
+        description.textContent = descriptionText
+        const copy = document.createElement("span")
+        copy.append(text, description)
+        label.append(copy, toggle)
+        toggle.setAttribute("aria-describedby", description.id)
+      } else {
+        label.append(text, toggle)
+      }
+      toggle.setAttribute("aria-labelledby", text.id)
       dialog.querySelector(".userpatch-settings-fields").append(label)
     }
     if (shortEpisodeNamesKey) {
       addSwitch(
-        "Simplify single-episode filenames",
+        "Shorten episode filenames",
+        "",
         shortEpisodeNamesKey,
         applyEpisodeNameSetting
       )
     }
     if (fetchLinksKey && typeof GM_xmlhttpRequest === "function") {
-      addSwitch("Fetch links", fetchLinksKey, applyFetchLinksSetting)
+      addSwitch(
+        "Show links on this page",
+        "Use Show links to see download options without leaving the title page.",
+        fetchLinksKey,
+        applyFetchLinksSetting
+      )
     }
     const confirmation = document.createElement("dialog")
     confirmation.id = "userpatch-cache-confirmation"
@@ -3365,12 +3384,12 @@ html.userpatch-maia .userpatch-season-chevron {
     confirmation.setAttribute("aria-describedby", "userpatch-cache-description")
     confirmation.innerHTML = `
     <div class="userpatch-cache-header">
-      <h2 id="userpatch-cache-title">Clear cache?</h2>
-      <p id="userpatch-cache-description">Resets script settings and clears opened-link history and saved tabs and filters on this site.</p>
+      <h2 id="userpatch-cache-title">Reset settings?</h2>
+      <p id="userpatch-cache-description">Restore default settings and clear your opened-link history, saved tabs, and filters for this site.</p>
     </div>
     <form method="dialog" class="userpatch-settings-footer">
       <button class="userpatch-settings-button" type="submit" autofocus>Cancel</button>
-      <button class="userpatch-settings-button userpatch-settings-destructive" type="button">Clear cache</button>
+      <button class="userpatch-settings-button userpatch-settings-destructive" type="button">Reset settings</button>
     </form>
   `
     dialog
@@ -3511,6 +3530,13 @@ html.userpatch-maia .userpatch-settings-close svg {
 }
 html.userpatch-maia .userpatch-settings-close:hover {
   background: var(--maia-muted);
+}
+html.userpatch-maia .userpatch-settings-description {
+  display: block;
+  margin-block-start: 0.25rem;
+  color: var(--maia-muted-foreground);
+  font-size: 0.875rem;
+  line-height: 1.4;
 }
 html.userpatch-maia .userpatch-settings-fields {
   display: grid;

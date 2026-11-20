@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HubFamily Redesign
 // @namespace    https://github.com/luminalreason/userpatch
-// @version      0.5.0
+// @version      0.5.1
 // @description  A unified, responsive redesign for the Hub family, with consistent system-themed layouts, movie and series details, screenshot viewing, quality filters, and clearer download, share, and copy controls.
 // @author       luminalreason
 // @match        *://*/*
@@ -1204,6 +1204,7 @@ html.userpatch-maia .userpatch-season-chevron {
         ],
       ],
     }
+    const isEnabledByDefault = (key) => storageGet(key) !== "false"
     const syncShortNames = (enabled) => {
       document.documentElement.toggleAttribute(
         "data-userpatch-short-episodes",
@@ -1211,12 +1212,12 @@ html.userpatch-maia .userpatch-season-chevron {
       )
     }
     const applyEpisodeNameSetting = (key) => {
-      syncShortNames(storageGet(key) === "true")
+      syncShortNames(isEnabledByDefault(key))
     }
     const applyFetchLinksSetting = (key) => {
       document.documentElement.toggleAttribute(
         "data-userpatch-fetch-links",
-        typeof GM_xmlhttpRequest === "function" && storageGet(key) === "true"
+        typeof GM_xmlhttpRequest === "function" && isEnabledByDefault(key)
       )
     }
     const createThemeSelect = () => {
@@ -1383,9 +1384,9 @@ html.userpatch-maia .userpatch-season-chevron {
         toggle.type = "checkbox"
         toggle.className = "userpatch-settings-switch"
         toggle.setAttribute("role", "switch")
-        toggle.checked = storageGet(key) === "true"
+        toggle.checked = isEnabledByDefault(key)
         toggle.addEventListener("change", () => {
-          storageSet(key, toggle.checked ? "true" : null)
+          storageSet(key, String(toggle.checked))
           apply(key)
         })
         if (descriptionText) {
@@ -21945,6 +21946,7 @@ html.userpatch-maia .userpatch-season-chevron {
         ],
       ],
     }
+    const isEnabledByDefault = (key) => storageGet(key) !== "false"
     const syncShortNames = (enabled) => {
       document.documentElement.toggleAttribute(
         "data-userpatch-short-episodes",
@@ -21952,12 +21954,12 @@ html.userpatch-maia .userpatch-season-chevron {
       )
     }
     const applyEpisodeNameSetting = (key) => {
-      syncShortNames(storageGet(key) === "true")
+      syncShortNames(isEnabledByDefault(key))
     }
     const applyFetchLinksSetting = (key) => {
       document.documentElement.toggleAttribute(
         "data-userpatch-fetch-links",
-        typeof GM_xmlhttpRequest === "function" && storageGet(key) === "true"
+        typeof GM_xmlhttpRequest === "function" && isEnabledByDefault(key)
       )
     }
     const createThemeSelect = () => {
@@ -22124,9 +22126,9 @@ html.userpatch-maia .userpatch-season-chevron {
         toggle.type = "checkbox"
         toggle.className = "userpatch-settings-switch"
         toggle.setAttribute("role", "switch")
-        toggle.checked = storageGet(key) === "true"
+        toggle.checked = isEnabledByDefault(key)
         toggle.addEventListener("change", () => {
-          storageSet(key, toggle.checked ? "true" : null)
+          storageSet(key, String(toggle.checked))
           apply(key)
         })
         if (descriptionText) {

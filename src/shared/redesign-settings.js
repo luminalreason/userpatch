@@ -28,6 +28,8 @@ const icons = {
   ],
 }
 
+const isEnabledByDefault = (key) => storageGet(key) !== "false"
+
 const syncShortNames = (enabled) => {
   document.documentElement.toggleAttribute(
     "data-userpatch-short-episodes",
@@ -36,13 +38,13 @@ const syncShortNames = (enabled) => {
 }
 
 export const applyEpisodeNameSetting = (key) => {
-  syncShortNames(storageGet(key) === "true")
+  syncShortNames(isEnabledByDefault(key))
 }
 
 export const applyFetchLinksSetting = (key) => {
   document.documentElement.toggleAttribute(
     "data-userpatch-fetch-links",
-    typeof GM_xmlhttpRequest === "function" && storageGet(key) === "true"
+    typeof GM_xmlhttpRequest === "function" && isEnabledByDefault(key)
   )
 }
 
@@ -213,9 +215,9 @@ export const ensureSettings = ({
     toggle.type = "checkbox"
     toggle.className = "userpatch-settings-switch"
     toggle.setAttribute("role", "switch")
-    toggle.checked = storageGet(key) === "true"
+    toggle.checked = isEnabledByDefault(key)
     toggle.addEventListener("change", () => {
-      storageSet(key, toggle.checked ? "true" : null)
+      storageSet(key, String(toggle.checked))
       apply(key)
     })
     if (descriptionText) {

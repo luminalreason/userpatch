@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         4K-HDHub Redesign
 // @namespace    https://github.com/luminalreason/userpatch
-// @version      0.6.0
+// @version      0.6.1
 // @description  Reworks 4K-HDHub with a responsive, system-themed interface, site search, saved season and quality filters, and readable video and audio badges.
 // @author       luminalreason
 // @match        *://4khdhub.one/*
@@ -1051,6 +1051,7 @@ html.userpatch-maia .userpatch-season-chevron {
       ],
     ],
   }
+  const isEnabledByDefault = (key) => storageGet(key) !== "false"
   const syncShortNames = (enabled) => {
     document.documentElement.toggleAttribute(
       "data-userpatch-short-episodes",
@@ -1058,12 +1059,12 @@ html.userpatch-maia .userpatch-season-chevron {
     )
   }
   const applyEpisodeNameSetting = (key) => {
-    syncShortNames(storageGet(key) === "true")
+    syncShortNames(isEnabledByDefault(key))
   }
   const applyFetchLinksSetting = (key) => {
     document.documentElement.toggleAttribute(
       "data-userpatch-fetch-links",
-      typeof GM_xmlhttpRequest === "function" && storageGet(key) === "true"
+      typeof GM_xmlhttpRequest === "function" && isEnabledByDefault(key)
     )
   }
   const createThemeSelect = () => {
@@ -1230,9 +1231,9 @@ html.userpatch-maia .userpatch-season-chevron {
       toggle.type = "checkbox"
       toggle.className = "userpatch-settings-switch"
       toggle.setAttribute("role", "switch")
-      toggle.checked = storageGet(key) === "true"
+      toggle.checked = isEnabledByDefault(key)
       toggle.addEventListener("change", () => {
-        storageSet(key, toggle.checked ? "true" : null)
+        storageSet(key, String(toggle.checked))
         apply(key)
       })
       if (descriptionText) {
